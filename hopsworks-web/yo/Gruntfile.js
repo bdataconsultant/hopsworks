@@ -48,6 +48,10 @@
 
 module.exports = function (grunt) {
 
+  grunt.loadNpmTasks('grunt-connect-proxy');
+  var connectStatic =  require("serve-static");
+  var proxySnippet = require('grunt-connect-proxy/lib/utils').proxyRequest;
+
   // Load grunt tasks automatically
   require('load-grunt-tasks')(grunt);
 
@@ -103,17 +107,30 @@ module.exports = function (grunt) {
     // The actual grunt server settings
     connect: {
       options: {
-        port: 9000,
+        port: 4000,
         // Change this to '0.0.0.0' to access the server from outside.
-        hostname: 'localhost',
+        hostname: '127.0.0.1',
         livereload: 35729
       },
+      proxies: [
+        {
+          context: '/giotto-api',
+          host: '10.207.235.122',
+          port: 8080
+        },
+        {
+          context: '/filemanager',
+          host: '10.207.235.122',
+          port: 8080
+        }
+      ],
       livereload: {
         options: {
           open: true,
           middleware: function (connect) {
             return [
-              connect.static('.tmp'),
+              proxySnippet,
+              connectStatic('.tmp'),
               connect().use(
                       '/bower_components',
                       connect.static('./bower_components')
@@ -461,6 +478,7 @@ module.exports = function (grunt) {
      // 'wiredep',
       'concurrent:server',
       'autoprefixer:server',
+      'configureProxies:server',
       'connect:livereload',
       'watch'
     ]);
