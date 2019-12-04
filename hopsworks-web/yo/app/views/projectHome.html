@@ -1,0 +1,56 @@
+<!-- Displays the defined jobs in the current project -->
+<div ng-controller="MainCtrl as mainCtrl" ng-cloak>
+        <div ng-include="'nav.html'"></div>
+      
+        <div id="wrapper" class="toggled" ng-controller="JobsCtrl as jobsCtrl">
+          <div class="overlay"></div>
+      
+          <div ng-include="'navProject.html'"></div>
+          <div class="job-content-wrapper">
+            <h3 id="projectBread" style="display: none;">
+              {{ projectCtrl.currentProject.projectName}} / home
+            </h3>
+          </div>
+          <!-- Page Content -->
+          <div class="content" style="height:100%; overflow: hidden">
+            <div class="row rg-row-top" r-directions="['bottom']">
+              <h3>{{ projectCtrl.currentProject.projectName }}</h3>
+              <div class="col-md-6">
+                <div class="card">
+                  <div class="card-title">
+                    <p>Jobs</p>
+                  </div>
+                  <div class="card-body">
+                    <p>Total: {{ jobsCtrl.jobs.length }}</p>
+                    <p>Active: {{ jobsCtrl.jobs.length }}</p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="card">
+                  <div class="card-title">
+                    <p>Jobs</p>
+                  </div>
+                  <div class="card-body">
+                    <p>Total</p>
+                    <p>Active</p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="card">
+                  <div class="card-title">
+                    <h2>Jobs</h2>
+                  </div>
+                  <div class="card-body">
+                    <p>Total</p>
+                    <p>Active</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- End Page Content -->
+        </div>
+      </div>
+      
