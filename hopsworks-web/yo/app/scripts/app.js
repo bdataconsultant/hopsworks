@@ -122,10 +122,10 @@ angular.module('hopsWorksApp', [
                           }]
                       }
                     })
-                    .when('/project/:projectID/defaultPage', {
-                      templateUrl: 'views/defaultPage.html',
-                      controller: 'ProjectCtrl as projectCtrl',
-                    })
+                    // .when('/project/:projectID/defaultPage', {
+                    //   templateUrl: 'views/defaultPage.html',
+                    //   controller: 'ProjectCtrl as projectCtrl',
+                    // })
                     .when('/delahopsDataset', {
                       templateUrl: 'views/delahopsDataset.html',
                       controller: 'HopsDatasetCtrl as publicDataset',

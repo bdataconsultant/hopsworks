@@ -335,6 +335,14 @@ angular.module('hopsWorksApp')
               }
             };
 
+            // // TODO define default presentation main page 
+            // self.goToDefaultPage = function () {
+            //   console.log("GO TO DEFAULT PAGE")
+            //   self.goToUrl('');
+            //   // window.location.pathname = '/defaultPage'
+            //   console.log("ARRIVE TO DEFAULT PAGE")
+            // }
+
             self.goToJupyter = function () {
               // Check which instance of Hopsworks is running Jupyter
               // If that instance is running, URL redirect to that instance
