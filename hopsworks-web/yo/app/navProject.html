@@ -42,7 +42,7 @@
 
     <ul class="nav sidebar-nav" ng-cloak ng-controller="ClusterUtilisationCtrl as clusterUtilCtrl">
 
-      <li style="background: #1a1a1a;">
+      <li>
         <a href="#!/project/{{projectCtrl.currentProject.projectId}}" class="text-center" 
            title="{{projectCtrl.currentProject.projectName.length > 17 ? projectCtrl.currentProject.projectName:''}}">
           {{ projectCtrl.currentProject.projectName | limitTo: 17 }}{{projectCtrl.currentProject.projectName.length > 17
@@ -61,10 +61,20 @@
         </a>
       </li>
 
+      <li style="margin-top:0px; margin-bottom:0px;" ng-show="projectCtrl.cloak" id="datasetsTab">
+        <a href="#!/project/{{projectCtrl.currentProject.projectId}}">
+          Audit <img class="pull-right" style="margin-right:5px" width="30" src="images/audit.svg" id="jupyterTab"/>
+          <i class=" pull-left fa " 
+              uib-tooltip="Orange triangle: the filesystem is encountering problems. Red means the filesystem is down."                          
+              tooltip-placement="auto right"
+            ng-class="{'fa-ban text-danger': clusterUtilCtrl.HdfsBan, 'fa-exclamation-triangle text-warning': clusterUtilCtrl.HdfsWarn }" aria-hidden="true" style="margin-top: 3px"></i>                              
+        </a>
+      </li>
+
       <li ng-click="projectCtrl.goToJobs()" ng-show="projectCtrl.showJobs()" id="jobsTab">
         <a>
-          Jobs <span class="sub_icon fa fa-cogs fa-lg pull-right"></span>
-          <i class=" pull-left fa " 
+          Jobs <img class="pull-right" style="margin-right:5px" width="30" src="images/jobs.svg" id="jupyterTab"/>
+            <i class=" pull-left fa " 
              uib-tooltip="Orange triangle: jobs are encountering problems. Red means Jobs cannot be run just now."              
              tooltip-placement="auto right"
              ng-class="{'fa-ban text-danger': clusterUtilCtrl.YarnBan, 'fa-exclamation-triangle text-warning': clusterUtilCtrl.YarnWarn }" aria-hidden="true" style="margin-top: 3px"></i>                    
@@ -74,26 +84,26 @@
       <li ng-click="projectCtrl.goToKafka()"
           ng-show="projectCtrl.showKafka()">
         <a>
-          Kafka <img class="pull-right" style="margin-right:15px" height="25" src="images/kafka_logo.png" id="kafkaTab"/>
+          Kafka <img class="pull-right" style="margin-right:15px" height="25" src="images/kafka.svg" id="kafkaTab"/>
           <i class=" pull-left fa " 
              uib-tooltip="Orange triangle: Kafka is encountering problems. Red means Kafka is down."             
              tooltip-placement="auto right"
              ng-class="{'fa-ban text-danger': clusterUtilCtrl.KafkaBan, 'fa-exclamation-triangle text-warning': clusterUtilCtrl.KafkaWarn }" aria-hidden="true" style="margin-top: 3px"></i>                    
         </a>
       </li>
-      <li ng-click="projectCtrl.goToService('DELA')" ng-show="projectCtrl.showDela()">
+      <!-- <li ng-click="projectCtrl.goToService('DELA')" ng-show="projectCtrl.showDela()">
         <a>
           Dela<img class="pull-right" style="margin-right:15px" height="25" src="images/dela-green.png">
         </a>
-      </li>
+      </li> -->
 
-      <li ng-click="projectCtrl.goToTensorflow()" ng-show="projectCtrl.showTensorflow()">
+      <!-- <li ng-click="projectCtrl.goToTensorflow()" ng-show="projectCtrl.showTensorflow()">
         <a>
           Tensorflow
           <img ng-show="projectCtrl.activeService !== 'tensorflow'" class="pull-right" style="margin-left:10px" height="25" src="images/tf-175x200_bw.png"/>
           <img ng-show="projectCtrl.activeService === 'tensorflow'" class="pull-right" style="margin-left:10px" height="25" src="images/tf-175x200.png"/>
         </a>
-      </li>
+      </li> -->
 
 
       <li ng-click="projectCtrl.goToRStudio()" ng-show="projectCtrl.showRStudio()">
@@ -102,38 +112,38 @@
         </a>
       </li>
 
-      <li ng-click="projectCtrl.goToTfServing()" ng-show="projectCtrl.showTfServing()" id="servingTab">
+      <!-- <li ng-click="projectCtrl.goToTfServing()" ng-show="projectCtrl.showTfServing()" id="servingTab">
         <a class="left-right">
           Model Serving
           <img class="pull-right" style="margin-right:10px" height="25" src="images/tf-175x200_bw.png"/>
         </a>
-      </li>
+      </li> -->
 
-      <li ng-click="projectCtrl.goToExperiments()" ng-show="projectCtrl.showExperiments()" id="experimentsTab">
+      <!-- <li ng-click="projectCtrl.goToExperiments()" ng-show="projectCtrl.showExperiments()" id="experimentsTab">
         <a>
           Experiments<img class="pull-right" style="margin-right:8px" height="27" src="images/experiments.png"/>
         </a>
-      </li>
+      </li> -->
 
       <li ng-click="projectCtrl.goToAirflow()" ng-show="projectCtrl.showAirflow()">
         <a>
-          Airflow
+          &nbspAirflow
           <img ng-show="projectCtrl.activeService !== 'airflow'" class="pull-right" style="margin-left:10px; margin-right:10px" height="25"
-               src="images/airflow-200x198-bw.png"/>
-          <img ng-show="projectCtrl.activeService === 'airflow'" class="pull-right" style="margin-left:10px; margin-right:10px" height="25"
-               src="images/airflow-200x198.png"/>
+              src="images/airflow.svg"/>
+          <!-- <img ng-show="projectCtrl.activeService === 'airflow'" class="pull-right" style="margin-left:10px; margin-right:10px" height="25"
+               src="images/airflow-200x198.png"/> -->
         </a>
       </li>
 
-      <li ng-click="projectCtrl.goToFeaturestore()" ng-show="projectCtrl.showFeaturestore()" id="featurestoreTab">
+      <!-- <li ng-click="projectCtrl.goToFeaturestore()" ng-show="projectCtrl.showFeaturestore()" id="featurestoreTab">
         <a>
           Feature Store<span class="sub_icon fa fa-database fa-lg pull-right"></span>
         </a>
-      </li>
+      </li> -->
       
-      <li ng-click="projectCtrl.goToDatasets()" style="margin-top:20px; margin-bottom:20px;" ng-show="projectCtrl.cloak" id="datasetsTab">
+      <li ng-click="projectCtrl.goToDatasets()" style="margin-top:0px; margin-bottom:0px;" ng-show="projectCtrl.cloak" id="datasetsTab">
         <a>
-          Data Sets <span class="sub_icon fa fa-folder-open fa-lg pull-right"></span>
+          Data Sets <img class="pull-right" style="margin-right:5px" width="30" src="images/datasets.svg"/>
           <i class=" pull-left fa " 
              uib-tooltip="Orange triangle: the filesystem is encountering problems. Red means the filesystem is down."                          
              tooltip-placement="auto right"
@@ -143,7 +153,7 @@
 
       <li ng-click="projectCtrl.goToSettings()" ng-show="projectCtrl.cloak">
         <a>
-          Settings<span class="sub_icon fa fa-dashboard fa-lg pull-right" id="settingsTab"></span>
+          &nbspSettings <img class="pull-right" style="margin-right:5px" width="30" src="images/settings.svg" id="settingsTab"/>
         </a>
       </li>
 
