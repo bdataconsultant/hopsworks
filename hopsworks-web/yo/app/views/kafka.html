@@ -133,7 +133,7 @@
                           <th class="col-sm-1">Edit</th>
                         </tr>
                       </thead>
-                      <tr ng-repeat="acl in row.acls" class="td {padding-top: 10px; padding-bottom:10px}">
+                      <tr ng-repeat="acl in row.acls" ng-show="acl.userEmail !== 'serving@hopsworks.se'" class="td {padding-top: 10px; padding-bottom:10px}">
                         <td ng-if="kafkaCtrl.activeId === -1">{{acl.projectName}}</td>
                         <td ng-if="kafkaCtrl.activeId === acl.id" >
                       <ui-select style="min-width: 100px;" name="project_name" theme="select2"
