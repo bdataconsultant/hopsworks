@@ -36,7 +36,7 @@
                 >
                     <h2 style="margin-bottom: 30px; color:#555" id="featuregroupsHeading">
                         Feature Groups
-                        <button type="button" ng-click="featurestoreCtrl.showCreateFeaturegroupForm()"
+                        <!-- <button type="button" ng-click="featurestoreCtrl.showCreateFeaturegroupForm()"
                                 class="btn btn-default btn-success control-label pull-right"
                                 uib-tooltip="Create new Feature Group"
                                 id="createNewFg"
@@ -44,7 +44,7 @@
                             Create New Feature Group
                             <i style="margin-left: 10px" class="glyphicon glyphicon-plus">
                             </i>
-                        </button>
+                        </button> -->
                     </h2>
 
                     <h3 class="text-muted" style="text-align: center;"
@@ -222,7 +222,7 @@
                     <h2 style="margin-bottom: 30px; color:#555">
                         Training Datasets
 
-                        <button type="button" ng-click="featurestoreCtrl.showCreateTrainingDatasetForm()"
+                        <!-- <button type="button" ng-click="featurestoreCtrl.showCreateTrainingDatasetForm()"
                                 class="btn btn-default btn-success control-label pull-right"
                                 uib-tooltip="Create new Training Dataset"
                                 id="createNewTd"
@@ -230,12 +230,23 @@
                             Create New Training Dataset
                             <i style="margin-left: 10px" class="glyphicon glyphicon-plus">
                             </i>
-                        </button>
+                        </button> -->
                     </h2>
 
                     <h3 class="text-muted" style="text-align: center;"
                         ng-show="featurestoreCtrl.trainingDatasetsDictList.length < 1">
                         No Training Datasets to show
+                        <!-- ADD HERE -->
+                          <br/><br/>
+                          <button type="button" ng-click="featurestoreCtrl.showCreateTrainingDatasetForm()"
+                                  class="btn btn-default btn-success control-label" style="margin-bottom: 10px"
+                                  uib-tooltip="Create new training dataset" ,
+                                  id="createNewTd"
+                          >
+                              Create New Training Dataset<i style="margin-left: 10px"
+                                                          class="glyphicon glyphicon-plus">
+                          </i>
+                        </button>
                     </h3>
 
                     <div class="row form-inline" ng-show="featurestoreCtrl.trainingDatasetsDictList.length > 0">
@@ -261,6 +272,18 @@
                                 </label>
                             </div>
                         </div>
+                        <!-- ADD HERE -->
+                        <div class="col-sm-6 col-md-6 col-lg-6 form-group">
+                            <button style="margin-left: 65%" type="button" ng-click="featurestoreCtrl.showCreateTrainingDatasetForm()"
+                                    class="btn btn-default btn-success control-label" style="margin-bottom: 10px"
+                                    uib-tooltip="Create new training dataset" ,
+                                    id="createNewTd"
+                            >
+                                Create New Training Dataset<i style="margin-left: 10px"
+                                                            class="glyphicon glyphicon-plus">
+                            </i>
+                            </button>
+                        </div> 
                     </div>
 
                     <table class="table table-hover" ng-show="featurestoreCtrl.trainingDatasetsDictList.length > 0">
