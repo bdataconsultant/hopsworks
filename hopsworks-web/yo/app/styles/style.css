@@ -103,13 +103,13 @@ a:focus {
 }
 
 .panel-filter > .panel-heading {
-  background-color: #2e353d;
+  background-color: #337ab7;
   color: #fff;
   height: 43px;
   border-radius: 0;
 }
 .panel-filter > .panel-footer {
-  background-color: #2e353d;
+  background-color: #337ab7;
   color: #fff;
   height: 43px;
   padding: 0 20px 0 5px;
@@ -140,7 +140,7 @@ a:focus {
   content:"\e080";
 }
 .modal-header {
-  background-color:  #2e353d;
+  background-color: #337ab7;
   color: #ffffff;
 }
 
@@ -172,7 +172,7 @@ a:focus {
 
 /* Project list in home */
 .pager {
-  background-color: #2e353d;
+  background-color: #337ab7;
   margin:0px;
 }
 
@@ -219,7 +219,7 @@ a:focus {
 }
 
 .datasetList > li:hover {
-  /* background-color: #2e353d; */
+  /*  background-color: #337ab7;*/
 }
 
 #deleteTemplateIcon{
@@ -273,7 +273,7 @@ div.scroll > ul > li > textarea {
 
 /* editable link (edit in place) style */
 .editable-controls .editable-input { 
-  color: #2e353d;
+  color: #337ab7;
 }
 
 .glyphicon-info-sign {
@@ -367,7 +367,7 @@ div.scroll > ul > li > textarea {
 #gettingStaredSection .btn-default { 
   color: #FFFFFF; 
   background-color: #4CAE4C; 
-  border-color: #2E353D; 
+  border-color: #337ab7; 
 } 
 
 #gettingStaredSection .btn-default:hover, 
@@ -402,7 +402,7 @@ fieldset[disabled] .btn-default:active,
 #gettingStaredSection .btn-default[disabled].active, 
 fieldset[disabled] .btn-default.active { 
   background-color: #4CAE4C; 
-  border-color: #2E353D; 
+  border-color: #337ab7; 
 } 
 
 #gettingStaredSection .btn-default .badge { 
@@ -413,7 +413,7 @@ fieldset[disabled] .btn-default.active {
 #tourColumn .btn-danger { 
   color: #FFFFFF; 
   background-color: #BD1B1B; 
-  border-color: #2E353D; 
+  border-color: #337ab7; 
 } 
 
 #tourColumn .btn-danger:hover, 

@@ -237,6 +237,10 @@
   font-size: 14px;
 }
 
+.menu-item:hover{
+  cursor: pointer;
+}
+
 #filemgr .dropdown-menu > li > a {
   padding: 6px 20px;
 }
