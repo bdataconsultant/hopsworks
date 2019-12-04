@@ -42,7 +42,7 @@
 
     <ul class="nav sidebar-nav" ng-cloak ng-controller="ClusterUtilisationCtrl as clusterUtilCtrl">
 
-      <li ng-click="projectCtrl.goToDefaultPage()">
+      <li ng-click="projectCtrl.goToUrl('')">
         <a class="text-center">
           {{ projectCtrl.currentProject.projectName | limitTo: 17 }}{{projectCtrl.currentProject.projectName.length > 17
           ? '...' : ''}}
