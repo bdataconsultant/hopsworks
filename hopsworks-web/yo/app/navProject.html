@@ -42,8 +42,8 @@
 
     <ul class="nav sidebar-nav" ng-cloak ng-controller="ClusterUtilisationCtrl as clusterUtilCtrl">
 
-      <li>
-        <a href="#!/project/{{projectCtrl.currentProject.projectId}}" class="text-center" 
+      <li ng-click="projectCtrl.goToDefaultPage()">
+        <a class="text-center" 
            title="{{projectCtrl.currentProject.projectName.length > 17 ? projectCtrl.currentProject.projectName:''}}">
           {{ projectCtrl.currentProject.projectName | limitTo: 17 }}{{projectCtrl.currentProject.projectName.length > 17
           ? '...' : ''}}
@@ -91,19 +91,19 @@
              ng-class="{'fa-ban text-danger': clusterUtilCtrl.KafkaBan, 'fa-exclamation-triangle text-warning': clusterUtilCtrl.KafkaWarn }" aria-hidden="true" style="margin-top: 3px"></i>                    
         </a>
       </li>
-      <!-- <li ng-click="projectCtrl.goToService('DELA')" ng-show="projectCtrl.showDela()">
+      <li ng-click="projectCtrl.goToService('DELA')" ng-show="projectCtrl.showDela()">
         <a>
           Dela<img class="pull-right" style="margin-right:15px" height="25" src="images/dela-green.png">
         </a>
-      </li> -->
+      </li>
 
-      <!-- <li ng-click="projectCtrl.goToTensorflow()" ng-show="projectCtrl.showTensorflow()">
+      <li ng-click="projectCtrl.goToTensorflow()" ng-show="projectCtrl.showTensorflow()">
         <a>
           Tensorflow
           <img ng-show="projectCtrl.activeService !== 'tensorflow'" class="pull-right" style="margin-left:10px" height="25" src="images/tf-175x200_bw.png"/>
           <img ng-show="projectCtrl.activeService === 'tensorflow'" class="pull-right" style="margin-left:10px" height="25" src="images/tf-175x200.png"/>
         </a>
-      </li> -->
+      </li>
 
 
       <li ng-click="projectCtrl.goToRStudio()" ng-show="projectCtrl.showRStudio()">
@@ -112,12 +112,12 @@
         </a>
       </li>
 
-      <!-- <li ng-click="projectCtrl.goToTfServing()" ng-show="projectCtrl.showTfServing()" id="servingTab">
+      <li ng-click="projectCtrl.goToTfServing()" ng-show="projectCtrl.showTfServing()" id="servingTab">
         <a class="left-right">
-          Model Serving
+          &nbspModel Serving
           <img class="pull-right" style="margin-right:10px" height="25" src="images/tf-175x200_bw.png"/>
         </a>
-      </li> -->
+      </li>
 
       <!-- <li ng-click="projectCtrl.goToExperiments()" ng-show="projectCtrl.showExperiments()" id="experimentsTab">
         <a>
@@ -135,11 +135,11 @@
         </a>
       </li>
 
-      <!-- <li ng-click="projectCtrl.goToFeaturestore()" ng-show="projectCtrl.showFeaturestore()" id="featurestoreTab">
+      <li ng-click="projectCtrl.goToFeaturestore()" ng-show="projectCtrl.showFeaturestore()" id="featurestoreTab">
         <a>
-          Feature Store<span class="sub_icon fa fa-database fa-lg pull-right"></span>
+          &nbspFeature Store <img class="pull-right" style="margin-right:5px" width="30" src="images/featurestore.svg" id="jupyterTab"/>
         </a>
-      </li> -->
+      </li>
       
       <li ng-click="projectCtrl.goToDatasets()" style="margin-top:0px; margin-bottom:0px;" ng-show="projectCtrl.cloak" id="datasetsTab">
         <a>
@@ -159,22 +159,22 @@
 
       <li ng-click="projectCtrl.goToPython()" ng-show="projectCtrl.cloak" id="pythonTab">
         <a>
-          Python<img class="pull-right" style="margin-right:13px" height="23" src="images/python_logo.png"/>
+          &nbspPython&nbsp&nbsp&nbsp<img class="pull-right" style="margin-right:13px" height="23" src="images/python_logo.png"/>
         </a>
       </li>
 
       <li ng-click="projectCtrl.membersModal()" ng-show="projectCtrl.cloak">
         <a>
-          Members<span class="sub_icon fa fa-users fa-lg pull-right"></span>
+          &nbspMembers&nbsp&nbsp<span class="sub_icon fa fa-users fa-lg pull-right"></span>
         </a>
       </li>
 
-      <li ng-click="projectCtrl.goToMetadataDesigner()" ng-show="projectCtrl.role === 'Data owner'" ng-show="projectCtrl.cloak">
+      <!-- <li ng-click="projectCtrl.goToMetadataDesigner()" ng-show="projectCtrl.role === 'Data owner'" ng-show="projectCtrl.cloak">
         <a>
           Metadata Designer<span
             class="sub_icon fa fa-edit fa-lg pull-right"></span>
         </a>
-      </li>
+      </li> -->
       <br>
       <div>
         <div class="sidebar-nav-static">
