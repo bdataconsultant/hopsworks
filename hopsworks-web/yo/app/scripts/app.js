@@ -584,10 +584,13 @@ angular.module('hopsWorksApp', [
         }])
         .filter('formatDate', ['$filter', function() {
             return function(input) {
-                return input instanceof Date ?
-                    input.toISOString().substring(0, 19).replace('T', ' ') :
-                    (input.toLocaleString || input.toString).apply(input);
-            };
+              if(input instanceof Date) {
+                return input.toISOString().substring(0, 19).replace('T', ' ');
+              } else {
+                var date = new Date(input);
+                return date.toISOString().substring(0, 19).replace('T', ' ');
+              }
+            }
         }])
         .filter('humanReadableFileSize', ['$filter', 'fileManagerConfig', function($filter, fileManagerConfig) {
           // See https://en.wikipedia.org/wiki/Binary_prefix
