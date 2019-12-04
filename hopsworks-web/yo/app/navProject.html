@@ -134,11 +134,11 @@
         </a>
       </li>
 
-      <li ng-click="projectCtrl.goToFeaturestore()" ng-show="projectCtrl.showFeaturestore()" id="featurestoreTab">
+      <!-- <li ng-click="projectCtrl.goToFeaturestore()" ng-show="projectCtrl.showFeaturestore()" id="featurestoreTab">
         <a>
           &nbspFeature Store <img class="pull-right" style="margin-right:5px" width="30" src="images/featurestore.svg" id="jupyterTab"/>
         </a>
-      </li>
+      </li> -->
       
       <li ng-click="projectCtrl.goToDatasets()" style="margin-top:0px; margin-bottom:0px;" ng-show="projectCtrl.cloak" id="datasetsTab">
         <a>
@@ -256,7 +256,7 @@
     tourtip-offset-vertical="-18"
     tourtip-offset-horizontal="-13"
     ></virtual-step>
-  <virtual-step
+  <!-- <virtual-step
           ng-if="projectCtrl.tourService.activeTour === 'featurestore' && projectCtrl.tourService.currentStep_TourNine === -1"
           id="TourTwo"
           class="ng-scope"
@@ -268,7 +268,7 @@
           on-proceed="projectCtrl.goToFeaturestore()"
           tourtip-offset-vertical="-18"
           tourtip-offset-horizontal="-13"
-  ></virtual-step>
+  ></virtual-step> -->
 </tour>
 
 <tour class="ng-scope" step="projectCtrl.tourService.currentStep_TourNine"
@@ -276,7 +276,7 @@
       ng-if="projectCtrl.loadedView && projectCtrl.loadedProjectData
                   && (projectCtrl.tourService.informAndTips
                           || projectCtrl.tourService.tipsOnly)">
-  <virtual-step
+  <!-- <virtual-step
           ng-if="projectCtrl.tourService.activeTour === 'featurestore'"
           id="TourTwo"
           class="ng-scope"
@@ -288,5 +288,5 @@
           on-proceed="projectCtrl.goToJobs()"
           tourtip-offset-vertical="-18"
           tourtip-offset-horizontal="-13"
-  ></virtual-step>
+  ></virtual-step> -->
 </tour>
