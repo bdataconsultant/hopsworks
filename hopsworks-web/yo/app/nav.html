@@ -53,12 +53,12 @@
         <a class="navbar-brand" href="#home" style="font-family: Lobster; font-size: 30px; color: #fff;">Hopsworks
           <img alt="hops icon" class="pull-right" style="margin-left:10px;" width="25" src="images/hops.png"/>
         </a>
-        <div class="input-group" ng-show="showHamburger">
+        <!-- <div class="input-group" ng-show="showHamburger">
           <button type="button" class="hamburger is-open" style="color:white;" data-toggle="offcanvas" ng-click="projectCtrl.isClosed = !projectCtrl.isClosed">
             <span class="hamb-top"></span>
             <span class="hamb-middle"></span>
             <span class="hamb-bottom"></span>
-          </button>
+          </button> -->
         </div>
       </div>
     </div>
@@ -70,10 +70,11 @@
               {{mainCtrl.email}} <b class="caret"></b>
             </a>
             <ul class="dropdown-menu">
-              <li ng-show="mainCtrl.isAdmin() === 'true'">
-                <a ng-click="mainCtrl.goToAdminPage()"><i class="fa fa-user-secret"></i> Admin</a></li>
+              <li class="menu-item" ng-show="mainCtrl.isAdmin() === 'true'">
+                <a ng-click="mainCtrl.goToAdminPage()"><img src="images/admin.svg"></img> Admin</a></li>
+              <li class="menu-item"><a ng-click="mainCtrl.profileModal()"><img src="images/accountSettings.svg"></img> Account</a></li>
               <li><a href="#!/settings"><i class="fa fa-cog"></i> Settings</a></li>
-              <li><a href="#!/" ng-click="mainCtrl.logout()"><i class="fa fa-sign-out"></i> Sign out</a></li>
+              <li><a href="#!/" ng-click="mainCtrl.logout()"><img src="images/signout.svg"></img> Sign out</a></li>
             </ul>
           </li>
         </ul>
