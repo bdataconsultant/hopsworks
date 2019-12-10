@@ -53,10 +53,10 @@
         <a class="alert-link" data-dismiss="alert" ng-click="mainCtrl.profileModal()" aria-label="Profile">Change now.</a>
       </p>
     </div>
-    <div ng-include="'views/toursPanel.html'" ng-cloak=""></div>
+    <!-- <div ng-include="'views/toursPanel.html'" ng-cloak=""></div> -->
     <div ng-include="'views/projectsPanel.html'" ng-cloak=""></div>
   </div>
-  <tour class="ng-scope" step="homeCtrl.tourService.currentStep_TourOne" post-tour="closeTour()" ng-if="homeCtrl.loadedView">
+  <!-- <tour class="ng-scope" step="homeCtrl.tourService.currentStep_TourOne" post-tour="closeTour()" ng-if="homeCtrl.loadedView">
     <virtual-step
       class="ng-scope"
       tourtip="Begin the tour by clicking Next, OR when {{homeCtrl.tourService.alive_TourOne}} seconds passed, click on the project"
@@ -85,5 +85,5 @@
             on-proceed="homeCtrl.disableInformBalloon()"
             tourtip-offset-horizontal="50"
     ></virtual-step>
-  </tour>
+  </tour> -->
 </div>

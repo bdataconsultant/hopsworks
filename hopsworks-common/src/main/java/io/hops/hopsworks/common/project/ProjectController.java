@@ -2612,7 +2612,7 @@ public class ProjectController {
       messageController.send(user, userFacade.findByEmail(settings.getAdminEmail()), "Certificate Info", "",
           "An email was sent with the password for your project's certificates. If an email does not arrive shortly, "
           + "please check spam first and then contact the administrator.", "");
-      emailBean.sendEmail(user.getEmail(), Message.RecipientType.TO, "Hopsworks certificate information",
+      emailBean.sendEmail(user.getEmail(), Message.RecipientType.TO, "Giotto certificate information",
           "The password for keystore and truststore is:" + accessCredentials.getPassword());
       return new CertsDTO("jks", accessCredentials.getkStore(), accessCredentials.gettStore());
     } catch (Exception ex) {

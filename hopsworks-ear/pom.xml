@@ -73,7 +73,7 @@
         </configuration>
       </plugin>
     </plugins>
-    <finalName>hopsworks-ear</finalName>
+    <finalName>giotto-ear</finalName>
   </build>
   <dependencies>
     <dependency>

@@ -51,17 +51,17 @@ public class UserAccountsEmailMessages {
    * Subject of account request
    */
   public final static String ACCOUNT_REQUEST_SUBJECT
-          = "Your Hopsworks account needs verification";
+          = "Your Giotto account needs verification";
   /*
    * Subject of cluster request
    */
-  public final static String CLUSTER_REQUEST_SUBJECT = "Your Hopsworks cluster needs verification";
+  public final static String CLUSTER_REQUEST_SUBJECT = "Your Giotto cluster needs verification";
 
   /*
    * Subject of account activation email
    */
   public final static String ACCOUNT_CONFIRMATION_SUBJECT
-          = "Welcome to Hopsworks!";
+          = "Welcome to Giotto!";
 
   /*
    * Subject of device lost
@@ -106,7 +106,7 @@ public class UserAccountsEmailMessages {
    * Subject of rejected accounts
    */
   public final static String ACCOUNT_REJECT
-          = "Your Hopsworks account request has been rejected";
+          = "Your Giotto account request has been rejected";
 
   /*
    * Default accpount acitvation period
@@ -118,7 +118,7 @@ public class UserAccountsEmailMessages {
   /*
    * Account deactivation
    */
-  public final static String ACCOUNT_DEACTIVATED = "Your Hopsworks account has expired";
+  public final static String ACCOUNT_DEACTIVATED = "Your Giotto account has expired";
   
   public final static String API_KEY_CREATED_SUBJECT = "Api key created";
   public final static String API_KEY_DELETED_SUBJECT = "Api key deleted";
@@ -136,14 +136,14 @@ public class UserAccountsEmailMessages {
     String message;
 
     String l1 = GREETINGS_HEADER + ",\n\n"
-            + "We received an account request for HopsWorks on your behalf.\n\n";
+            + "We received an account request for Giotto on your behalf.\n\n";
     String l2
             = "Please click on the following link to verify your email address. We"
             + " will activate your account within "
             + ACCOUNT_ACTIVATION_PERIOD
             + " hours after validating your email address.\n\n\n";
 
-    String url = path + "/hopsworks-admin/security/validate_account.xhtml?key=" + key;
+    String url = path + "/giotto-admin/security/validate_account.xhtml?key=" + key;
 
     String l3 = "To confirm your email click " + url + " \n\n";
     String l4 = "If you have any questions please contact "
@@ -165,7 +165,7 @@ public class UserAccountsEmailMessages {
 
     String message;
 
-    String l1 = GREETINGS_HEADER + ",\n\n" + "We received an account request for Hopsworks on your behalf.\n\n";
+    String l1 = GREETINGS_HEADER + ",\n\n" + "We received an account request for Giotto on your behalf.\n\n";
     String l2 = "Please click on the following link to verify your email address. We will activate your account within "
             + ACCOUNT_ACTIVATION_PERIOD + " hours after validating your email address.\n\n\n";
 
@@ -192,7 +192,7 @@ public class UserAccountsEmailMessages {
 
     String message;
 
-    String l1 = GREETINGS_HEADER + ",\n\n We received a password recovery request for Hopsworks on your behalf.\n\n";
+    String l1 = GREETINGS_HEADER + ",\n\n We received a password recovery request for Giotto on your behalf.\n\n";
     String l2 = "Please click on the following link to recover your password: \n";
 
     String url = path + "/hopsworks/#!/passwordRecovery?key=" + key;
@@ -211,10 +211,10 @@ public class UserAccountsEmailMessages {
     
     String message;
     
-    String l1 = GREETINGS_HEADER + ",\n\n We received a lost mobile recovery request for Hopsworks on your behalf.\n\n";
+    String l1 = GREETINGS_HEADER + ",\n\n We received a lost mobile recovery request for Giotto on your behalf.\n\n";
     String l2 = "Please click on the following link to recover your QR code: \n";
     
-    String url = path + "/hopsworks/#!/qrRecovery?key=" + key;
+    String url = path + "/giotto/#!/qrRecovery?key=" + key;
     
     String l3 = url + " \n\n";
     String l4 = "If you did not request a QR code reset, please ignore this email. This QR code reset link is only " +
@@ -245,7 +245,7 @@ public class UserAccountsEmailMessages {
     String message;
 
     String l1 = GREETINGS_HEADER + ",\n\n"
-            + "Your Hopsworks account has been blocked.\n\n";
+            + "Your Giotto account has been blocked.\n\n";
     String l2
             = "If you have any questions please visit www.hops.io or contact support@hops.io";
     String l3 = "If you have any questions please contact "
@@ -315,7 +315,7 @@ public class UserAccountsEmailMessages {
 
     String message;
     String l1 = GREETINGS_HEADER + ",\n\n"
-            + "We received an account deactivation request and your Hopsworks "
+            + "We received an account deactivation request and your Giotto "
             + "account has been deactivated.\n\n";
     String l2 = "If you have any questions please contact "
             + HOPSWORKS_SUPPORT_EMAIL;
@@ -345,7 +345,7 @@ public class UserAccountsEmailMessages {
   
   public static String buildQRResetMessage() {
     String message;
-    String l1 = GREETINGS_HEADER + ",\n\n A lost device has been reported on Hopsworks.\n\n";
+    String l1 = GREETINGS_HEADER + ",\n\n A lost device has been reported on Giotto.\n\n";
     String l2 = "Your QR code has been changed successfully.\n\n\n";
     String l3 = "If you have any questions please contact " + HOPSWORKS_SUPPORT_EMAIL;
     message = l1 + l2 + l3;
@@ -356,7 +356,7 @@ public class UserAccountsEmailMessages {
     String message;
 
     String l1 = GREETINGS_HEADER + ",\n\n"
-            + "Your account request to access Hopsworks has been approved.\n\n";
+            + "Your account request to access Giotto has been approved.\n\n";
     String l2 = "You can login with your username: " + username
             + " and other credentials you setup.\n\n\n";
     String l3 = "If you have any questions please contact "
@@ -370,7 +370,7 @@ public class UserAccountsEmailMessages {
     String message;
 
     String l1 = GREETINGS_HEADER + ",\n\n"
-            + "Your Hopsworks account request has been rejected.\n\n";
+            + "Your Giotto account request has been rejected.\n\n";
     String l2 = "If you have any questions please contact "
             + HOPSWORKS_SUPPORT_EMAIL;
     message = l1 + l2;
@@ -402,12 +402,12 @@ public class UserAccountsEmailMessages {
     String message;
 
     String l1 = GREETINGS_HEADER + ",\n\n"
-            + "We received an account request for Hopsworks on your behalf.\n\n";
+            + "We received an account request for Giotto on your behalf.\n\n";
     String l2 = "Please click on the following link to verify your email address. Within"
             + ACCOUNT_ACTIVATION_PERIOD
             + " hours of getting this email.\n\n\n";
 
-    String url = path + "/hopsworks-cluster/api/cluster/register/confirm/" + key;
+    String url = path + "/giotto-cluster/api/cluster/register/confirm/" + key;
 
     String l3 = "To confirm your email click " + url + " \n\n";
     String l4 = "If you have any questions please contact " + HOPSWORKS_SUPPORT_EMAIL;
@@ -427,7 +427,7 @@ public class UserAccountsEmailMessages {
             + ACCOUNT_ACTIVATION_PERIOD
             + " hours of getting this email.\n\n\n";
 
-    String url = path + "/hopsworks-cluster/api/cluster/unregister/confirm/" + key;
+    String url = path + "/giotto-cluster/api/cluster/unregister/confirm/" + key;
 
     String l3 = "To confirm this request click " + url + " \n\n";
     String l4 = "If you have any questions please contact " + HOPSWORKS_SUPPORT_EMAIL;
@@ -440,11 +440,11 @@ public class UserAccountsEmailMessages {
   public static String buildApiKeyCreatedMessage(String keyName, Date createdOn, String email, Set<ApiScope> scopes) {
     String message;
     String l1 = GREETINGS_HEADER + ",\n\n"
-      + "You have successfully created an api key for your Hopsworks Account " + email + " named \"" + keyName +
+      + "You have successfully created an api key for your Giotto Account " + email + " named \"" + keyName +
       "\" on " + createdOn + ".\n" +
-      "This api key will allow you to access your Hopsworks account from a device or application that can not login " +
+      "This api key will allow you to access your Giotto account from a device or application that can not login " +
       "with a username and password. Attaching this api key on a request authentication header will allow you to " +
-      "access any hopsworks service in the scope: " + scopes + ".\n";
+      "access any Giotto service in the scope: " + scopes + ".\n";
     String l2 = "Don't recognize this activity? please contact " + HOPSWORKS_SUPPORT_EMAIL;
   
     message = l1 + l2;
@@ -454,7 +454,7 @@ public class UserAccountsEmailMessages {
   public static String buildApiKeyDeletedMessage(String keyName, Date deletedOn, String email) {
     String message;
     String l1 = GREETINGS_HEADER + ",\n\n"
-      + "You have deleted an api key created for your Hopsworks Account " + email + " named \"" + keyName +
+      + "You have deleted an api key created for your Giotto Account " + email + " named \"" + keyName +
       "\" on " + deletedOn + ".\n";
       
     String l2 = "Don't recognize this activity? please contact " + HOPSWORKS_SUPPORT_EMAIL;
@@ -466,7 +466,7 @@ public class UserAccountsEmailMessages {
   public static String buildApiKeyDeletedAllMessage(Date deletedOn, String email) {
     String message;
     String l1 = GREETINGS_HEADER + ",\n\n"
-      + "You have deleted all api keys created for your Hopsworks Account " + email + " on " + deletedOn + ".\n";
+      + "You have deleted all api keys created for your Giotto Account " + email + " on " + deletedOn + ".\n";
     
     String l2 = "Don't recognize this activity? please contact " + HOPSWORKS_SUPPORT_EMAIL;
     
