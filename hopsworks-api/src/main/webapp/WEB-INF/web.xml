@@ -75,7 +75,7 @@
     <servlet-class>com.predic8.membrane.servlet.embedded.MembraneServlet</servlet-class>
     <init-param>
       <param-name>targetUri</param-name>
-      <param-value>http://localhost:{_port}/hopsworks-api/jupyter</param-value>
+      <param-value>http://localhost:{_port}/giotto-api/jupyter</param-value>
     </init-param>
     <init-param>
       <param-name>log</param-name>
@@ -96,7 +96,7 @@
     <servlet-class>com.predic8.membrane.servlet.embedded.RStudioMembraneServlet</servlet-class>
     <init-param>
       <param-name>targetUri</param-name>
-      <param-value>http://localhost:{_port}/hopsworks-api/rstudio</param-value>
+      <param-value>http://localhost:{_port}/giotto-api/rstudio</param-value>
     </init-param>
     <init-param>
       <param-name>log</param-name>
@@ -221,7 +221,7 @@
     <servlet-class>io.hops.hopsworks.api.airflow.AirflowProxyServlet</servlet-class>
     <init-param>
       <param-name>targetUri</param-name>
-      <param-value>http://localhost:12358/hopsworks-api/airflow</param-value>
+      <param-value>http://localhost:12358/giotto-api/airflow</param-value>
     </init-param>
     <init-param>
       <param-name>log</param-name>
@@ -301,7 +301,7 @@
     </init-param>
     <init-param>
       <param-name>swagger.api.basepath</param-name>
-      <param-value>/hopsworks-api/api</param-value>
+      <param-value>/giotto-api/api</param-value>
     </init-param>
     <load-on-startup>2</load-on-startup>
   </servlet>

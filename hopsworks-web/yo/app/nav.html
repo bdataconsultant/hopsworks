@@ -79,12 +79,12 @@
         </ul>
         <ul class="nav navbar-nav navbar-right" style="margin-right:10px;">
           <li class="dropdown" ng-click="mainCtrl.getMessages()">
-            <a class="dropdown-toggle" data-toggle="dropdown" style="padding:5px 15px 0px 20px; margin-top: 13px;" aria-expanded="false">
+            <!-- <a class="dropdown-toggle" data-toggle="dropdown" style="padding:5px 15px 0px 20px; margin-top: 13px;" aria-expanded="false">
               <i ng-if="mainCtrl.unreadMessages" class="fa fa-envelope fa-lg" title="Unread messages">
                 <span class="badge" style="background-color: #f89406; font-family: sans-serif; z-index: 100; position: absolute; top: -10px; right: -18px">{{mainCtrl.unreadMessages}}</span>
               </i>
               <i ng-if="!mainCtrl.unreadMessages" class="fa fa-envelope-o fa-lg" title="No unread message"></i>
-            </a>
+            </a> -->
             <ul class="dropdown-menu dropdown-messages" >
               <li class="dropdown-header text-muted" ng-if="mainCtrl.messages.length"><h4>Latest messages</h4></li>
               <li class="dropdown-header text-muted" ng-if="!mainCtrl.messages.length"><h4>Inbox empty.</h4></li>

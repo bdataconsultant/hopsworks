@@ -162,7 +162,7 @@ public class RoleEnforcementPoint implements Serializable {
       if (user != null) {
         authController.registerLogout(user, req);
       }
-      FacesContext.getCurrentInstance().getExternalContext().redirect("/hopsworks/#!/home");
+      FacesContext.getCurrentInstance().getExternalContext().redirect("/giotto-web/#!/home");
     } catch (IOException | ServletException ex) {
       Logger.getLogger(RoleEnforcementPoint.class.getName()).log(Level.SEVERE, null, ex);
     }

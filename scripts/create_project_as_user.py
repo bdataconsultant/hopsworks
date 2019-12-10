@@ -5,8 +5,8 @@ import requests
 import json
 
 def create_project(endpoint, user, password, owner, project_name):
-    "Login to Hopsworks as admin <admin@hopsworks.ai> user and create a Project with owner as Project Owner"
-    login_url = endpoint.strip('/') + '/hopsworks-api/api/auth/login'
+    "Login to Hopsworks as admin <admin@kth.se> user and create a Project with owner as Project Owner"
+    login_url = endpoint.strip('/') + '/giotto-api/api/auth/login'
     login_headers = {'Content-Type': 'application/x-www-form-urlencoded',
                      'User-Agent': 'pyRequests'}
     login_payload = {'email': user, 'password': password}
@@ -16,7 +16,7 @@ def create_project(endpoint, user, password, owner, project_name):
         
         if (response.status_code == requests.codes.ok):
             print 'Creating project {0} as user {1}'.format(project_name, owner)
-            admin_url = endpoint.strip('/') + '/hopsworks-api/api/admin/projects/createas'
+            admin_url = endpoint.strip('/') + '/giotto-api/api/admin/projects/createas'
             admin_headers = {'Content-Type': 'application/json',
                              'User-Agent': 'pyRequests'}
             admin_payload = {

@@ -1121,7 +1121,7 @@ public class Settings implements Serializable {
 
   public synchronized String getAirflowWebUIAddress() {
     checkCache();
-    return AIRFLOW_WEB_UI_IP + ":" + AIRFLOW_WEB_UI_PORT + "/hopsworks-api/airflow";
+    return AIRFLOW_WEB_UI_IP + ":" + AIRFLOW_WEB_UI_PORT + "/giotto-api/airflow";
   }
 
   private String MAX_NUM_PROJ_PER_USER = "5";

@@ -471,7 +471,7 @@ angular.module('hopsWorksApp')
              */
             self.showServingLogs = function (serving) {
                 var projectName = UtilsService.getProjectName();
-                self.kibanaUI = "/hopsworks-api/kibana/app/kibana?projectId=" + self.projectId +
+                self.kibanaUI = "/giotto-api/kibana/app/kibana?projectId=" + self.projectId +
                     "#/discover?_g=()&_a=(columns:!(modelname,host,log_message,'@timestamp')," +
                     "index:'" + projectName.toLowerCase() + "_serving-*',interval:auto," +
                     "query:(language:lucene,query:'modelname:" + serving.name + "'),sort:!('@timestamp',desc))";

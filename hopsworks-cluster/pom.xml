@@ -91,7 +91,7 @@
   </dependencies>
 
   <build>
-    <finalName>hopsworks-cluster</finalName>
+    <finalName>giotto-cluster</finalName>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
