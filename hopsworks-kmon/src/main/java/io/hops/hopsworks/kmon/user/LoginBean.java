@@ -165,7 +165,7 @@ public class LoginBean implements Serializable {
       if (user != null) {
         authController.registerLogout(user, req);
       }
-      FacesContext.getCurrentInstance().getExternalContext().redirect("/hopsworks/#!/home");
+      FacesContext.getCurrentInstance().getExternalContext().redirect("/giotto-web/#!/home");
     } catch (IOException | ServletException ex) {
       LOGGER.log(Level.SEVERE, null, ex);
     }
@@ -191,7 +191,7 @@ public class LoginBean implements Serializable {
   }
 
   public void gotoLoginHelp() throws IOException {
-    String link = "/hopsworks-admin/security/login_issue.xhtml";
+    String link = "/giotto-admin/security/login_issue.xhtml";
     ExternalContext externalContext = FacesContext.getCurrentInstance().getExternalContext();
     externalContext.redirect(link.trim());
   }

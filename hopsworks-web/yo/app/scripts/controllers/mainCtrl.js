@@ -57,7 +57,7 @@ angular.module('hopsWorksApp')
             var self = this;
 
 
-            self.ui = "/hopsworks-api/airflow/login?q=username=";
+            self.ui = "/giotto-api/airflow/login?q=username=";
 
             self.email = $cookies.get('email');
             self.emailHash = md5.createHash(self.email || '');
@@ -88,7 +88,7 @@ angular.module('hopsWorksApp')
             };
 
             self.goToAdminPage = function () {
-              $window.location.href = '/hopsworks-admin/security/protected/admin/adminIndex.xhtml';
+              $window.location.href = '/giotto-admin/security/protected/admin/adminIndex.xhtml';
             };
 
             self.getEmailHash = function (email) {

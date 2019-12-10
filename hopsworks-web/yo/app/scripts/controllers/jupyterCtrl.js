@@ -232,7 +232,7 @@ angular.module('hopsWorksApp')
                 JupyterService.running(self.projectId).then(
                     function(success) {
                         self.config = success.data;
-                        self.ui = "/hopsworks-api/jupyter/" + self.config.port + "/?token=" + self.config.token;
+                        self.ui = "/giotto-api/jupyter/" + self.config.port + "/?token=" + self.config.token;
                         timeToShutdown();
                         self.livySessions(self.projectId);
                     },
@@ -290,7 +290,7 @@ angular.module('hopsWorksApp')
                 JupyterService.running(self.projectId).then(
                     function(success) {
                         self.config = success.data;
-                        self.ui = "/hopsworks-api/jupyter/" + self.config.port + "/?token=" + self.config.token;
+                        self.ui = "/giotto-api/jupyter/" + self.config.port + "/?token=" + self.config.token;
                         timeToShutdown();
                         if (typeof self.gitRepositoryPoller === 'undefined') {
                             gitRepositoryStatusPoller();
@@ -562,7 +562,7 @@ angular.module('hopsWorksApp')
                             ttl: 20000
                         });
                         timeToShutdown();
-                        self.ui = "/hopsworks-api/jupyter/" + self.config.port + "/?token=" + self.config.token;
+                        self.ui = "/giotto-api/jupyter/" + self.config.port + "/?token=" + self.config.token;
                         $window.open(self.ui, '_blank');
                         $timeout(stopLoading(), 5000);
                         if (typeof self.gitRepositoryPoller === 'undefined') {

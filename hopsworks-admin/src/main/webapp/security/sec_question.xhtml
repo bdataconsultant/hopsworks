@@ -47,8 +47,8 @@
       xmlns:f="http://java.sun.com/jsf/core">
 
   <h:head>
-    <title>Hopsworks - Security Question</title>
-    <link rel="icon" type="image/png" href="#{resource['images/hops-black.png']}" />
+    <title>Security Question</title>
+    <link rel="icon" type="image/png" href="#{resource['images/giotto-favi.png']}" />  
     <link rel="stylesheet" type="text/css" href="#{resource['/css/main.css']}" />
     <link rel="stylesheet" type="text/css" href="#{resource['/css/theme.css']}" />
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
@@ -83,7 +83,7 @@
         <div style="margin-left: 165px;">
           <h:panelGrid columns="2">
             <p:commandButton value="Continue" ajax="false" action="#{resetPassword.sendPasswordResetEmail()}" > </p:commandButton>
-            <p:commandButton styleClass="team_button button-save" type="submit" value="Cancel" action="#{facesContext.externalContext.redirect('/hopsworks')}" process="@this" />
+            <p:commandButton styleClass="team_button button-save" type="submit" value="Cancel" action="#{facesContext.externalContext.redirect('/giotto-web')}" process="@this" />
           </h:panelGrid>
         </div>
       </p:panel>

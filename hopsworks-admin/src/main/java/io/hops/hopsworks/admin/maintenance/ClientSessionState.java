@@ -112,7 +112,7 @@ public class ClientSessionState implements Serializable {
   public void redirect() throws IOException {
     ExternalContext externalContext = FacesContext.getCurrentInstance().
             getExternalContext();
-    externalContext.redirect("/hopsworks-kmon/monitor/clusters.xhtml");
+    externalContext.redirect("/giotto-kmon/monitor/clusters.xhtml");
   }
 
 }
