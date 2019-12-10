@@ -80,7 +80,7 @@ public class AirflowProxyServlet extends ProxyServlet {
 
   /**
    * A request will come in with the format:
-   * http://127.0.0.1:8080/hopsworks-api/airflow/
+   * http://127.0.0.1:8080/giotto-api/airflow/
    * and be sent to:
    * http://localhost:12358/admin/airflow/login?next=%2Fadmin%2F
    * <p>

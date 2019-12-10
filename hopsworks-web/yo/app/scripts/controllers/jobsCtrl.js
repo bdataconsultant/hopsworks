@@ -386,7 +386,7 @@ angular.module('hopsWorksApp')
                       if (typeof job.config['spark.executor.gpus'] === 'undefined' || job.config['spark.executor.gpus'] === 0) {
                         gpuPrice = 0;
                       }
-                      ModalService.uberPrice('sm', 'Confirm', 'Do you still want to run this job?', generalPrice, gpuPrice).then(
+                      ModalService.uberPrice('sm', 'Confirm', 'Confirm?', generalPrice, gpuPrice).then(
                               function (success) {
                                 self.starting[job.name] = true;
                                 JobService.runJob(self.projectId, job.name).then(

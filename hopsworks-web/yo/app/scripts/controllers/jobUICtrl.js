@@ -132,11 +132,11 @@ angular.module('hopsWorksApp')
               //If job is not flink
                 if (!self.isLivy && (self.job.jobType === 'FLINK' || self.job.jobType === 'BEAM_FLINK')) {
                     //Get Flink master url from job
-                    self.ui = '/hopsworks-api/flinkmaster/' + self.appId + '/';
+                    self.ui = '/giotto-api/flinkmaster/' + self.appId + '/';
                     JobService.getFlinkMaster(self.appId).then(
                         function (success) {
                         }, function (error) {
-                            self.ui = '/hopsworks-api/flinkhistoryserver/';
+                            self.ui = '/giotto-api/flinkhistoryserver/';
                     });
                     var iframe = document.getElementById('ui_iframe');
                     if (iframe) {
@@ -205,7 +205,7 @@ angular.module('hopsWorksApp')
               getAppId(yarnUIInt);
             };
             var yarnUIInt = function () {
-                self.ui = '/hopsworks-api/yarnui/cluster/app/' + self.appId;
+                self.ui = '/giotto-api/yarnui/cluster/app/' + self.appId;
                         self.current = "yarnUI";
                         var iframe = document.getElementById('ui_iframe');
                         if (iframe !== null) {
@@ -222,7 +222,7 @@ angular.module('hopsWorksApp')
                   ProjectService.get({}, {'id': self.projectId}).$promise.then(
                         function (success) {
                           var projectName = success.projectName;
-                self.ui = "/hopsworks-api/kibana/app/kibana?projectId=" + self.projectId + 
+                self.ui = "/giotto-api/kibana/app/kibana?projectId=" + self.projectId + 
                         "#/discover?_g=()&_a=(columns:!(logdate,host,priority,logger_name,log_message),"+
                         "filters:!(('$state':(store:appState),meta:(alias:!n,disabled:!f,index:'" + projectName.toLowerCase() 
                         +"_logs-*',key:jobid,negate:!f,params:(query:notebook,type:phrase),type:phrase,value:notebook),"+
@@ -253,7 +253,7 @@ angular.module('hopsWorksApp')
                       function (success) {
                           var projectName = success.projectName;
                           //if not jupyter we should have a job
-                          self.ui = "/hopsworks-api/kibana/app/kibana?projectId=" + self.projectId + "#/discover?_g=()&_a=(columns:!(logdate,application,host,priority,logger_name,log_message),index:'"
+                          self.ui = "/giotto-api/kibana/app/kibana?projectId=" + self.projectId + "#/discover?_g=()&_a=(columns:!(logdate,application,host,priority,logger_name,log_message),index:'"
                               + projectName.toLowerCase() + "_logs-*',interval:auto,query:(language:lucene,query:jobname=\"" + self.job.name + "\"),sort:!(logdate,desc))";
                           self.current = "kibanaUI";
                           var iframe = document.getElementById('ui_iframe');
@@ -286,12 +286,12 @@ angular.module('hopsWorksApp')
                         var finishTime = info.endTime;
                         //nbExecutors=;
                         if (info.now) {
-                          self.ui = "/hopsworks-api/grafana/dashboard/script/spark.js?app="
+                          self.ui = "/giotto-api/grafana/dashboard/script/spark.js?app="
                                   + appid + "&maxExecutorId="
                                   + info.nbExecutors + "&from="
                                   + startTime;
                         } else {
-                          self.ui = "/hopsworks-api/grafana/dashboard/script/spark.js?app="
+                          self.ui = "/giotto-api/grafana/dashboard/script/spark.js?app="
                                   + appid + "&maxExecutorId="
                                   + info.nbExecutors + "&from="
                                   + startTime + "&to="
@@ -321,7 +321,7 @@ angular.module('hopsWorksApp')
             var tensorboardDummy = function () {
             };
             var tensorboardInt = function (tfSession) {
-              self.ui = "/hopsworks-api/tensorboard/" + self.appId + "/" + tfSession.url + "/";
+              self.ui = "/giotto-api/tensorboard/" + self.appId + "/" + tfSession.url + "/";
               self.current = "tensorboardUI";
               self.session = tfSession;
               var iframe = document.getElementById('ui_iframe');
