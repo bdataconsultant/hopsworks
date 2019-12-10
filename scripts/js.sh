@@ -107,6 +107,9 @@ scp -o PasswordAuthentication=no -o UserKnownHostsFile=/dev/null -o StrictHostKe
 
 ssh -o PasswordAuthentication=no -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -i $key -p $PORT vagrant@${SERVER} "cd ${basedir}/docroot/app && sudo npm install && bower install"
 #&& sudo chown vagrant /home/vagrant/.config 
+#ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -i $key -p $PORT vagrant@${SERVER} "cd ${basedir}/docroot/app && perl -pi -e \"s/getApiLocationBase\(\)/'http:\/\/${SERVER}:${WEBPORT}\/giotto-api/api\/'/g\" scripts/services/RequestInterceptorService.js"
+
+# v1.0
 #ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -i $key -p $PORT vagrant@${SERVER} "cd ${basedir}/docroot/app && perl -pi -e \"s/getApiLocationBase\(\)/'http:\/\/${SERVER}:${WEBPORT}\/hopsworks-api/api\/'/g\" scripts/services/RequestInterceptorService.js"
 
 google-chrome -new-tab http://${SERVER}:$WEBPORT/app

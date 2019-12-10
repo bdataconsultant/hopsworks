@@ -334,7 +334,7 @@ public class JobsResource {
     try {
       String trackingUrl = yarnApplicationAttemptStateFacade.findTrackingUrlByAppId(appId);
       if (trackingUrl != null && !trackingUrl.isEmpty()) {
-        trackingUrl = "/hopsworks-api/yarnui/" + trackingUrl;
+        trackingUrl = "/giotto-api/yarnui/" + trackingUrl;
         urls.add(new YarnAppUrlsDTO("spark", trackingUrl));
       }
     } catch (Exception e) {
@@ -390,7 +390,7 @@ public class JobsResource {
     executionController.checkAccessRight(appId, project);
     
     try {
-      String yarnUrl = "/hopsworks-api/api/project/" + project.getId() + "/jobs/"
+      String yarnUrl = "/giotto-api/api/project/" + project.getId() + "/jobs/"
         + appId + "/prox/" + settings.getYarnWebUIAddress()
         + "/cluster/app/"
         + appId;
