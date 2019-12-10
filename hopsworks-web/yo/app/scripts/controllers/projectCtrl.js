@@ -80,9 +80,23 @@ angular.module('hopsWorksApp')
             // We could instead implement a service to get all the available types but this will do it for now
             if ($rootScope.isDelaEnabled) {
                 // , 'RSTUDIO'
-                self.projectTypes = ['JOBS', 'KAFKA', 'JUPYTER', 'HIVE', 'DELA', 'SERVING', 'FEATURESTORE', 'AIRFLOW'];
+                // v0.9
+                // self.projectTypes = ['JOBS', 'KAFKA', 'JUPYTER', 'HIVE', 'DELA', 'SERVING', 'FEATURESTORE', 'AIRFLOW'];
+
+                self.projectTypes = ['JOBS', 'HIVE', 'AIRFLOW', 'KAFKA'];
+                
+                // v1.0
+                // self.projectTypes = ['JOBS', 'KAFKA', 'JUPYTER', 'HIVE', 'DELA', 'SERVING', 'FEATURESTORE', 'AIRFLOW'];
+                // // self.projectTypes = ['JOBS', 'HIVE', 'AIRFLOW', 'KAFKA'];
             } else {
-                self.projectTypes = ['JOBS', 'KAFKA', 'JUPYTER', 'HIVE', 'SERVING', 'FEATURESTORE', 'AIRFLOW'];
+              // v0.9
+              // self.projectTypes = ['JOBS', 'KAFKA', 'JUPYTER', 'HIVE', 'SERVING', 'FEATURESTORE', 'AIRFLOW'];
+
+              self.projectTypes = ['JOBS', 'HIVE', 'AIRFLOW', 'KAFKA'];
+
+              // v1.0
+              // self.projectTypes = ['JOBS', 'KAFKA', 'JUPYTER', 'HIVE', 'SERVING', 'FEATURESTORE', 'AIRFLOW'];
+              // // self.projectTypes = ['JOBS', 'HIVE', 'AIRFLOW', 'KAFKA'];
             }
             $scope.activeService = "home";
 
@@ -326,7 +340,7 @@ angular.module('hopsWorksApp')
               // If that instance is running, URL redirect to that instance
               // If not running, start a new instance
 
-//              http://localhost:8080/hopsworks/#!/project/1/settings
+//              http://localhost:8080/giotto-web/#!/project/1/settings
               if (self.tourService.currentStep_TourTwo > -1) {
                   self.tourService.resetTours();
               }

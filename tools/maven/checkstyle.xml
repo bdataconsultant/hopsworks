@@ -51,7 +51,7 @@
   </module>
 -->
   <!--Until we have a proper header file -->
-  <module name="RegexpSingleline">
+  <!-- <module name="RegexpSingleline">
     <property name="format" value="((//.*)|(\*.*))To change this license header," />
     <property name="message" value='Remove default license header!' />
     <property name="severity" value="error" />
@@ -87,5 +87,5 @@
       <property name="format" value="System\.out\.print(?:ln)?|System\.err\.print(?:ln)?"/>
       <property name="illegalPattern" value="true"/>
     </module>
-  </module>
+  </module> -->
 </module>
