@@ -187,7 +187,7 @@ angular.module('hopsWorksApp')
             self.flinkHistoryServer = function (){
                 var iframe = document.getElementById('ui_iframe');
                 if (iframe) {
-                    iframe.src = $sce.trustAsResourceUrl('/hopsworks-api/flinkhistoryserver/');
+                    iframe.src = $sce.trustAsResourceUrl('/giotto-api/flinkhistoryserver/');
                 }
                 $timeout(stopLoading(), 2000);
             };

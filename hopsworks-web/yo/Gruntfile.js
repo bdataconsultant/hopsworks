@@ -123,6 +123,24 @@ module.exports = function (grunt) {
           host: '10.207.235.122',
           port: 8080
         }
+        // {
+        //   context: '/hopsworks-api',
+        //   host: '10.206.195.38',
+        //   port: 8181,
+        //   https: true,
+        //   secure: false,
+        //   protocol: 'https:',
+        //   rewrite: {
+        //     '^/hopsworks-api': '/hopsworks-api',
+        //   },
+        //   errorHandler: function(req, res, next, err) {
+        //     if (err.code === 404) {
+        //         res.send('Some error page');
+        //     } else {
+        //         next();
+        //     }
+        //   }
+        // }
       ],
       livereload: {
         options: {
@@ -133,13 +151,13 @@ module.exports = function (grunt) {
               connectStatic('.tmp'),
               connect().use(
                       '/bower_components',
-                      connect.static('./bower_components')
+                      connectStatic('./bower_components')
                       ),
               connect().use(
                       '/app/styles',
-                      connect.static('./app/styles')
+                      connectStatic('./app/styles')
                       ),
-              connect.static(appConfig.app)
+                      connectStatic(appConfig.app)
             ];
           }
         }
@@ -149,13 +167,13 @@ module.exports = function (grunt) {
           port: 9002,
           middleware: function (connect) {
             return [
-              connect.static('.tmp'),
-              connect.static('test'),
+              connectStatic('.tmp'),
+              connectStatic('test'),
               connect().use(
                       '/bower_components',
-                      connect.static('./bower_components')
+                      connectStatic('./bower_components')
                       ),
-              connect.static(appConfig.app)
+              connectStatic(appConfig.app)
             ];
           }
         }
