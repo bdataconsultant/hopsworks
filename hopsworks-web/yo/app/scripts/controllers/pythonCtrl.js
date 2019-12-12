@@ -392,7 +392,7 @@ angular.module('hopsWorksApp')
                     query += "&& return_code:[-1 TO 1]";
                 }
                 query = encodeURIComponent(query);
-                self.kibanaUI = "/hopsworks-api/kibana/app/kibana?projectId=" + self.projectId
+                self.kibanaUI = "/giotto-api/kibana/app/kibana?projectId=" + self.projectId
                     + "#/discover?_g=()&_a=(columns:!('@timestamp',host,operation,artifact,artifact_version,return_code,return_message)"
                     + ",index:'" + projectName.toLowerCase() + "_kagent-*',interval:auto,"
                     + "query:(language:lucene,query:'" + query + "'),sort:!('@timestamp',desc))";
