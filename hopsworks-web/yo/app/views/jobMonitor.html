@@ -159,7 +159,7 @@
                 This job has not run yet. Please select a previous execution(appId) from the drop down list on the right
                 .</div>
               <div ng-if="jobUICtrl.ui === '' && (jobUICtrl.job.jobType === 'FLINK' || jobUICtrl.job.jobType === 'BEAM_FLINK')">
-                <iframe style="overflow-y: auto" id="ui_iframe_flink"  ng-src="/hopsworks-api/flinkhistoryserver/" width="98%"
+                <iframe style="overflow-y: auto" id="ui_iframe_flink"  ng-src="/giotto-api/flinkhistoryserver/" width="98%"
                         height ="89%"></iframe></div>
               <h3 class="text-muted" style="text-align: center;" ng-show="jobsCtrl.jobs.length < 1">
                 No Job selected.
