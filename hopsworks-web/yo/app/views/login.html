@@ -45,9 +45,8 @@
         <div class="row">
             <div class="center-block" style="width: 320px;">
                 <div class="panel" style="border:#337ab7 1px solid">
-                    <div class="panel-heading text-center">
-                        <a style="text-decoration:none; font-family: Lobster; font-size: 30px; margin-left: 5px; color: #fff;">Hopsworks
-
+                    <div class="panel-heading text-center" style="background-color:transparent">
+                        <a style="text-decoration:none; font-family: Lobster; font-size: 30px; margin-left: 5px; color: #fff;">
                             <img alt="" class="block-center img-rounded" style="margin-left:0px" width="190" src="images/big-data-logo-login.png">
                         </a>
                     </div>
@@ -79,7 +78,7 @@
                                     <a class="text-muted" href="#!/recover">Login help?</a>
                                 </div>
                             </div> -->
-                            <button class="btn btn-block btn-primary mt-lg" type="submit" data-ng-disabled="loginCtrl.working" style="background-color:#2e353d">Login</button>
+                            <button class="btn btn-block btn-primary mt-lg" type="submit" data-ng-disabled="loginCtrl.working" style="background-color:#337ab7">Login</button>
                         </form>
                         <div style="text-align: center" class="text-muted" ng-show="loginCtrl.working">
                             <i class="fa fa-spinner fa-spin"></i>
@@ -92,7 +91,6 @@
                             {{loginCtrl.errorMessage}}
                         </div>
                         <p></p>
-                        <a class="btn btn-block btn-default" href="#!/register">Register</a>
                         <a ng-if="loginCtrl.ldapEnabled" class="btn btn-block btn-default" href="#!/ldapLogin">
                             Login with LDAP
                         </a>
@@ -100,7 +98,6 @@
                                 ng-click="loginCtrl.krbLogin()">
                             Login with Kerberos
                         </button>
-                        <a class="btn btn-block btn-default" href="#!/register">Register</a>
                         <button ng-repeat="openIdProvider in loginCtrl.openIdProviders" class="btn btn-block btn-default"
                                 ng-click="loginCtrl.oauthLogin(openIdProvider.providerName)">
                             <img style="padding-right: 10px;" alt="" ng-src="{{openIdProvider.providerLogoURI}}"/>{{openIdProvider.providerDisplayName}}
