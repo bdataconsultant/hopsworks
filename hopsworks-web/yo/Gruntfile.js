@@ -109,38 +109,22 @@ module.exports = function (grunt) {
       options: {
         port: 4000,
         // Change this to '0.0.0.0' to access the server from outside.
+        protocol: 'https',
         hostname: '127.0.0.1',
         livereload: 35729
       },
       proxies: [
         {
           context: '/giotto-api',
-          host: '10.207.235.122',
-          port: 8080
-        },
-        {
-          context: '/filemanager',
-          host: '10.207.235.122',
-          port: 8080
+          host: '10.206.195.38',
+          port: 8181,
+          https: false,
+          secure: false,
+          protocol: 'https:',
+          rewrite: {
+            '^/giotto-api': '/hopsworks-api',
+          }
         }
-        // {
-        //   context: '/hopsworks-api',
-        //   host: '10.206.195.38',
-        //   port: 8181,
-        //   https: true,
-        //   secure: false,
-        //   protocol: 'https:',
-        //   rewrite: {
-        //     '^/hopsworks-api': '/hopsworks-api',
-        //   },
-        //   errorHandler: function(req, res, next, err) {
-        //     if (err.code === 404) {
-        //         res.send('Some error page');
-        //     } else {
-        //         next();
-        //     }
-        //   }
-        // }
       ],
       livereload: {
         options: {
