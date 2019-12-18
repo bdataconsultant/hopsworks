@@ -44,278 +44,291 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement
 public class UserDTO {
 
-  private String username;
-  private String email;
-  private String telephoneNum;
-  private String firstName;
-  private String lastName;
-  private int status;
-  private String securityQuestion;
-  private String securityAnswer;
-  private String secret;
-  private String chosenPassword;
-  private String repeatedPassword;
-  private boolean ToS;
-  private boolean twoFactor;
-  private int toursState;
-  private String orgName;
-  private String dep;
-  private String street;
-  private String city;
-  private String postCode;
-  private String country;
-  private int maxNumProjects;
-  private int numCreatedProjects;
-  private boolean testUser;
-  private String userAccountType;
-  private int numActiveProjects;
-  private int numRemainingProjects;
+	private String username;
+	private String email;
+	private String telephoneNum;
+	private String firstName;
+	private String lastName;
+	private int status;
+	private String securityQuestion;
+	private String securityAnswer;
+	private String secret;
+	private String chosenPassword;
+	private String repeatedPassword;
+	private boolean ToS;
+	private boolean twoFactor;
+	private int toursState;
+	private String orgName;
+	private String dep;
+	private String street;
+	private String city;
+	private String postCode;
+	private String country;
+	private int maxNumProjects;
+	private int numCreatedProjects;
+	private boolean testUser;
+	private String userAccountType;
+	private int numActiveProjects;
+	private int numRemainingProjects;
+	private String bbcRole;
 
-  public UserDTO() {
-  }
 
-  public UserDTO(Users user) {
-    this.username = user.getUsername();
-    this.email = user.getEmail();
-    this.firstName = user.getFname();
-    this.lastName = user.getLname();
-    this.telephoneNum = user.getMobile();
-    if (user.getOrganization() != null) {
-      this.orgName = user.getOrganization().getOrgName();
-      this.dep = user.getOrganization().getDepartment();
-    }
-    if (user.getAddress() != null) {
-      this.street = user.getAddress().getAddress2();
-      this.city = user.getAddress().getCity();
-      this.postCode = user.getAddress().getPostalcode();
-      this.country = user.getAddress().getCountry();
-    }
-    this.maxNumProjects = user.getMaxNumProjects();
-    this.numCreatedProjects = user.getNumCreatedProjects();
-    this.twoFactor = user.getTwoFactor();
-    this.toursState = user.getToursState();
-    this.userAccountType = user.getMode().toString();
-    this.numActiveProjects = user.getNumActiveProjects();
-    numRemainingProjects = maxNumProjects-numCreatedProjects;
-  }
+	public UserDTO() {
+	}
 
-  public String getUsername() { return username; }
+	public UserDTO(Users user) {
+		this.username = user.getUsername();
+		this.email = user.getEmail();
+		this.firstName = user.getFname();
+		this.lastName = user.getLname();
+		this.telephoneNum = user.getMobile();
+		if (user.getOrganization() != null) {
+			this.orgName = user.getOrganization().getOrgName();
+			this.dep = user.getOrganization().getDepartment();
+		}
+		if (user.getAddress() != null) {
+			this.street = user.getAddress().getAddress2();
+			this.city = user.getAddress().getCity();
+			this.postCode = user.getAddress().getPostalcode();
+			this.country = user.getAddress().getCountry();
+		}
+		
+		this.maxNumProjects = user.getMaxNumProjects();
+		this.numCreatedProjects = user.getNumCreatedProjects();
+		this.twoFactor = user.getTwoFactor();
+		this.toursState = user.getToursState();
+		this.userAccountType = user.getMode().toString();
+		this.numActiveProjects = user.getNumActiveProjects();
+		numRemainingProjects = maxNumProjects-numCreatedProjects;
+	}
 
-  public void setUsername(String username) { this.username = username; }
+	public String getUsername() { return username; }
 
-  public String getEmail() {
-    return email;
-  }
+	public void setUsername(String username) { this.username = username; }
 
-  public void setEmail(String email) {
-    this.email = email;
-  }
+	public String getEmail() {
+		return email;
+	}
 
-  public String getTelephoneNum() {
-    return telephoneNum;
-  }
+	public void setEmail(String email) {
+		this.email = email;
+	}
 
-  public void setTelephoneNum(String telephoneNum) {
-    this.telephoneNum = telephoneNum;
-  }
+	public String getTelephoneNum() {
+		return telephoneNum;
+	}
 
-  public String getFirstName() {
-    return firstName;
-  }
+	public void setTelephoneNum(String telephoneNum) {
+		this.telephoneNum = telephoneNum;
+	}
 
-  public void setFirstName(String firstName) {
-    this.firstName = firstName;
-  }
+	public String getFirstName() {
+		return firstName;
+	}
 
-  public String getLastName() {
-    return lastName;
-  }
+	public void setFirstName(String firstName) {
+		this.firstName = firstName;
+	}
 
-  public void setLastName(String lastName) {
-    this.lastName = lastName;
-  }
+	public String getLastName() {
+		return lastName;
+	}
 
-  public int getStatus() {
-    return status;
-  }
+	public void setLastName(String lastName) {
+		this.lastName = lastName;
+	}
 
-  public void setStatus(int status) {
-    this.status = status;
-  }
+	public int getStatus() {
+		return status;
+	}
 
-  public String getSecurityQuestion() {
-    return securityQuestion;
-  }
+	public void setStatus(int status) {
+		this.status = status;
+	}
 
-  public void setSecurityQuestion(String securityQuestion) {
-    this.securityQuestion = securityQuestion;
-  }
+	public String getSecurityQuestion() {
+		return securityQuestion;
+	}
 
-  public String getSecurityAnswer() {
-    return securityAnswer;
-  }
+	public void setSecurityQuestion(String securityQuestion) {
+		this.securityQuestion = securityQuestion;
+	}
 
-  public void setSecurityAnswer(String securityAnswer) {
-    this.securityAnswer = securityAnswer;
-  }
+	public String getSecurityAnswer() {
+		return securityAnswer;
+	}
 
-  public String getSecret() {
-    return secret;
-  }
+	public void setSecurityAnswer(String securityAnswer) {
+		this.securityAnswer = securityAnswer;
+	}
 
-  public void setSecret(String secret) {
-    this.secret = secret;
-  }
+	public String getSecret() {
+		return secret;
+	}
 
-  public String getChosenPassword() {
-    return chosenPassword;
-  }
+	public void setSecret(String secret) {
+		this.secret = secret;
+	}
 
-  public void setChosenPassword(String chosenPassword) {
-    this.chosenPassword = chosenPassword;
-  }
+	public String getChosenPassword() {
+		return chosenPassword;
+	}
 
-  public String getRepeatedPassword() {
-    return repeatedPassword;
-  }
+	public void setChosenPassword(String chosenPassword) {
+		this.chosenPassword = chosenPassword;
+	}
 
-  public void setRepeatedPassword(String repeatedPassword) {
-    this.repeatedPassword = repeatedPassword;
-  }
+	public String getRepeatedPassword() {
+		return repeatedPassword;
+	}
 
-  public boolean getToS() {
-    return ToS;
-  }
+	public void setRepeatedPassword(String repeatedPassword) {
+		this.repeatedPassword = repeatedPassword;
+	}
 
-  public void setToS(boolean ToS) {
-    this.ToS = ToS;
-  }
+	public boolean getToS() {
+		return ToS;
+	}
 
-  public boolean isTwoFactor() {
-    return twoFactor;
-  }
+	public void setToS(boolean ToS) {
+		this.ToS = ToS;
+	}
 
-  public void setTwoFactor(boolean twoFactor) {
-    this.twoFactor = twoFactor;
-  }
+	public boolean isTwoFactor() {
+		return twoFactor;
+	}
 
-  public int getToursState() {
-    return toursState;
-  }
-  
-  public void setToursState(int toursState) {
-    this.toursState = toursState;
-  }
-  
-  public String getOrgName() {
-    return orgName;
-  }
+	public void setTwoFactor(boolean twoFactor) {
+		this.twoFactor = twoFactor;
+	}
 
-  public void setOrgName(String orgName) {
-    this.orgName = orgName;
-  }
+	public int getToursState() {
+		return toursState;
+	}
 
-  public String getDep() {
-    return dep;
-  }
+	public void setToursState(int toursState) {
+		this.toursState = toursState;
+	}
 
-  public void setDep(String dep) {
-    this.dep = dep;
-  }
+	public String getOrgName() {
+		return orgName;
+	}
 
-  public String getStreet() {
-    return street;
-  }
+	public void setOrgName(String orgName) {
+		this.orgName = orgName;
+	}
 
-  public void setStreet(String street) {
-    this.street = street;
-  }
+	public String getDep() {
+		return dep;
+	}
 
-  public String getCity() {
-    return city;
-  }
+	public void setDep(String dep) {
+		this.dep = dep;
+	}
 
-  public void setCity(String city) {
-    this.city = city;
-  }
+	public String getStreet() {
+		return street;
+	}
 
-  public String getPostCode() {
-    return postCode;
-  }
+	public void setStreet(String street) {
+		this.street = street;
+	}
 
-  public void setPostCode(String postCode) {
-    this.postCode = postCode;
-  }
+	public String getCity() {
+		return city;
+	}
 
-  public String getCountry() {
-    return country;
-  }
+	public void setCity(String city) {
+		this.city = city;
+	}
 
-  public void setCountry(String country) {
-    this.country = country;
-  }
+	public String getPostCode() {
+		return postCode;
+	}
 
-  public int getMaxNumProjects() {
-    return maxNumProjects;
-  }
+	public void setPostCode(String postCode) {
+		this.postCode = postCode;
+	}
 
-  public void setMaxNumProjects(int maxNumProjects) {
-    this.maxNumProjects = maxNumProjects;
-    numRemainingProjects = maxNumProjects-numCreatedProjects;
-  }
+	public String getCountry() {
+		return country;
+	}
 
-  public int getNumCreatedProjects() {
-    return numCreatedProjects;
-  }
+	public void setCountry(String country) {
+		this.country = country;
+	}
 
-  public void setNumCreatedProjects(int numCreatedProjects) {
-    this.numCreatedProjects = numCreatedProjects;
-    numRemainingProjects = maxNumProjects-numCreatedProjects;
-  }
+	public int getMaxNumProjects() {
+		return maxNumProjects;
+	}
 
-  public int getNumRemainingProjects(){
-    return numRemainingProjects;
-  }
-  
-  public void setNumRemainingProjects(int numRemainingProjects){
-    this.numRemainingProjects = numRemainingProjects;
-  }
-  
-  public int getNumActiveProjects() {
-    return numActiveProjects;
-  }
+	public void setMaxNumProjects(int maxNumProjects) {
+		this.maxNumProjects = maxNumProjects;
+		numRemainingProjects = maxNumProjects-numCreatedProjects;
+	}
 
-  public void setNumActiveProjects(int numActiveProjects) {
-    this.numActiveProjects = numActiveProjects;
-  }
+	public int getNumCreatedProjects() {
+		return numCreatedProjects;
+	}
 
-  public boolean isTestUser() {
-    return testUser;
-  }
+	public void setNumCreatedProjects(int numCreatedProjects) {
+		this.numCreatedProjects = numCreatedProjects;
+		numRemainingProjects = maxNumProjects-numCreatedProjects;
+	}
 
-  public void setTestUser(boolean testUser) {
-    this.testUser = testUser;
-  }
+	public int getNumRemainingProjects(){
+		return numRemainingProjects;
+	}
 
-  public String getUserAccountType() {
-    return userAccountType;
-  }
+	public void setNumRemainingProjects(int numRemainingProjects){
+		this.numRemainingProjects = numRemainingProjects;
+	}
 
-  public void setUserAccountType(String userAccountType) {
-    this.userAccountType = userAccountType;
-  }
+	public int getNumActiveProjects() {
+		return numActiveProjects;
+	}
 
-  @Override
-  public String toString() {
-    return "UserDTO{username=" + username + ", email=" + email + ", telephoneNum=" + telephoneNum
-            + ", firstName=" + firstName + ", lastName=" + lastName
-            + ", status=" + status + ", securityQuestion=" + securityQuestion
-            + ", securityAnswer=" + securityAnswer + ", secret=" + secret
-            + ", chosenPassword=" + chosenPassword + ", repeatedPassword="
-            + repeatedPassword + ", ToS=" + ToS + ", orgName=" + orgName
-            + ", dep=" + dep + ", street=" + street + ", city=" + city
-            + ", postCode= " + postCode + ", country=" + country
-            + ", maxNumProjects= " + maxNumProjects + '}';
-  }
+	public void setNumActiveProjects(int numActiveProjects) {
+		this.numActiveProjects = numActiveProjects;
+	}
+
+	public boolean isTestUser() {
+		return testUser;
+	}
+
+	public void setTestUser(boolean testUser) {
+		this.testUser = testUser;
+	}
+
+	public String getUserAccountType() {
+		return userAccountType;
+	}
+
+	public void setUserAccountType(String userAccountType) {
+		this.userAccountType = userAccountType;
+	}
+
+
+
+	public String getBbcRole() {
+		return bbcRole;
+	}
+
+	public void setBbcRole(String bbcRole) {
+		this.bbcRole = bbcRole;
+	}
+
+	@Override
+	public String toString() {
+		return "UserDTO{username=" + username + ", email=" + email + ", telephoneNum=" + telephoneNum
+				+ ", firstName=" + firstName + ", lastName=" + lastName
+				+ ", status=" + status + ", securityQuestion=" + securityQuestion
+				+ ", securityAnswer=" + securityAnswer + ", secret=" + secret
+				+ ", chosenPassword=" + chosenPassword + ", repeatedPassword="
+				+ repeatedPassword + ", ToS=" + ToS + ", orgName=" + orgName
+				+ ", dep=" + dep + ", street=" + street + ", city=" + city
+				+ ", postCode= " + postCode + ", country=" + country
+				+ ", maxNumProjects= " + maxNumProjects + '}';
+	}
 
 }
