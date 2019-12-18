@@ -152,6 +152,48 @@ public class UsersController {
     return qrCode;
   }
   
+  public UserDTO registerAndActivateUser(UserDTO newUser, HttpServletRequest req) throws UserException {
+	    userValidator.isValidNewUser(newUser);
+	    Users user = createNewUser(newUser, UserAccountStatus.ACTIVATED_ACCOUNT, UserAccountType.M_ACCOUNT_TYPE);
+	    addAddress(user);
+	    addOrg(user);
+	    //to prevent sending email for test user emails
+	    try {
+	      if (!newUser.isTestUser()) {
+	        // Notify user about the request if not test user.
+	        authController.sendEmailValidationKey(user, user.getValidationKey(), req);
+	      }
+	      // Only register the user if i can send the email. To prevent fake emails
+	      userFacade.persist(user);
+	      
+	      accountAuditFacade.registerAccountChange(user, AccountsAuditActions.REGISTRATION.name(),
+	        AccountsAuditActions.SUCCESS.name(), "New validation key", user, req);
+	      accountAuditFacade.registerAccountChange(user, AccountsAuditActions.QRCODE.name(),
+	        AccountsAuditActions.SUCCESS.name(), "", user, req);
+	      
+	      user = userFacade.findByEmail(user.getEmail());
+	     
+	      if(newUser.getBbcRole() != null) {
+		      BbcGroup bbcGroup = bbcGroupFacade.findByGroupName(newUser.getBbcRole());
+		      user.getBbcGroupCollection().add(bbcGroup);
+		      userFacade.update(user);
+		      accountAuditFacade.registerRoleChange(user, RolesAuditAction.ROLE_ADDED.name(),
+		              RolesAuditAction.SUCCESS.name(), bbcGroup.getGroupName(), user, req);
+	      }
+	      
+	    } catch (MessagingException ex) {
+	      accountAuditFacade.registerAccountChange(user, AccountsAuditActions.REGISTRATION.name(),
+	          AccountsAuditActions.FAILED.name(), "", user, req);
+	      accountAuditFacade.registerAccountChange(user, AccountsAuditActions.QRCODE.name(),
+	          AccountsAuditActions.FAILED.name(), "", user, req);
+	      throw new UserException(RESTCodes.UserErrorCode.ACCOUNT_REGISTRATION_ERROR, Level.SEVERE,
+	        "user: " + newUser.getUsername(), ex.getMessage(), ex);
+	    }
+	    
+	    return  new UserDTO(user);
+	  }
+	  
+  
   @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
   public String activateUser(String role, Users user1, Users loggedInUser, HttpServletRequest httpServletRequest) {
     BbcGroup bbcGroup = bbcGroupFacade.findByGroupName(role);

@@ -71,7 +71,7 @@ public class AuthFilter extends JWTFilter {
 
   @Override
   public boolean isTokenValid(DecodedJWT jwt) {
-    return !jwtController.isTokenInvalidated(jwt);
+     return !jwtController.isTokenInvalidated(jwt);
   }
 
   @Override
@@ -122,7 +122,7 @@ public class AuthFilter extends JWTFilter {
   public void postJWTFilter(ContainerRequestContext requestContext, DecodedJWT jwt) throws IOException {
     String scheme = requestContext.getUriInfo().getRequestUri().getScheme();
     String[] roles = jwtController.getRolesClaim(jwt);
-    Subject subject = new Subject(jwt.getSubject(), new ArrayList<>(Arrays.asList(roles)));
+    Subject subject = new Subject(getAPISubject(jwt), new ArrayList<>(Arrays.asList(roles)));
     requestContext.setSecurityContext(new HopsworksSecurityContext(subject, scheme));
   }
 
@@ -146,5 +146,15 @@ public class AuthFilter extends JWTFilter {
     }
     jsonResponse.setErrorMsg(msg);
     return jsonResponse;
+  }
+  
+  private String getAPISubject(DecodedJWT jwt) {
+	 String sub =  jwt.getClaim("bd_sub").asString();
+	 
+	 if(null != sub && !"".equals(sub)) 
+		 return sub;
+	 
+	 return jwt.getSubject();
+	 
   }
 }
