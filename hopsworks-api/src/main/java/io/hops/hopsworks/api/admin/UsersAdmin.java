@@ -141,7 +141,7 @@ public class UsersAdmin {
   @Path("/users/{email}")
   @Produces(MediaType.APPLICATION_JSON)
   public Response updateUser(@Context HttpServletRequest req, @Context SecurityContext sc,
-      @PathParam("email") String email, Users user) throws UserException {
+                             @PathParam("email") String email, Users user) throws UserException {
     Users u = userFacade.findByEmail(email);
     if (u != null) {
       if (user.getStatus() != null) {
@@ -149,7 +149,7 @@ public class UsersAdmin {
         u = userFacade.update(u);
         Users initiator = jWTHelper.getUserPrincipal(sc);
         auditManager.registerRoleChange(initiator, AccountsAuditActions.CHANGEDSTATUS.name(),
-            AccountsAuditActions.SUCCESS.name(), u.getStatusName(), u, req);
+                AccountsAuditActions.SUCCESS.name(), u.getStatusName(), u, req);
       }
       if (user.getBbcGroupCollection() != null) {
         u.setBbcGroupCollection(user.getBbcGroupCollection());
@@ -160,7 +160,7 @@ public class UsersAdmin {
         }
         Users initiator = jWTHelper.getUserPrincipal(sc);
         auditManager.registerRoleChange(initiator, RolesAuditAction.ROLE_UPDATED.name(), RolesAuditAction.SUCCESS.
-            name(), result, u, req);
+                name(), result, u, req);
       }
       if (user.getMaxNumProjects() != null) {
         u.setMaxNumProjects(user.getMaxNumProjects());
@@ -176,10 +176,61 @@ public class UsersAdmin {
   }
 
   @POST
+  @Path("/updateUser/{email}")
+  @Produces(MediaType.APPLICATION_JSON)
+  public Response updateUserByEmail(@Context HttpServletRequest req, @Context SecurityContext sc,
+                                    @PathParam("email") String email, Users user) throws UserException {
+    Users u = userFacade.findByEmail(email);
+    if (u != null) {
+      if (user.getStatus() != null) {
+        u.setStatus(user.getStatus());
+        u = userFacade.update(u);
+        Users initiator = jWTHelper.getUserPrincipal(sc);
+        auditManager.registerRoleChange(initiator, AccountsAuditActions.CHANGEDSTATUS.name(),
+                AccountsAuditActions.SUCCESS.name(), u.getStatusName(), u, req);
+      }
+      if (user.getBbcGroupCollection() != null) {
+        //u.setBbcGroupCollection(user.getBbcGroupCollection());
+        String result = "";
+        for (BbcGroup group : user.getBbcGroupCollection()) {
+          BbcGroup bbcGroup = bbcGroupFacade.findByGroupName(group.getGroupName());
+          u.getBbcGroupCollection().clear();
+          u.getBbcGroupCollection().add(bbcGroup);
+        }
+        u = userFacade.update(u);
+        Users initiator = jWTHelper.getUserPrincipal(sc);
+        auditManager.registerRoleChange(initiator, RolesAuditAction.ROLE_UPDATED.name(), RolesAuditAction.SUCCESS.
+                name(), result, u, req);
+      }
+      if (user.getMaxNumProjects() != null) {
+        u.setMaxNumProjects(user.getMaxNumProjects());
+      }
+      if (user.getFname() != null) {
+        u.setFname(user.getFname());
+      }
+      if (user.getLname() != null) {
+        u.setLname(user.getLname());
+      }
+      if (user.getEmail() != null) {
+        u.setEmail(user.getEmail());
+      }
+      if (user.getGroupName() != null) {
+        u.setGroupName(user.getGroupName());
+      }
+      u = userFacade.update(u);
+    } else {
+      throw new UserException(RESTCodes.UserErrorCode.USER_WAS_NOT_FOUND, Level.FINE);
+    }
+    GenericEntity<Users> result = new GenericEntity<Users>(u) {
+    };
+    return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).entity(result).build();
+  }
+
+  @POST
   @Path("/users/{email}/accepted")
   @Produces(MediaType.APPLICATION_JSON)
   public Response acceptUser(@Context HttpServletRequest req, @Context SecurityContext sc,
-      @PathParam("email") String email, Users user) throws UserException, ServiceException {
+                             @PathParam("email") String email, Users user) throws UserException, ServiceException {
     Users u = userFacade.findByEmail(email);
     if (u != null) {
       if (u.getStatus().equals(UserAccountStatus.VERIFIED_ACCOUNT)) {
@@ -198,14 +249,14 @@ public class UsersAdmin {
         }
         Users initiator = jWTHelper.getUserPrincipal(sc);
         auditManager.registerRoleChange(initiator,
-            RolesAuditAction.ROLE_UPDATED.name(), RolesAuditAction.SUCCESS.
-            name(), result, u, req);
+                RolesAuditAction.ROLE_UPDATED.name(), RolesAuditAction.SUCCESS.
+                        name(), result, u, req);
         auditManager.registerRoleChange(initiator, UserAccountStatus.ACTIVATED_ACCOUNT.name(),
-            AccountsAuditActions.SUCCESS.name(), "", u, req);
+                AccountsAuditActions.SUCCESS.name(), "", u, req);
         sendConfirmationMail(u);
       } else {
         throw new UserException(RESTCodes.UserErrorCode.TRANSITION_STATUS_ERROR, Level.WARNING,
-          "status: "+ u.getStatus().name() + " to status " + UserAccountStatus.ACTIVATED_ACCOUNT.name());
+                "status: "+ u.getStatus().name() + " to status " + UserAccountStatus.ACTIVATED_ACCOUNT.name());
       }
     } else {
       throw new UserException(RESTCodes.UserErrorCode.USER_WAS_NOT_FOUND, Level.FINE);
@@ -220,7 +271,7 @@ public class UsersAdmin {
   @Path("/users/{email}/rejected")
   @Produces(MediaType.APPLICATION_JSON)
   public Response rejectUser(@Context HttpServletRequest req, @Context SecurityContext sc,
-      @PathParam("email") String email) throws UserException, ServiceException {
+                             @PathParam("email") String email) throws UserException, ServiceException {
     Users u = userFacade.findByEmail(email);
     if (u != null) {
       u.setStatus(UserAccountStatus.SPAM_ACCOUNT);
@@ -228,7 +279,7 @@ public class UsersAdmin {
       Users initiator = jWTHelper.getUserPrincipal(sc);
 
       auditManager.registerRoleChange(initiator, UserAccountStatus.SPAM_ACCOUNT.name(),
-          AccountsAuditActions.SUCCESS.name(), "", u, req);
+              AccountsAuditActions.SUCCESS.name(), "", u, req);
       sendRejectionEmail(u);
     } else {
       throw new UserException(RESTCodes.UserErrorCode.USER_WAS_NOT_FOUND, Level.FINE);
@@ -243,14 +294,14 @@ public class UsersAdmin {
   @Path("/users/{email}/pending")
   @Produces(MediaType.APPLICATION_JSON)
   public Response pendingUser(@Context HttpServletRequest req, @PathParam("email") String email) throws UserException,
-      ServiceException {
+          ServiceException {
     Users u = userFacade.findByEmail(email);
     if (u != null) {
       if (u.getStatus().equals(UserAccountStatus.NEW_MOBILE_ACCOUNT)) {
         u = resendAccountVerificationEmail(u, req);
       } else {
         throw new UserException(RESTCodes.UserErrorCode.TRANSITION_STATUS_ERROR, Level.WARNING,
-          "status: "+ u.getStatus().name() + ", to pending status");
+                "status: "+ u.getStatus().name() + ", to pending status");
       }
     } else {
       throw new UserException(RESTCodes.UserErrorCode.USER_WAS_NOT_FOUND, Level.FINE);
@@ -275,12 +326,12 @@ public class UsersAdmin {
     try {
       //send confirmation email
       emailBean.sendEmail(user.getEmail(), Message.RecipientType.TO,
-          UserAccountsEmailMessages.ACCOUNT_CONFIRMATION_SUBJECT,
-          UserAccountsEmailMessages.
-          accountActivatedMessage(user.getEmail()));
+              UserAccountsEmailMessages.ACCOUNT_CONFIRMATION_SUBJECT,
+              UserAccountsEmailMessages.
+                      accountActivatedMessage(user.getEmail()));
     } catch (MessagingException e) {
       throw new ServiceException(RESTCodes.ServiceErrorCode.EMAIL_SENDING_FAILURE, Level.SEVERE, null, e.getMessage(),
-        e);
+              e);
     }
   }
 
@@ -290,7 +341,7 @@ public class UsersAdmin {
       return user;
     } catch (MessagingException e) {
       throw new ServiceException(RESTCodes.ServiceErrorCode.EMAIL_SENDING_FAILURE, Level.SEVERE, null, e.getMessage(),
-        e);
+              e);
     }
   }
 
@@ -298,11 +349,11 @@ public class UsersAdmin {
     try {
       // Send rejection email
       emailBean.sendEmail(user.getEmail(), Message.RecipientType.TO,
-          UserAccountsEmailMessages.ACCOUNT_REJECT,
-          UserAccountsEmailMessages.accountRejectedMessage());
+              UserAccountsEmailMessages.ACCOUNT_REJECT,
+              UserAccountsEmailMessages.accountRejectedMessage());
     } catch (MessagingException e) {
       throw new ServiceException(RESTCodes.ServiceErrorCode.EMAIL_SENDING_FAILURE, Level.SEVERE, null, e.getMessage(),
-        e);
+              e);
     }
   }
 
