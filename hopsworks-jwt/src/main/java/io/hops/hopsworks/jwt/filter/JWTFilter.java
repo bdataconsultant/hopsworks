@@ -89,13 +89,13 @@ public abstract class JWTFilter implements ContainerRequestFilter {
     //  return;
     //}
 
-    if (!isTokenValid(jwt)) {
-      LOGGER.log(Level.FINEST, "JWT Verification Exception: Invalidated token.");
-      responseEntity = responseEntity(Response.Status.UNAUTHORIZED, "Invalidated token.");
-      requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).header(HttpHeaders.WWW_AUTHENTICATE,
-          WWW_AUTHENTICATE_VALUE).entity(responseEntity).build());
-      return;
-    }
+//    if (!isTokenValid(jwt)) {
+//      LOGGER.log(Level.FINEST, "JWT Verification Exception: Invalidated token.");
+//      responseEntity = responseEntity(Response.Status.UNAUTHORIZED, "Invalidated token.");
+//      requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).header(HttpHeaders.WWW_AUTHENTICATE,
+//          WWW_AUTHENTICATE_VALUE).entity(responseEntity).build());
+//      return;
+//    }
 
     Claim rolesClaim = jwt.getClaim(ROLES);
     String[] userRoles = rolesClaim == null ? new String[0] : rolesClaim.asArray(String.class);

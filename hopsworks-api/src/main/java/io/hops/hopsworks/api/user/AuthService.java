@@ -102,7 +102,7 @@ import javax.ws.rs.core.SecurityContext;
 @Path("/auth")
 @Stateless
 @Api(value = "Auth",
-    description = "Authentication service")
+description = "Authentication service")
 @TransactionAttribute(TransactionAttributeType.NEVER)
 public class AuthService {
 
