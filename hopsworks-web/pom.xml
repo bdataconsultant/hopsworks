@@ -57,6 +57,7 @@
 
   <properties>
     <maven.deploy.skip>true</maven.deploy.skip>
+    <targetClient>DEFAULT</targetClient>
   </properties>
 
   <dependencies>
@@ -76,6 +77,9 @@
         <groupId>com.github.trecloux</groupId>
         <artifactId>yeoman-maven-plugin</artifactId>
         <version>0.5</version>
+        <configuration>
+          <gruntBuildArgs>build --targetClient=${targetClient}</gruntBuildArgs>
+        </configuration>
         <executions>
           <execution>
             <goals>
