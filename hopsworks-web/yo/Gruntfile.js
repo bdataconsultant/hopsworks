@@ -58,12 +58,16 @@ module.exports = function (grunt) {
   // Time how long tasks take. Can help when optimizing build times
   require('time-grunt')(grunt);
 
+  var targetClient = grunt.option('targetClient') || 'DEFAULT';
+
   // Configurable paths for the application
   var appConfig = {
     app: require('./bower.json').appPath || 'app',
     dist: 'dist',
-    bower: 'bower_components'
+    bower: 'bower_components',
+    targetClient
   };
+  console.log(appConfig.targetClient);
 
   // Define the configuration for all the tasks
   grunt.initConfig({
@@ -344,6 +348,11 @@ module.exports = function (grunt) {
             cwd: '<%= yeoman.app %>/images',
             src: '{,*/}*.{png,jpg,jpeg,gif}',
             dest: '<%= yeoman.dist %>/images'
+          }, {
+            expand: true,
+            cwd: '<%= yeoman.app %>/client_assets/images/<%= yeoman.targetClient %>',
+            src: '{,*/}*.{png,jpg,jpeg,gif}',
+            dest: '<%= yeoman.dist %>/images'
           }, {// <-- this will copy some unnecessary images to the styles folder 
             // but is needed to copy images used by vendros .css. 
             expand: true,
@@ -358,6 +367,17 @@ module.exports = function (grunt) {
             cwd: '<%= yeoman.bower %>',
             src: '**/img/*.{png,jpg,jpeg,gif}',
             dest: '<%= yeoman.dist %>/img'
+          }
+        ]
+      }
+    },
+    imageminDev: {
+      tmp: {
+        files: [ {
+            expand: true,
+            cwd: '<%= yeoman.app %>/client_assets/images/<%= yeoman.targetClient %>',
+            src: '{,*/}*.{png,jpg,jpeg,gif}',
+            dest: '.tmp/images'
           }
         ]
       }
@@ -445,12 +465,19 @@ module.exports = function (grunt) {
         cwd: '<%= yeoman.app %>/styles',
         dest: '.tmp/styles/',
         src: '{,*/}*.css'
+      },
+      clientimages: {
+        expand: true,
+        cwd: '<%= yeoman.app %>/client_assets/images/<%= yeoman.targetClient %>',
+        src: '{,*/}*.{png,jpg,jpeg,gif}',
+        dest: '.tmp/images'
       }
     },
     // Run some tasks in parallel to speed up the build process
     concurrent: {
       server: [
-        'copy:styles'
+        'copy:styles',
+        'copy:clientimages'
       ],
       test: [
         'copy:styles'
