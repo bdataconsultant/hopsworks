@@ -1,24 +1,25 @@
 # Introduction
 
-Giotto big data plaform repository.
+This is the Giotto big data plaform front-end application. It's an Angularjs application using npm and bower as package manager and grunt as development task runner.
 
 # Getting Started
 
-TODO: Guide users through getting your code up and running on their own system. In this section you can talk about:
-
-1. Installation process
-2. Software dependencies
-3. Latest releases
-4. API references
-
-# Build and Test
-
-## Maven build
-Under giotto-platform-v1.0.0/ run:
+### 1. Pull project from the repository
+	git clone https://almatoolbox.visualstudio.com/Giotto/_git/giotto-platform-v.1.0.0
+    cd ./hopsworks-web/yo
+	
+### 2. Install packages
+	npm install -g bower
+	npm install
+    bower install
+	
+### 3. Start dev server
+You can run a local dev server using the serve task defined in Gruntfile.js:
 
 ```sh
-mvn clean package -DtargetClient=CLIENT_NAME
+grunt serve --targetClient=CLIENT_NAME
 ```
+
 CLIENT_NAME value is the name of the client folder in app/client_assets. When targetClient option isn't specified, "DEFAULT" client name is used.
 
 # Contribute
