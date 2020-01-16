@@ -57,7 +57,7 @@
 
   <properties>
     <maven.deploy.skip>true</maven.deploy.skip>
-    <targetClient>DEFAULT</targetClient>
+    <targetCustomer>DEFAULT</targetCustomer>
   </properties>
 
   <dependencies>
@@ -78,7 +78,7 @@
         <artifactId>yeoman-maven-plugin</artifactId>
         <version>0.5</version>
         <configuration>
-          <gruntBuildArgs>build --targetClient=${targetClient}</gruntBuildArgs>
+          <gruntBuildArgs>build --targetCustomer=${targetCustomer}</gruntBuildArgs>
         </configuration>
         <executions>
           <execution>
