@@ -17,9 +17,9 @@ TODO: Guide users through getting your code up and running on their own system. 
 Under giotto-platform-v1.0.0/ run:
 
 ```sh
-mvn clean package -DtargetClient=CLIENT_NAME
+mvn clean package -DtargetCustomer=CLIENT_NAME
 ```
-CLIENT_NAME value is the name of the client folder in app/client_assets. When targetClient option isn't specified, "DEFAULT" client name is used.
+CLIENT_NAME value is the name of the client folder in app/customer_assets. When targetCustomer option isn't specified, "DEFAULT" client name is used.
 
 # Contribute
 
