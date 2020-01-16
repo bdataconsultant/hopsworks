@@ -17,10 +17,10 @@ This is the Giotto big data plaform front-end application. It's an Angularjs app
 You can run a local dev server using the serve task defined in Gruntfile.js:
 
 ```sh
-grunt serve --targetClient=CLIENT_NAME
+grunt serve --targetCustomer=CUSTOMER_NAME
 ```
 
-CLIENT_NAME value is the name of the client folder in app/client_assets. When targetClient option isn't specified, "DEFAULT" client name is used.
+CUSTOMER_NAME value is the name of the customer folder in app/customer_assets. When targetCustomer option isn't specified, "DEFAULT" client name is used.
 
 # Contribute
 
