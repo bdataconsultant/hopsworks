@@ -58,16 +58,14 @@ module.exports = function (grunt) {
   // Time how long tasks take. Can help when optimizing build times
   require('time-grunt')(grunt);
 
-  var targetClient = grunt.option('targetClient') || 'DEFAULT';
-
   // Configurable paths for the application
   var appConfig = {
     app: require('./bower.json').appPath || 'app',
     dist: 'dist',
     bower: 'bower_components',
-    targetClient
+    targetCustomer: grunt.option('targetCustomer') || 'DEFAULT'
   };
-  console.log(appConfig.targetClient);
+  console.log("Target customer: ", appConfig.targetCustomer);
 
   // Define the configuration for all the tasks
   grunt.initConfig({
@@ -350,7 +348,7 @@ module.exports = function (grunt) {
             dest: '<%= yeoman.dist %>/images'
           }, {
             expand: true,
-            cwd: '<%= yeoman.app %>/client_assets/images/<%= yeoman.targetClient %>',
+            cwd: '<%= yeoman.app %>/customer_assets/<%= yeoman.targetCustomer %>/images',
             src: '{,*/}*.{png,jpg,jpeg,gif}',
             dest: '<%= yeoman.dist %>/images'
           }, {// <-- this will copy some unnecessary images to the styles folder 
@@ -375,7 +373,7 @@ module.exports = function (grunt) {
       tmp: {
         files: [ {
             expand: true,
-            cwd: '<%= yeoman.app %>/client_assets/images/<%= yeoman.targetClient %>',
+            cwd: '<%= yeoman.app %>/customer_assets/images/<%= yeoman.targetCustomer %>',
             src: '{,*/}*.{png,jpg,jpeg,gif}',
             dest: '.tmp/images'
           }
@@ -466,9 +464,9 @@ module.exports = function (grunt) {
         dest: '.tmp/styles/',
         src: '{,*/}*.css'
       },
-      clientimages: {
+      customerImages: {
         expand: true,
-        cwd: '<%= yeoman.app %>/client_assets/images/<%= yeoman.targetClient %>',
+        cwd: '<%= yeoman.app %>/customer_assets/<%= yeoman.targetCustomer %>/images',
         src: '{,*/}*.{png,jpg,jpeg,gif}',
         dest: '.tmp/images'
       }
@@ -477,7 +475,7 @@ module.exports = function (grunt) {
     concurrent: {
       server: [
         'copy:styles',
-        'copy:clientimages'
+        'copy:customerImages'
       ],
       test: [
         'copy:styles'
