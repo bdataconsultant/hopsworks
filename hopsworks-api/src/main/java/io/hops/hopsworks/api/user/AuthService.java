@@ -133,26 +133,19 @@ public class AuthService {
 	@JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
 	public Response session(@Context HttpServletRequest req, @Context SecurityContext sc) throws LoginException, UserException, SigningKeyNotFoundException, NoSuchAlgorithmException, DuplicateSigningKeyException {
 		
-		LOGGER.log(Level.SEVERE, "***session init***");
 		
 		Users user = jWTHelper.getUserPrincipal(sc);
 		
 		if (user == null) {
-			LOGGER.log(Level.SEVERE, "***session User NULL");
 			throw new LoginException("Unrecognized email address. Have you registered yet?");
-		}else {
-			LOGGER.log(Level.SEVERE, "***session mail:"+user.getEmail());
 		}
 		
 		if (req.getSession(false) == null) {
-			LOGGER.log(Level.SEVERE, "***session NO SESSION");
-			LOGGER.log(Level.SEVERE, "***session USER:"+user.getEmail());
-			LOGGER.log(Level.SEVERE, "***session PASSWORD:"+user.getPassword());
+			
 			return loginWithoutPassword( user.getEmail(), "NO_PASSWORD_LOGIN", null, req);
 			//return loginWithoutPassword( req, user);
 			
 		}
-		LOGGER.log(Level.SEVERE, "***session fin***");
 		return jwtSession(sc);
 		
 //		LOGGER.log(Level.SEVERE, "***SESSION****");
@@ -238,7 +231,7 @@ public class AuthService {
 	public Response login(@FormParam("email") String email, @FormParam("password") String password,
 			@FormParam("otp") String otp, @Context HttpServletRequest req) throws UserException, SigningKeyNotFoundException,
 	NoSuchAlgorithmException, LoginException, DuplicateSigningKeyException {
-		LOGGER.log(Level.SEVERE, "***LOGIN PASSWORD:"+password);
+
 		if (email == null || email.isEmpty()) {
 			throw new IllegalArgumentException("Email was not provided");
 		}
@@ -252,24 +245,19 @@ public class AuthService {
 		if (!needLogin(req, user)) {
 			return Response.ok().build();
 		}
-		LOGGER.log(Level.SEVERE, "** GET SESSION **");
 		// A session needs to be create explicitly before doing to the login operation
 		req.getSession();
 
-		LOGGER.log(Level.SEVERE, "** GET passwordWithSaltPlusOtp **");
 		// Do pre cauth realm check
 		String passwordWithSaltPlusOtp = authController.preCustomRealmLoginCheck(user, password, otp, req);
 
-		LOGGER.log(Level.SEVERE, "** GET response **");
 		// Do login
 		Response response = login(user, passwordWithSaltPlusOtp, req);
 
-		LOGGER.log(Level.SEVERE, "** GET Loguser **");
 		if (LOGGER.isLoggable(Level.FINEST)) {
 			logUserLogin(req);
 		}
 
-		LOGGER.log(Level.SEVERE, "** RETURN **");
 		return response;
 	}
 

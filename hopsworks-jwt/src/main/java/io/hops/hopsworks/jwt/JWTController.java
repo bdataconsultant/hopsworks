@@ -381,6 +381,12 @@ public class JWTController {
    */
   public String autoRenewToken(String token) throws SigningKeyNotFoundException,
       NotRenewableException, InvalidationException {
+	  
+	DecodedJWT customJwt =  JWT.decode(token);
+	
+	if(customJwt.getClaim("bd_sub")!=null)
+		return customJwt.getToken();		
+			
     DecodedJWT jwt = verifyTokenForRenewal(token);
     boolean isRenewable = getRenewableClaim(jwt);
     if (!isRenewable) {

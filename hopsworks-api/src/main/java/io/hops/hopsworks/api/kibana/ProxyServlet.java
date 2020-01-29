@@ -39,6 +39,8 @@ import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpParams;
 import org.apache.http.util.EntityUtils;
 
+import io.hops.hopsworks.api.airflow.AirflowProxyServlet;
+
 import javax.servlet.ServletException;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServlet;
@@ -54,6 +56,8 @@ import java.util.BitSet;
 import java.util.Enumeration;
 import java.util.Formatter;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * An HTTP reverse proxy/gateway servlet. It is designed to be extended for
@@ -77,6 +81,8 @@ import java.util.List;
  */
 public class ProxyServlet extends HttpServlet {
 
+	private final static Logger LOGGER = Logger.getLogger(ProxyServlet.class.getName());
+	
   /*
    * INIT PARAMETER NAME CONSTANTS
    */
@@ -511,12 +517,17 @@ public class ProxyServlet extends HttpServlet {
       HttpServletRequest servletRequest,
       HttpServletResponse servletResponse) {
     for (Header header : proxyResponse.getAllHeaders()) {
+    	
+    	LOGGER.log(Level.SEVERE, "<<---" +header.getName() + "::"+header.getValue());
+    	
       if (hopByHopHeaders.containsHeader(header.getName())) {
+    	  LOGGER.log(Level.SEVERE, "<<---hopByHopHeaders contains" +header.getName() );
         continue;
       }
       if (header.getName().
           equalsIgnoreCase(org.apache.http.cookie.SM.SET_COOKIE) || header.
           getName().equalsIgnoreCase(org.apache.http.cookie.SM.SET_COOKIE2)) {
+    	  LOGGER.log(Level.SEVERE, "<<---copy cookie " +header.getName() + "::"+header.getValue());
         copyProxyCookie(servletRequest, servletResponse, header.getValue());
       } else {
         servletResponse.addHeader(header.getName(), header.getValue());
