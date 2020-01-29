@@ -132,7 +132,7 @@
   </security-constraint>
   <login-config>
     <auth-method>FORM</auth-method>
-    <realm-name>cauthRealm</realm-name>
+    <realm-name>cauthRealmCustom</realm-name>
     <form-login-config>
       <form-login-page>/login.xhtml</form-login-page>
       <form-error-page>/error.xhtml</form-error-page>

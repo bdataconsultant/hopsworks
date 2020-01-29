@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -48,7 +49,21 @@ import org.apache.http.message.BasicNameValuePair;
 public class AirflowProxyServlet extends ProxyServlet {
   
   private static final Pattern TRIGGER_DAG_PATTERN = Pattern.compile(".+/trigger/?$");
-  
+
+  //Custom config proxy rewrite
+  private static final String REPLACE_HTTP_PROTOCOL = "replaceHttpProtocol";
+  private static final String REPLACE_TARGET_HOST = "replaceTargetHost";
+  private static final String REWRITE_TARGET_HOST = "targetHostRewrite";
+  private static final String REWRITE_HOST_SEPARATOR = ";";
+  private static final String FORWARD_HOST_HEADER_NAME = "x-forwarded-host";
+
+  protected boolean doReplaceHttpProtocol = false;
+  protected boolean doReplaceTargetHost = false;
+  protected String rewriteHostToReplace ;
+  protected String rewriteTargetHost ;
+
+
+
   @EJB
   private UserFacade userFacade;
   @EJB
@@ -76,6 +91,26 @@ public class AirflowProxyServlet extends ProxyServlet {
 
   protected void initTarget() throws ServletException {
     super.initTarget();
+
+    String doReplacaProtocol = getConfigParam(REPLACE_HTTP_PROTOCOL);
+    if (doReplacaProtocol != null) {
+      this.doReplaceHttpProtocol = Boolean.parseBoolean(doReplacaProtocol);
+    }
+
+    String doRewriteUrl = getConfigParam(REPLACE_TARGET_HOST);
+    if (doRewriteUrl != null) {
+      this.doReplaceTargetHost = Boolean.parseBoolean(doRewriteUrl);
+    }
+
+    if(doReplaceTargetHost){
+      String rewriteString = getConfigParam(REWRITE_TARGET_HOST);
+      if (rewriteString != null && rewriteString.contains(REWRITE_HOST_SEPARATOR)) {
+        String[] hosts = rewriteString.split(REWRITE_HOST_SEPARATOR);
+        this.rewriteHostToReplace=hosts[0];
+        this.rewriteTargetHost=hosts[1];
+      }
+    }
+
   }
 
   /**
@@ -213,7 +248,7 @@ public class AirflowProxyServlet extends ProxyServlet {
         } else if (headerName.equalsIgnoreCase(org.apache.http.cookie.SM.COOKIE)) {
           headerValue = getRealCookie(headerValue);
         }
-        proxyRequest.addHeader(headerName, headerValue);
+          proxyRequest.addHeader(headerName, headerValue);
       }
     }
   }
@@ -241,7 +276,6 @@ public class AirflowProxyServlet extends ProxyServlet {
       // Modify the redirect to go to this proxy servlet rather that the proxied host
       String locStr = rewriteUrlFromResponse(servletRequest, locationHeader.
           getValue());
-    
       copyResponseHeaders(proxyResponse, servletRequest, servletResponse);
       servletResponse.sendRedirect(locStr);
       return true;
@@ -259,4 +293,40 @@ public class AirflowProxyServlet extends ProxyServlet {
     }
     return false;
   }
+
+  @Override
+  protected String rewriteUrlFromResponse(HttpServletRequest servletRequest,
+                                          String theUrl) {
+    //TODO document example paths
+    final String targetUri = getTargetUri(servletRequest);
+    if (theUrl.startsWith(targetUri)) {
+
+
+      String curUrl = servletRequest.getRequestURL().toString();//no query
+     // curUrl=getOriginalCurl(curUrl);
+
+      String pathInfo = servletRequest.getPathInfo();
+      if (pathInfo != null) {
+        assert curUrl.endsWith(pathInfo);
+        curUrl = curUrl.substring(0, curUrl.length() - pathInfo.length());//take pathInfo off
+      }
+      theUrl = curUrl + theUrl.substring(targetUri.length());
+    }
+    return getOriginalCurl(servletRequest, theUrl);
+  }
+
+  private String getOriginalCurl(HttpServletRequest servletRequest, String curl){
+    if(this.doReplaceHttpProtocol){
+      curl = curl.replaceAll("http:","https:");
+    }
+    String forward_host = servletRequest.getHeader(FORWARD_HOST_HEADER_NAME);
+
+    if(this.doReplaceTargetHost && (forward_host != null && !curl.contains(forward_host) ) && this.rewriteHostToReplace!=null && this.rewriteTargetHost!=null){
+      curl = curl.replaceAll(this.rewriteHostToReplace,this.rewriteTargetHost);
+    }
+
+    return curl;
+  }
+  
+  
 }
