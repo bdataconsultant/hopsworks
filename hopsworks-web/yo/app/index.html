@@ -96,6 +96,7 @@
     <link rel="stylesheet" href="styles/filemgr/dialogs.css">
     <link rel="stylesheet" href="styles/filemgr/main.css">
     <link rel="stylesheet" href="styles/featurestore.css">
+    <link rel="stylesheet" href="styles/filemgr/header-platform.css">
     <!-- endbuild -->
 </head>
 <body ng-app="hopsWorksApp" style="background-image:url('images/giotto-sfondo-lum.png');">
@@ -103,9 +104,23 @@
 <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade
     your browser</a> to improve your experience.</p>
 <![endif]-->
+    
+    <!-- plugin initialization -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function(){
+            // create instance of a plugin
+            console.log("plugin created");
+            var elem = document.getElementById('header-platform');
+            var instance = new UserList(elem, { logoDir: 'images/big-data-logo-login.png', context: 'default' });
+
+            // initialize
+            instance.init();
+        });
+    </script>
+    <div id="header-platform" class="header-platform"></div>
 
     <div class="hw-wrapper" id="hwWrapper">
-      <div ng-view=""></div>
+        <div ng-view=""></div>
     </div>
     <!-- build:js(.) scripts/jquery.js -->
     <script src="bower_components/jquery/jquery.js"></script>
@@ -175,6 +190,8 @@
     <script src="bower_components/angular-file-saver/dist/angular-file-saver.bundle.js"></script>
     <script src="bower_components/ng-file-upload/ng-file-upload-all.min.js"></script>
     <script src="node_modules/apexcharts/dist/apexcharts.js"></script>
+
+    <script src="bower_components/giotto-iot-platform-header/index.js"></script>
 
     <!-- endbower -->
     <!-- endbuild -->
