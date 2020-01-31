@@ -56,7 +56,6 @@ angular.module('hopsWorksApp')
             const MIN_SEARCH_TERM_LEN = 2;
             var self = this;
 
-
             self.ui = "/giotto-api/airflow/login?q=username=";
 
             self.email = $cookies.get('email');

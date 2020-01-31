@@ -2,7 +2,8 @@
   "name": "hopsworks",
   "version": "0.0.1",
   "dependencies": {
-    "apexcharts": "^3.6.8"
+    "apexcharts": "^3.6.8",
+    "giotto-iot-platform-header": "github:Scale93/platform--header#master"
   },
   "repository": {},
   "devDependencies": {
