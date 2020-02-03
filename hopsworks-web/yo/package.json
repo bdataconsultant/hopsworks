@@ -3,12 +3,12 @@
   "version": "0.0.1",
   "dependencies": {
     "apexcharts": "^3.6.8",
-    "giotto-iot-platform-header": "github:Scale93/platform--header#master"
+    "giotto-platform-header": "^1.0.0"
   },
   "repository": {},
   "devDependencies": {
     "globule": "^1.0.0",
-    "grunt": "^0.4.2",
+    "grunt": "^0.4.5",
     "grunt-autoprefixer": "^2.0.0",
     "grunt-concurrent": "^2.3.0",
     "grunt-connect-proxy": "^0.2.0",
