@@ -53,6 +53,38 @@ angular.module('hopsWorksApp')
                   ProjectService, growl,
                   MessageService, $routeParams, $window, HopssiteService, BannerService,
                   AirflowService) {
+            
+            // HEADER PLUGIN INIZIALIZATION
+             try {
+               document.getElementById("platform-header").remove();
+             } catch(e) {}
+            var wrapper = document.getElementById('hwWrapper');
+            var headerDiv = document.createElement("platform-header");
+            headerDiv.setAttribute("id", "platform-header");
+            wrapper.appendChild(headerDiv)
+            var instance = new GiottoPlatformHeader(
+                headerDiv, 
+                {
+                    logoDir: "images/big-data-logo.png", 
+                    appContext: 'bigdata',
+                    logout: headerLogout,
+                    appUrlsConfig: {
+                        bigdata: 'https://127.0.0.1:4000',
+                        iot: 'http://localhost:3000',
+                        admin: 'localhost:12345'
+                    }
+                });
+            // initialize
+            instance.init();
+            
+            function headerLogout() {
+              headerDiv.remove();
+              localStorage.clear();
+              sessionStorage.clear();
+              self.logout();
+            }
+            // HEADER PLUGIN INIZIALIZATION
+            
             const MIN_SEARCH_TERM_LEN = 2;
             var self = this;
 
