@@ -2,7 +2,6 @@
   "name": "hopsworks",
   "version": "0.0.1",
   "dependencies": {
-    "giotto-iot-platform-header": "Scale93/platform--header#master",
     "bootstrap": "^3.3.7",
     "angular": "1.6.3",
     "angular-websocket": "~1.0.13",
