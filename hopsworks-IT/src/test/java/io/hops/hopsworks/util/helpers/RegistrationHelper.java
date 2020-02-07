@@ -33,7 +33,7 @@ import static org.junit.Assert.assertEquals;
 
 public class RegistrationHelper {
   
-  public static final String EMAIL_VALIDATION_URL = "hopsworks-admin/security/validate_account.xhtml?key=";
+  public static final String EMAIL_VALIDATION_URL = "giotto-admin/security/validate_account.xhtml?key=";
   public static final String ADMIN = "HOPS_ADMIN";
   public static final String USER = "HOPS_USER";
   

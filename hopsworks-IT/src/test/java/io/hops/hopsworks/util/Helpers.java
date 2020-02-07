@@ -35,7 +35,7 @@ public class Helpers {
   
   public static void enableTwoFactor(WebDriver driver, DBHelper dbHelper) {
     LoginHelper.loginAsAdmin(driver, dbHelper);
-    driverGet("hopsworks-admin/security/protected/admin/refreshVariables.xhtml", driver);
+    driverGet("giotto-admin/security/protected/admin/refreshVariables.xhtml", driver);
     driver.findElement(By.id("updateVariablesForm:variablesTable:idColumn:filter")).click();
     driver.findElement(By.id("updateVariablesForm:variablesTable:idColumn:filter")).clear();
     driver.findElement(By.id("updateVariablesForm:variablesTable:idColumn:filter")).sendKeys("twofactor_auth");

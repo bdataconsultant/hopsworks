@@ -122,10 +122,10 @@ module.exports = function (grunt) {
           port: 8181,
           https: false,
           secure: false,
-          protocol: 'https:',
-          rewrite: {
-            '^/giotto-api': '/hopsworks-api',
-          }
+          protocol: 'https:'
+          // rewrite: {
+          //   '^/giotto-api': '/hopsworks-api',
+          // }
         }
       ],
       livereload: {
