@@ -44,7 +44,7 @@ package io.hops.hopsworks.api.kibana;
  * Hopsworks proxy servlet.
  * <p>
  * <p>
- * List of requests (prefix is /hopsworks-api/kibana)
+ * List of requests (prefix is /giotto-api/kibana)
  * 1.
  * /elasticsearch/_mget?timeout=0&ignore_unavailable=true&preference=1484560870227
  * (filter request params)
