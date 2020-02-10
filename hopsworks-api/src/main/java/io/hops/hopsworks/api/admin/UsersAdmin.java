@@ -66,12 +66,7 @@ import javax.ejb.TransactionAttributeType;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
+import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.GenericEntity;
 import javax.ws.rs.core.MediaType;
@@ -137,6 +132,18 @@ public class UsersAdmin {
     return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).entity(result).build();
   }
 
+  @DELETE
+  @Path("/users/{email}")
+  @Produces(MediaType.APPLICATION_JSON)
+  public Response deleteUser(@PathParam("email") String email)  {
+    try {
+      userFacade.removeByEmail(email);
+      return Response.accepted().build();
+    } catch (Exception e) {
+      return Response.serverError().build();
+    }
+  }
+
   @POST
   @Path("/users/{email}")
   @Produces(MediaType.APPLICATION_JSON)
@@ -174,6 +181,8 @@ public class UsersAdmin {
     };
     return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).entity(result).build();
   }
+
+
 
   @POST
   @Path("/updateUser/{email}")
