@@ -43,7 +43,7 @@
 'use strict';
 
 angular.module('hopsWorksApp')
-        .factory('DataSetService', ['$http', function ($http) {
+        .factory('DataSetService', ['$http', 'UtilsService', function ($http, UtilsService) {
             return function (id) {
               var services = {
 
@@ -110,7 +110,9 @@ angular.module('hopsWorksApp')
                  * @returns {undefined}
                  */
                 fileDownload: function (fileName, token) {
-                  location.href=getPathname() + '/api/project/' + id + '/dataset/fileDownload/' + fileName + '?token=' + token;
+                  $http.get(getPathname() + "/api/project/" + id + "/dataset/fileDownload/" + fileName + "?token=" + token).then(function(response) {
+                      UtilsService.download(response.data, fileName, '');
+                  });   
                 },
                 compressFile: function(fileName) {
                   return $http.get('/api/project/' + id + '/dataset/compressFile/' + fileName);
