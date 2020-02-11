@@ -97,7 +97,7 @@ public class JupyterProcessMgr implements JupyterManager {
   private static final Logger LOGGER = Logger.getLogger(JupyterProcessMgr.class.getName());
   private static final int TOKEN_LENGTH = 48;
   private static final String JUPYTER_HOST_TEMPLATE = "http://%s:%d";
-  private static final String PING_PATH = "/hopsworks-api/jupyter/%d/api/status";
+  private static final String PING_PATH = "/giotto-api/jupyter/%d/api/status";
 
   @EJB
   private Settings settings;
