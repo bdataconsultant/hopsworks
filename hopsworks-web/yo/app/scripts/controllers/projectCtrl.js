@@ -683,11 +683,11 @@ angular.module('hopsWorksApp')
             };
 
             self.tourDone = function (tour) {
-              StorageService.store("hopsworks-tourdone-" + tour, true);
+              StorageService.store("giotto-tourdone-" + tour, true);
             };
 
             self.isTourDone = function (tour) {
-              var isDone = StorageService.get("hopsworks-tourdone-" + tour);
+              var isDone = StorageService.get("giotto-tourdone-" + tour);
             };
 
             self.getCerts = function () {

@@ -93,7 +93,7 @@ angular.module('hopsWorksApp')
             self.guideKafkaTopics = [];
 
             self.populateKafkaTopic = function () {
-              var tipsEnabled = StorageService.get("hopsworks-showtourtips");
+              var tipsEnabled = StorageService.get("giotto-showtourtips");
               if (tipsEnabled) {
                 self.getAllTopics(self.projectId).then(
                         function (success) {

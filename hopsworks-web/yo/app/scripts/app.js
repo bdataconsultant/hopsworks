@@ -103,7 +103,7 @@ angular.module('hopsWorksApp', [
               progressCallbacksInterval: 0,
               headers: function (file, chunk, isTest) {
                   return {
-                      'Authorization': localStorage.getItem("token")
+                      'Authorization': localStorage.getItem("access_token")
                   };
               }
             };
@@ -681,7 +681,7 @@ angular.module('hopsWorksApp', [
             };
         }])
         .run(['$rootScope', '$routeParams', '$http', 'JobService', function ($rootScope, $routeParams, $http, JobService) {
-            var token = localStorage.getItem("token");
+            var token = localStorage.getItem("access_token");
             if (token) {
               $http.defaults.headers.common.Authorization = token;
             }
