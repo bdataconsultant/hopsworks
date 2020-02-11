@@ -53,7 +53,7 @@ function getPort() {
 };
 
 function getPathname() {
-  return "/hopsworks-cluster";
+  return "/giotto-cluster";
 }
 
 function getApiPath() {

@@ -2328,7 +2328,7 @@ public class Settings implements Serializable {
     return "featurestore_util.py";
   }
 
-  private String VERIFICATION_PATH = "/hopsworks-admin/security/validate_account.xhtml";
+  private String VERIFICATION_PATH = "/giotto-admin/security/validate_account.xhtml";
 
   public synchronized String getEmailVerificationEndpoint() {
     checkCache();
@@ -2496,7 +2496,7 @@ public class Settings implements Serializable {
     DELA_PUBLIC_ENDPOINT = endpoint;
 
     String delaSearchEndpoint = "https://" + endpoint.getIp() + ":"
-        + getPUBLIC_HTTPS_PORT() + "/hopsworks-api/api";
+        + getPUBLIC_HTTPS_PORT() + "/giotto-api/api";
     String delaTransferEndpoint = endpoint.getIp() + ":" + endpoint.getPort() + "/" + endpoint.getId();
 
     if (getDELA_SEARCH_ENDPOINT() == null) {
