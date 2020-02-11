@@ -106,19 +106,19 @@ angular.module('hopsWorksApp')
               },
               saveToken: function (token) {
                 if (token) {
-                  localStorage.setItem("token", token);
+                  localStorage.setItem("access_token", token);
                   $http.defaults.headers.common.Authorization = token;
                 }
               },
               getToken: function () {
-                return localStorage.getItem("token");
+                return localStorage.getItem("access_token");
               },
               refreshToken: function() {
-                var token = localStorage.getItem("token");
+                var token = localStorage.getItem("access_token");
                 $http.defaults.headers.common.Authorization = token;
               },
               removeToken: function () {
-                localStorage.removeItem("token");
+                localStorage.removeItem("access_token");
                 $http.defaults.headers.common.Authorization = '';
               },
               cleanSession: function () {
@@ -128,7 +128,7 @@ angular.module('hopsWorksApp')
                 $cookies.remove("projectID");
                 $cookies.remove("SESSION");
                 sessionStorage.removeItem("isAdmin");
-                localStorage.removeItem("hopsworks-showtourtips");
+                localStorage.removeItem("giotto-showtourtips");
               }
             };
             return service;

@@ -122,7 +122,7 @@ angular.module('hopsWorksApp')
                   } else {
                     $rootScope.showTourTips = false;
                   }
-                  StorageService.store("hopsworks-showtourtips",$rootScope.showTourTips);
+                  StorageService.store("giotto-showtourtips",$rootScope.showTourTips);
                 }, function(error) {
                   console.log(error);
                 }
@@ -166,7 +166,7 @@ angular.module('hopsWorksApp')
               } else {
                 self.disableTourTips();
               }
-              StorageService.store("hopsworks-showtourtips",$rootScope.showTourTips);
+              StorageService.store("giotto-showtourtips",$rootScope.showTourTips);
             };
 
             self.disableTourTips = function () {
