@@ -88,7 +88,7 @@ angular.module('hopsWorksApp')
             };
 
             self.goToAdminPage = function () {
-              $window.location.href = '/hopsworks-admin/security/protected/admin/adminIndex.xhtml';
+              $window.location.href = '/giotto-admin/security/protected/admin/adminIndex.xhtml';
             };
 
             self.getEmailHash = function (email) {
