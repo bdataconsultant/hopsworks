@@ -49,18 +49,6 @@
         </a>
       </li> -->
 
-      <li ng-click="projectCtrl.goToJupyter()" ng-show="projectCtrl.showJupyter()">
-        <a>
-          <!-- Jupyter  -->
-          <img class="pull-right" style="margin-right:5px" width="80" src="images/jupyter-200x200-bw.png"
-                       id="jupyterTab"/>
-          <i class="pull-left fa"  
-             uib-tooltip="Orange triangle: jobs are encountering problems. Red means Jobs cannot be run just now." 
-             tooltip-placement="auto right"
-             ng-class="{'fa-ban text-danger': clusterUtilCtrl.YarnBan, 'fa-exclamation-triangle text-warning': clusterUtilCtrl.YarnWarn }" aria-hidden="true" style="margin-top: 3px"></i>          
-        </a>
-      </li>
-
       <li style="margin-top:0px; margin-bottom:0px;" ng-show="projectCtrl.cloak" id="datasetsTab">
         <a href="#!/project/{{projectCtrl.currentProject.projectId}}">
           <!-- Audit  -->
@@ -69,6 +57,18 @@
               uib-tooltip="Orange triangle: the filesystem is encountering problems. Red means the filesystem is down."                          
               tooltip-placement="auto right"
             ng-class="{'fa-ban text-danger': clusterUtilCtrl.HdfsBan, 'fa-exclamation-triangle text-warning': clusterUtilCtrl.HdfsWarn }" aria-hidden="true" style="margin-top: 3px"></i>                              
+        </a>
+      </li>
+
+      <li style="margin-top:0px; margin-bottom:0px;padding-left:15px" ng-click="projectCtrl.goToJupyter()" ng-show="projectCtrl.showJupyter()">
+        <a>
+          <!-- Jupyter  -->
+          <img class="pull-left" src="images/jupyter-200x200-bw.png" style="width: 40px"
+                       id="jupyterTab"/>
+          <!-- <i class="pull-left fa"  
+             uib-tooltip="Orange triangle: jobs are encountering problems. Red means Jobs cannot be run just now." 
+             tooltip-placement="auto right"
+             ng-class="{'fa-ban text-danger': clusterUtilCtrl.YarnBan, 'fa-exclamation-triangle text-warning': clusterUtilCtrl.YarnWarn }" aria-hidden="true" style="margin-top: 3px"></i>           -->
         </a>
       </li>
 
@@ -94,10 +94,10 @@
              ng-class="{'fa-ban text-danger': clusterUtilCtrl.KafkaBan, 'fa-exclamation-triangle text-warning': clusterUtilCtrl.KafkaWarn }" aria-hidden="true" style="margin-top: 3px"></i>                    
         </a>
       </li>
-      <li ng-click="projectCtrl.goToService('DELA')" ng-show="projectCtrl.showDela()">
+      <li style="margin-top:0px; margin-bottom:0px; padding-left: 15px;" ng-click="projectCtrl.goToService('DELA')" ng-show="projectCtrl.showDela()">
         <a>
           <!-- Dela -->
-          <img class="pull-right" style="" width="80" src="images/dela-green.png">
+          <img class="pull-left" src="images/dela-green.png" style="width: 40px">
         </a>
       </li>
 
@@ -110,17 +110,17 @@
       </li>
 
 
-      <li ng-click="projectCtrl.goToRStudio()" ng-show="projectCtrl.showRStudio()">
+      <li style="margin-top:0px; margin-bottom:0px; padding-left: 15px;" ng-click="projectCtrl.goToRStudio()" ng-show="projectCtrl.showRStudio()">
         <a>
           <!-- RStudio -->
-          <img class="pull-right" style="" width="80" src="images/rstudio.png">
+          <img class="pull-left" src="images/rstudio.png" style="width: 40px">
         </a>
       </li>
 
-      <li ng-click="projectCtrl.goToTfServing()" ng-show="projectCtrl.showTfServing()" id="servingTab">
-        <a class="left-right">
+      <li style="margin-top:0px; margin-bottom:0px; padding-left: 15px;" ng-click="projectCtrl.goToTfServing()" ng-show="projectCtrl.showTfServing()" id="servingTab">
+        <a>
           <!-- &nbspModel Serving -->
-          <img class="pull-right" style="" width="80" src="images/tf-175x200_bw.png"/>
+          <img class="pull-left" src="images/tf-175x200_bw.png" style="width: 40px"/>
         </a>
       </li>
 
