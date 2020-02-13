@@ -49,10 +49,11 @@
         </a>
       </li> -->
 
-      <li style="margin-top:0px; margin-bottom:0px;" ng-show="projectCtrl.cloak" id="datasetsTab">
+      <li ng-show="projectCtrl.cloak" id="datasetsTab">
         <a href="#!/project/{{projectCtrl.currentProject.projectId}}">
           <!-- Audit  -->
-          <img class="pull-right" style="margin-right:5px" width="80" src="images/icons/home-24px.svg" id="jupyterTab"/>
+          <img style="margin-right:5px" width="80" src="images/icons/home-24px.svg" id="jupyterTab"/>
+          <div style="font-size: small; text-align: center;" class="ng-binding">Home</div>
           <i class=" pull-left fa " 
               uib-tooltip="Orange triangle: the filesystem is encountering problems. Red means the filesystem is down."                          
               tooltip-placement="auto right"
@@ -60,11 +61,12 @@
         </a>
       </li>
 
-      <li style="margin-top:0px; margin-bottom:0px;padding-left:15px" ng-click="projectCtrl.goToJupyter()" ng-show="projectCtrl.showJupyter()">
+      <li style="margin-top:0px; margin-bottom:0px" ng-click="projectCtrl.goToJupyter()" ng-show="projectCtrl.showJupyter()">
         <a>
           <!-- Jupyter  -->
-          <img class="pull-left" src="images/jupyter-200x200-bw.png" style="width: 40px"
+          <img src="images/jupyter-200x200-bw.png" style="width: 40px"
                        id="jupyterTab"/>
+          <div style="font-size: small">Jupyter</div>
           <!-- <i class="pull-left fa"  
              uib-tooltip="Orange triangle: jobs are encountering problems. Red means Jobs cannot be run just now." 
              tooltip-placement="auto right"
@@ -75,7 +77,8 @@
       <li ng-click="projectCtrl.goToJobs()" ng-show="projectCtrl.showJobs()" id="jobsTab">
         <a>
           <!-- Jobs  -->
-          <img class="pull-right" style="margin-right:5px" width="80" src="images/icons/build-24px.svg" id="jupyterTab"/>
+          <img style="margin-right:5px" width="80" src="images/icons/build-24px.svg" id="jupyterTab"/>
+          <div style="font-size: small" class="ng-binding">Jobs</div>
             <i class=" pull-left fa " 
              uib-tooltip="Orange triangle: jobs are encountering problems. Red means Jobs cannot be run just now."              
              tooltip-placement="auto right"
@@ -87,17 +90,19 @@
           ng-show="projectCtrl.showKafka()">
         <a>
           <!-- Kafka  -->
-          <img class="pull-right" width="80" src="images/icons/kafka.svg" id="kafkaTab"/>
+          <img width="80" src="images/icons/kafka.svg" id="kafkaTab"/>
+          <div style="font-size: small" class="ng-binding">Kafka</div>
           <i class=" pull-left fa " 
              uib-tooltip="Orange triangle: Kafka is encountering problems. Red means Kafka is down."             
              tooltip-placement="auto right"
              ng-class="{'fa-ban text-danger': clusterUtilCtrl.KafkaBan, 'fa-exclamation-triangle text-warning': clusterUtilCtrl.KafkaWarn }" aria-hidden="true" style="margin-top: 3px"></i>                    
         </a>
       </li>
-      <li style="margin-top:0px; margin-bottom:0px; padding-left: 15px;" ng-click="projectCtrl.goToService('DELA')" ng-show="projectCtrl.showDela()">
+      <li ng-click="projectCtrl.goToService('DELA')" ng-show="projectCtrl.showDela()">
         <a>
           <!-- Dela -->
-          <img class="pull-left" src="images/dela-green.png" style="width: 40px">
+          <img src="images/dela-green.png" style="width: 40px">
+          <div style="font-size: small" class="ng-binding">Dela</div>
         </a>
       </li>
 
@@ -106,27 +111,30 @@
           <!-- Tensorflow -->
           <img ng-show="projectCtrl.activeService !== 'tensorflow'" class="pull-right" style="margin-left:10px" width="80" src="images/tf-175x200_bw.png"/>
           <img ng-show="projectCtrl.activeService === 'tensorflow'" class="pull-right" style="margin-left:10px" width="80" src="images/tf-175x200.png"/>
+          <div style="font-size: small" class="ng-binding">Tensorflow</div>
         </a>
       </li>
 
 
-      <li style="margin-top:0px; margin-bottom:0px; padding-left: 15px;" ng-click="projectCtrl.goToRStudio()" ng-show="projectCtrl.showRStudio()">
+      <li ng-click="projectCtrl.goToRStudio()" ng-show="projectCtrl.showRStudio()">
         <a>
           <!-- RStudio -->
-          <img class="pull-left" src="images/rstudio.png" style="width: 40px">
+          <img src="images/rstudio.png" style="width: 40px">
+          <div style="font-size: small" class="ng-binding">RStudio</div>
         </a>
       </li>
 
-      <li style="margin-top:0px; margin-bottom:0px; padding-left: 15px;" ng-click="projectCtrl.goToTfServing()" ng-show="projectCtrl.showTfServing()" id="servingTab">
+      <li ng-click="projectCtrl.goToTfServing()" ng-show="projectCtrl.showTfServing()" id="servingTab">
         <a>
           <!-- &nbspModel Serving -->
-          <img class="pull-left" src="images/tf-175x200_bw.png" style="width: 40px"/>
+          <img src="images/tf-175x200_bw.png" style="width: 40px"/>
+          <div style="font-size: 10px" class="ng-binding">Model Serving</div>
         </a>
       </li>
 
       <!-- <li ng-click="projectCtrl.goToExperiments()" ng-show="projectCtrl.showExperiments()" id="experimentsTab">
         <a>
-          Experiments<img class="pull-right" style="margin-right:8px" height="27" src="images/experiments.png"/>
+          Experiments<img style="margin-right:8px" height="27" src="images/experiments.png"/>
         </a>
       </li> -->
 
@@ -135,6 +143,7 @@
           <!-- &nbspAirflow -->
           <img ng-show="projectCtrl.activeService !== 'airflow'" class="pull-right" style="" width="80"
               src="images/icons/airflow.svg"/>
+          <div style="font-size: small" class="ng-binding">Airflow</div>
           <!-- <img ng-show="projectCtrl.activeService === 'airflow'" class="pull-right" style="margin-left:10px; margin-right:10px" height="25"
                src="images/airflow-200x198.png"/> -->
         </a>
@@ -142,14 +151,15 @@
 
       <!-- <li ng-click="projectCtrl.goToFeaturestore()" ng-show="projectCtrl.showFeaturestore()" id="featurestoreTab">
         <a>
-          &nbspFeature Store <img class="pull-right" style="margin-right:5px" width="80" src="images/featurestore.svg" id="jupyterTab"/>
+          &nbspFeature Store <img style="margin-right:5px" width="80" src="images/featurestore.svg" id="jupyterTab"/>
         </a>
       </li> -->
       
       <li ng-click="projectCtrl.goToDatasets()" style="margin-top:0px; margin-bottom:0px;" ng-show="projectCtrl.cloak" id="datasetsTab">
         <a>
           <!-- Data Sets  -->
-          <img class="pull-right" style="" width="80" src="images/icons/storage-24px.svg"/>
+          <img style="" width="80" src="images/icons/storage-24px.svg"/>
+          <div style="font-size: small" class="ng-binding">Datasets</div>
           <i class=" pull-left fa " 
              uib-tooltip="Orange triangle: the filesystem is encountering problems. Red means the filesystem is down."                          
              tooltip-placement="auto right"
@@ -160,14 +170,16 @@
       <li ng-click="projectCtrl.goToSettings()" ng-show="projectCtrl.cloak">
         <a>
           <!-- &nbspSettings  -->
-          <img class="pull-right" width="80" src="images/icons/settings_applications-24px.svg" id="settingsTab"/>
+          <img width="80" src="images/icons/settings_applications-24px.svg" id="settingsTab"/>
+          <div style="font-size: small" class="ng-binding">Settings</div>
         </a>
       </li>
 
       <li ng-click="projectCtrl.goToPython()" ng-show="projectCtrl.cloak" id="pythonTab">
         <a>
           <!-- &nbspPython&nbsp&nbsp&nbsp -->
-          <img class="pull-right" width="80" src="images/icons/icons8-python.svg"/>
+          <img width="80" src="images/icons/icons8-python.svg"/>
+          <div style="font-size: small" class="ng-binding">Python</div>
         </a>
       </li>
 
@@ -175,7 +187,8 @@
         <a>
           <!-- &nbspMembers&nbsp&nbsp -->
           <!-- <span class="sub_icon fa fa-users fa-lg pull-right"></span> -->
-          <img class="pull-right" width="80" src="images/icons/supervised_user_circle-24px.svg"/>
+          <img width="80" src="images/icons/supervised_user_circle-24px.svg"/>
+          <div style="font-size: small" class="ng-binding">Members</div>
         </a>
       </li>
 
