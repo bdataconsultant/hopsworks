@@ -106,8 +106,9 @@ angular.module('hopsWorksApp')
               },
               saveToken: function (token) {
                 if (token) {
-                  localStorage.setItem("access_token", token);
-                  $http.defaults.headers.common.Authorization = token;
+                  var trimmed = token.includes("Bearer ") ? token.slice(7) : token;
+                  localStorage.setItem("access_token", trimmed);
+                  $http.defaults.headers.common.Authorization = "Bearer " + trimmed;
                 }
               },
               getToken: function () {
@@ -115,7 +116,7 @@ angular.module('hopsWorksApp')
               },
               refreshToken: function() {
                 var token = localStorage.getItem("access_token");
-                $http.defaults.headers.common.Authorization = token;
+                $http.defaults.headers.common.Authorization = "Bearer " + token;
               },
               removeToken: function () {
                 localStorage.removeItem("access_token");

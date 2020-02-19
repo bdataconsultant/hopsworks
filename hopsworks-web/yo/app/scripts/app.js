@@ -103,7 +103,7 @@ angular.module('hopsWorksApp', [
               progressCallbacksInterval: 0,
               headers: function (file, chunk, isTest) {
                   return {
-                      'Authorization': localStorage.getItem("access_token")
+                      'Authorization': "Bearer " + localStorage.getItem("access_token")
                   };
               }
             };
@@ -683,7 +683,7 @@ angular.module('hopsWorksApp', [
         .run(['$rootScope', '$routeParams', '$http', 'JobService', function ($rootScope, $routeParams, $http, JobService) {
             var token = localStorage.getItem("access_token");
             if (token) {
-              $http.defaults.headers.common.Authorization = token;
+              $http.defaults.headers.common.Authorization = "Bearer " + token;
             }
             $rootScope.$on( "$routeChangeStart", function(event, next, current) {
                 //Featurestore --> Job redirects with stateful filter, but for all other pages the filter should be reset
