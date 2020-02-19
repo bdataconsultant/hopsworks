@@ -104,10 +104,6 @@
     your browser</a> to improve your experience.</p>
 <![endif]-->
 
-<!-- ############################################### PLUGIN HEADER PLATFORM ######################################################## -->
-    <!-- giotto plugins import -->
-    <script src="node_modules/giotto-platform-header/dist/index.js"></script>
-<!-- ################################################################################################################################# -->
 
     <div class="hw-wrapper" id="hwWrapper">
         <div ng-view=""></div>
@@ -115,6 +111,10 @@
 
     <!-- build:js(.) scripts/jquery.js -->
     <script src="bower_components/jquery/jquery.js"></script>
+    <!-- endbuild -->
+    <!-- build:js(.) scripts/modules.js -->
+    <script src="node_modules/@giotto-jfrog/giotto-platform-header/dist/index.js"></script>
+    <script src="node_modules/apexcharts/dist/apexcharts.js"></script>    
     <!-- endbuild -->
     <!-- build:js(.) scripts/vendor.js -->
     <!-- bower:js -->
@@ -183,7 +183,6 @@
     <script src="bower_components/file-saver.js/FileSaver.js"></script>
     <script src="bower_components/angular-file-saver/dist/angular-file-saver.bundle.js"></script>
     <script src="bower_components/angular-moment/angular-moment.js"></script>
-    <script src="node_modules/apexcharts/dist/apexcharts.js"></script>
 
     <!-- endbower -->
     <!-- endbuild -->
