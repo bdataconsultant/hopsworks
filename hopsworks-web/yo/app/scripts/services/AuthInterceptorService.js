@@ -60,7 +60,7 @@ angular.module('hopsWorksApp')
                   if (headerToken) {
                     var authService = $injector.get('AuthService');
                     var localStorageToken = authService.getToken();
-                    if (headerToken !== localStorageToken) {
+                    if (headerToken !== "Bearer " + localStorageToken) {
                       authService.refreshToken();
                       redirect = false;
                     }
