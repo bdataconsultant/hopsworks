@@ -3,17 +3,29 @@
 This is the Giotto big data plaform front-end application. It's an Angularjs application using npm and bower as package manager and grunt as development task runner.
 
 # Getting Started
-
+## Web app
 ### 1. Pull project from the repository
 	git clone https://almatoolbox.visualstudio.com/Giotto/_git/giotto-platform-v.1.0.0
     cd ./hopsworks-web/yo
-	
-### 2. Install packages
+
+### 2. Replace jfrog credential in hopsworks-web/yo/.npmrc
+```
+@giotto-jfrog:registry=http://jfrog.almaviva.it:8081/artifactory/api/npm/giotto-npm/
+//jfrog.almaviva.it:8081/artifactory/api/npm/giotto-npm/:_password=
+//jfrog.almaviva.it:8081/artifactory/api/npm/giotto-npm/:username=
+//jfrog.almaviva.it:8081/artifactory/api/npm/giotto-npm/:email=
+//jfrog.almaviva.it:8081/artifactory/api/npm/giotto-npm/:always-auth=true
+```
+
+### 3. Install packages
+```sh
 	npm install -g bower
 	npm install
     bower install
-	
-### 3. Start dev server
+    npm install -g grunt-cli
+```
+
+### 4. Start dev server
 You can run a local dev server using the serve task defined in Gruntfile.js:
 
 ```sh
