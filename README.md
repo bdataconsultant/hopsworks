@@ -3,13 +3,25 @@
 Giotto big data plaform repository.
 
 # Getting Started
+## Web app
+### 1. Pull project from the repository
+	git clone https://almatoolbox.visualstudio.com/Giotto/_git/giotto-platform-v.1.0.0
+    cd ./hopsworks-web/yo
+	
+### 2. Install packages
+	npm install -g bower
+	npm install
+    bower install
+	
+### 3. Start dev server
+You can run a local dev server using the serve task defined in Gruntfile.js:
 
-TODO: Guide users through getting your code up and running on their own system. In this section you can talk about:
+```sh
+grunt serve --targetCustomer=CUSTOMER_NAME
+```
 
-1. Installation process
-2. Software dependencies
-3. Latest releases
-4. API references
+CUSTOMER_NAME value is the name of the customer folder in app/customer_assets. When targetCustomer option isn't specified, "DEFAULT" client name is used.
+
 
 # Build and Test
 
