@@ -146,13 +146,8 @@ angular.module('hopsWorksApp', [
                       }
                     })
                     .when('/login', {
-                      templateUrl: 'views/login.html',
-                      controller: 'LoginCtrl as loginCtrl',
-                      resolve: {
-                        auth: ['$q','AuthGuardService',
-                          function ($q, AuthGuardService) {
-                            return AuthGuardService.noGuard($q);
-                          }]
+                      redirectTo: function() {
+                        location.assign("https://tb-ingress.thingsboard.10.206.195.41.xip.io/oneadmin");
                       }
                     })
                     .when('/ldapLogin', {
