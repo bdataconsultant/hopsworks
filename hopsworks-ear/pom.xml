@@ -70,6 +70,35 @@
           <defaultLibBundleDir>lib</defaultLibBundleDir>
           <fileNameMapping>standard</fileNameMapping>
           <!--<generateModuleId>true</generateModuleId>-->
+          <modules>
+            <ejbModule>
+              <groupId>io.hops.hopsworks</groupId>
+              <artifactId>hopsworks-common</artifactId>
+            </ejbModule>
+            <ejbModule>
+              <groupId>io.hops.hopsworks</groupId>
+              <artifactId>hopsworks-dela</artifactId>
+            </ejbModule>
+            <ejbModule>
+              <groupId>io.hops.hopsworks</groupId>
+              <artifactId>hopsworks-jwt</artifactId>
+            </ejbModule>
+            <webModule>
+              <groupId>io.hops.hopsworks</groupId>
+              <artifactId>hopsworks-kmon</artifactId>
+              <contextRoot>/giotto-kmon</contextRoot>
+            </webModule>
+            <webModule>
+              <groupId>io.hops.hopsworks</groupId>
+              <artifactId>hopsworks-api</artifactId>
+              <contextRoot>/giotto-api</contextRoot>
+            </webModule>
+            <webModule>
+              <groupId>io.hops.hopsworks</groupId>
+              <artifactId>hopsworks-admin</artifactId>
+              <contextRoot>/giotto-admin</contextRoot>
+            </webModule>
+          </modules>
         </configuration>
       </plugin>
     </plugins>
