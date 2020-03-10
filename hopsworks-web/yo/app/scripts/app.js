@@ -147,7 +147,7 @@ angular.module('hopsWorksApp', [
                     })
                     .when('/login', {
                       redirectTo: function() {
-                        location.assign("https://tb-ingress.thingsboard.10.206.195.41.xip.io/oneadmin");
+                        location.assign('/oneadmin');
                       }
                     })
                     .when('/ldapLogin', {

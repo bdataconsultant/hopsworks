@@ -65,9 +65,14 @@ angular.module('hopsWorksApp')
             var instance = new GiottoPlatformHeader(
                 headerDiv, 
                 {
-                    logoDir: "images/big-data-logo-login.png", 
-                    appContext: 'bigdata',
-                    logout: headerLogout
+                  logoDir: "images/big-data-logo-login.png", 
+                  appContext: 'bigdata',
+                  logout: headerLogout,
+                  appUrlsConfig: {
+                    bigdata: '/giotto-web',
+                    iot: '/home',
+                    admin: '/oneadmin'
+                  }
                 });
             // initialize
             instance.init();
