@@ -2266,6 +2266,10 @@ public class ProjectController {
     return projectTeamFacade.findMembersByProject(project);
   }
 
+  public List<Project> findProjectsByUser(String email) {
+    return projectTeamFacade.findProjectsByUser(email);
+  }
+
   /**
    * Logs activity
    *

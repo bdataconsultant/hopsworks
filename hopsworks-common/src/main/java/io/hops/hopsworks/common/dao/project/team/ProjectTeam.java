@@ -95,7 +95,8 @@ import io.hops.hopsworks.common.dao.user.Users;
   @NamedQuery(name = "ProjectTeam.findAllJoinedStudiesForUser",
           query
           = "SELECT st.project from ProjectTeam st WHERE st.user = :user "
-          + "AND NOT st.project.owner = :user")})
+          + "AND NOT st.project.owner = :user"),
+  @NamedQuery(name = "findAllProjectsByUser", query = "SELECT st.project from ProjectTeam st WHERE st.user = :user")})
 public class ProjectTeam implements Serializable {
 
   private static final long serialVersionUID = 1L;
