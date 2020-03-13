@@ -693,7 +693,10 @@ public class ProjectService {
           allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
   public Response findProjectsByUser(@PathParam("email") String email){
     List<Project> list = projectController.findProjectsByUser(email);
-    return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).entity(list).build();
+    GenericEntity<List<Project>> entity = new GenericEntity<List<Project>>( list) {
+
+    };
+    return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).entity(entity).build();
   }
 
   @GET
