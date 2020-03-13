@@ -692,7 +692,7 @@ public class ProjectService {
   @JWTRequired(acceptedTokens = {Audience.API},
           allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
   public Response findProjectsByUser(@PathParam("email") String email){
-    List<Project> list = projectTeamFacade.findProjectsByUser(email);
+    List<Project> list = projectController.findProjectsByUser(email);
     return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).entity(list).build();
   }
 
