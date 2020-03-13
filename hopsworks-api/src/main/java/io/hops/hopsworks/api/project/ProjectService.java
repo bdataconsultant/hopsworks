@@ -687,7 +687,7 @@ public class ProjectService {
   }
 
   @GET
-  @Path("/{email}")
+  @Path("/assigned/{email}")
   @Produces(MediaType.APPLICATION_JSON)
   @JWTRequired(acceptedTokens = {Audience.API},
           allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
