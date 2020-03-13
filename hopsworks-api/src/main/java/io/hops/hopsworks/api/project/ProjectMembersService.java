@@ -139,6 +139,19 @@ public class ProjectMembersService {
     return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).entity(projects).build();
   }
 
+  /*
+  @GET
+  @Path()
+  @Produces(MediaType.APPLICATION_JSON)
+  @JWTRequired(acceptedTokens = {Audience.API},
+          allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
+  public Response findProjectsByUser(String email){
+    List<Project> list = projectTeamFacade.findProjectsByUser(email);
+    return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).entity(list).build();
+  }
+  */
+
+
   @POST
   @Produces(MediaType.APPLICATION_JSON)
   @AllowedProjectRoles({AllowedProjectRoles.DATA_OWNER})

@@ -73,6 +73,7 @@ import io.hops.hopsworks.common.dao.project.pia.PiaFacade;
 import io.hops.hopsworks.common.dao.project.service.ProjectServiceEnum;
 import io.hops.hopsworks.common.dao.project.service.ProjectServiceFacade;
 import io.hops.hopsworks.common.dao.project.team.ProjectTeam;
+import io.hops.hopsworks.common.dao.project.team.ProjectTeamFacade;
 import io.hops.hopsworks.common.dao.user.UserFacade;
 import io.hops.hopsworks.common.dao.user.Users;
 import io.hops.hopsworks.common.dao.user.activity.ActivityFacade;
@@ -147,6 +148,8 @@ public class ProjectService {
 
   @EJB
   private ProjectFacade projectFacade;
+  @EJB
+  private ProjectTeamFacade projectTeamFacade;
   @EJB
   private ProjectController projectController;
   @EJB
@@ -681,6 +684,16 @@ public class ProjectService {
         multiplicatorsList) {
     };
     return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).entity(multiplicators).build();
+  }
+
+  @GET
+  @Path("/{email}")
+  @Produces(MediaType.APPLICATION_JSON)
+  @JWTRequired(acceptedTokens = {Audience.API},
+          allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
+  public Response findProjectsByUser(@PathParam("email") String email){
+    List<Project> list = projectTeamFacade.findProjectsByUser(email);
+    return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).entity(list).build();
   }
 
   @GET
