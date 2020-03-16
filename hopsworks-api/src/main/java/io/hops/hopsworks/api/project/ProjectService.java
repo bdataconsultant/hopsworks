@@ -692,12 +692,12 @@ public class ProjectService {
   @JWTRequired(acceptedTokens = {Audience.API},
           allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
   public Response findProjectsByUser(@PathParam("email") String email){
-    if(userFacade.findByEmail(email) != null) {
-      return noCacheResponse.getNoCacheResponseBuilder(Response.Status.BAD_REQUEST).build();
+    if(userFacade.findByEmail(email) == null) {
+      return noCacheResponse.getNoCacheResponseBuilder(Response.Status.BAD_REQUEST).entity("NO USER FOUND WITH MAIL " + email).build();
     }
     List<Project> list = projectController.findProjectsByUser(email);
     if (list.isEmpty()) {
-      return noCacheResponse.getNoCacheCORSResponseBuilder(Response.Status.NO_CONTENT).build();
+      return noCacheResponse.getNoCacheCORSResponseBuilder(Response.Status.NO_CONTENT).entity("[]").build();
     }
     GenericEntity<List<Project>> entity = new GenericEntity<List<Project>>( list) {
 
