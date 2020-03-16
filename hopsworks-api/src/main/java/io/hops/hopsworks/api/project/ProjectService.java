@@ -696,7 +696,7 @@ public class ProjectService {
     if(userFacade.findByEmail(email) == null) {
       Map<String, String> responseMap = new HashMap<>();
       responseMap.put("message", "NO USER FOUND WITH MAIL" + email);
-      return noCacheResponse.getNoCacheResponseBuilder(Response.Status.BAD_REQUEST).entity(new JSONObject(responseMap)).build();
+      return noCacheResponse.getNoCacheResponseBuilder(Response.Status.BAD_REQUEST).entity(responseMap).build();
     }
     List<Project> list = projectController.findProjectsByUser(email);
     if (list.isEmpty()) {
