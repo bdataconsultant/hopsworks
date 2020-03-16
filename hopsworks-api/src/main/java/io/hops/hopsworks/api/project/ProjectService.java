@@ -696,12 +696,12 @@ public class ProjectService {
       return noCacheResponse.getNoCacheResponseBuilder(Response.Status.BAD_REQUEST).build();
     }
     List<Project> list = projectController.findProjectsByUser(email);
-    GenericEntity<List<Project>> entity = new GenericEntity<List<Project>>( list) {
-
-    };
     if (list.isEmpty()) {
       return noCacheResponse.getNoCacheCORSResponseBuilder(Response.Status.NO_CONTENT).build();
     }
+    GenericEntity<List<Project>> entity = new GenericEntity<List<Project>>( list) {
+
+    };
     return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).entity(entity).build();
   }
 
