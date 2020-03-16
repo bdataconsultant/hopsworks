@@ -38,6 +38,8 @@
  */
 package io.hops.hopsworks.api.project;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import io.hops.hopsworks.api.activities.ProjectActivitiesResource;
 import io.hops.hopsworks.api.airflow.AirflowService;
 import io.hops.hopsworks.api.dela.DelaClusterProjectService;
@@ -107,6 +109,7 @@ import io.hops.hopsworks.jwt.annotation.JWTRequired;
 import io.hops.hopsworks.restutils.RESTCodes;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import org.json.JSONObject;
 
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
@@ -128,9 +131,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
@@ -693,7 +694,9 @@ public class ProjectService {
           allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
   public Response findProjectsByUser(@PathParam("email") String email){
     if(userFacade.findByEmail(email) == null) {
-      return noCacheResponse.getNoCacheResponseBuilder(Response.Status.BAD_REQUEST).entity("NO USER FOUND WITH MAIL " + email).build();
+      Map<String, String> responseMap = new HashMap<>();
+      responseMap.put("message", "NO USER FOUND WITH MAIL" + email);
+      return noCacheResponse.getNoCacheResponseBuilder(Response.Status.BAD_REQUEST).entity(new JSONObject(responseMap)).build();
     }
     List<Project> list = projectController.findProjectsByUser(email);
     if (list.isEmpty()) {
