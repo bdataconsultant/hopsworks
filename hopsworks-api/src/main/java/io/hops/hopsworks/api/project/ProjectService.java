@@ -692,10 +692,16 @@ public class ProjectService {
   @JWTRequired(acceptedTokens = {Audience.API},
           allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
   public Response findProjectsByUser(@PathParam("email") String email){
+    if(userFacade.findByEmail(email) != null) {
+      return noCacheResponse.getNoCacheResponseBuilder(Response.Status.BAD_REQUEST).build();
+    }
     List<Project> list = projectController.findProjectsByUser(email);
     GenericEntity<List<Project>> entity = new GenericEntity<List<Project>>( list) {
 
     };
+    if (list.isEmpty()) {
+      return noCacheResponse.getNoCacheCORSResponseBuilder(Response.Status.NO_CONTENT).build();
+    }
     return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).entity(entity).build();
   }
 
