@@ -116,6 +116,7 @@ import javax.ejb.Stateless;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
 import javax.inject.Inject;
+import javax.json.Json;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.FormParam;
@@ -694,9 +695,12 @@ public class ProjectService {
           allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
   public Response findProjectsByUser(@PathParam("email") String email){
     if(userFacade.findByEmail(email) == null) {
+      Gson g = new Gson();
       Map<String, String> responseMap = new HashMap<>();
+      String s = g.toJson(responseMap);
+      JsonObject object = g.fromJson(s, JsonObject.class);
       responseMap.put("message", "NO USER FOUND WITH MAIL" + email);
-      return noCacheResponse.getNoCacheResponseBuilder(Response.Status.BAD_REQUEST).entity(responseMap).build();
+      return noCacheResponse.getNoCacheResponseBuilder(Response.Status.BAD_REQUEST).entity(object).build();
     }
     List<Project> list = projectController.findProjectsByUser(email);
     if (list.isEmpty()) {
