@@ -697,7 +697,7 @@ public class ProjectService {
     if(userFacade.findByEmail(email) == null) {
       JSONObject jsonObject = new JSONObject();
       jsonObject.append("message", "no user found with mail: " + email);
-      return noCacheResponse.getNoCacheResponseBuilder(Response.Status.BAD_REQUEST).entity(jsonObject).build();
+      return noCacheResponse.getNoCacheResponseBuilder(Response.Status.BAD_REQUEST).entity(jsonObject).type("application/json").build();
     }
     List<Project> list = projectController.findProjectsByUser(email);
     if (list.isEmpty()) {
