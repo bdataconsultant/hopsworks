@@ -81,6 +81,7 @@ import io.hops.hopsworks.common.dao.user.Users;
 import io.hops.hopsworks.common.dao.user.activity.ActivityFacade;
 import io.hops.hopsworks.common.dao.user.activity.ActivityFlag;
 import io.hops.hopsworks.common.dao.user.security.apiKey.ApiScope;
+import io.hops.hopsworks.common.dao.util.ErrorMessage;
 import io.hops.hopsworks.common.dataset.DatasetController;
 import io.hops.hopsworks.common.dataset.FilePreviewDTO;
 import io.hops.hopsworks.common.hdfs.DistributedFileSystemOps;
@@ -695,9 +696,9 @@ public class ProjectService {
           allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
   public Response findProjectsByUser(@PathParam("email") String email){
     if(userFacade.findByEmail(email) == null) {
-      JSONObject jsonObject = new JSONObject();
-      jsonObject.append("message", "no user found with mail: " + email);
-      return noCacheResponse.getNoCacheResponseBuilder(Response.Status.BAD_REQUEST).entity(jsonObject).type("application/json").build();
+      ErrorMessage errorMessage = new ErrorMessage();
+      errorMessage.setMessage("no user found with mail: " + email);
+      return noCacheResponse.getNoCacheResponseBuilder(Response.Status.BAD_REQUEST).entity(errorMessage).type("application/json").build();
     }
     List<Project> list = projectController.findProjectsByUser(email);
     if (list.isEmpty()) {
