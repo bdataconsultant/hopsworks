@@ -126,7 +126,7 @@ angular.module('hopsWorksApp')
               return md5.createHash(email || '');
             };
 
-            self.logout = function () {
+           /* self.logout = function () {
               AirflowService.logout();
 
               AuthService.logout(self.user).then(
@@ -136,8 +136,8 @@ angular.module('hopsWorksApp')
                         $location.url('/login');
                       }, function (error) {
                 self.errorMessage = error.data.msg;
-              });
-            };
+              }); 
+            }; */
 
             var checkDelaEnabled = function () {
               
