@@ -40,7 +40,7 @@
 <script>$(document).ready(hamburger);</script>
 
 <nav class="navbar navbar-default navbar-sics navbar-fixed-top" id="header_nav" ng-cloak="">
-  <div ng-class="{'container': !projectView, 'container-fluid': projectView}">
+  <div ng-class="{'container': !projectView, 'container-fluid': projectView}" style="height: 100%;">
     <div growl class="pull-right" ng-cloak></div>
     <div class="navbar-header" style="padding-top:0">
       <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false">
@@ -62,7 +62,15 @@
         </div> -->
       </div>
     </div>
-      <div class="collapse navbar-collapse" id="navbar">
+    <div class="pull-right" >
+     <!-- <button class="btn btn-outline-primary btn-lg btn-icon" ng-show="mainCtrl.isAdmin() === 'true'"> -->
+        <a style="height:100%"  ng-show="mainCtrl.isAdmin() === 'true'" ng-click="mainCtrl.goToAdminPage()"><img src="images/admin.svg"></img><label ng-mouseover="text-decoration:none" style="color: white;font-size:18px; font-weight: bold;">&nbsp;Admin</label></a>
+       
+    <!--  </button> -->
+      <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+      <a href="#!/settings"><i style="color: white; height: fit-content;" class="fa fa-cog"></i><label ng-mouseover="text-decoration:none" style="color: white; font-size:18px; font-weight: bold; text-decoration: none;">&nbsp;Settings</label></a>
+    </div>
+     <!-- <div class="collapse navbar-collapse" id="navbar">
         <ul class="nav navbar-nav navbar-right" style="margin-right:10px;">
           <li class="dropdown">
             <a class="dropdown-toggle" data-toggle="dropdown" style="padding:10px 10px 8px 10px; text-decoration:none;"  aria-expanded="false" id="navbarProfile">
@@ -72,20 +80,20 @@
             <ul class="dropdown-menu">
               <li class="menu-item" ng-show="mainCtrl.isAdmin() === 'true'">
                 <a ng-click="mainCtrl.goToAdminPage()"><img src="images/admin.svg"></img> Admin</a></li>
-            <!--  <li class="menu-item"><a ng-click="mainCtrl.profileModal()"><img src="images/accountSettings.svg"></img> Account</a></li> -->
+              <li class="menu-item"><a ng-click="mainCtrl.profileModal()"><img src="images/accountSettings.svg"></img> Account</a></li> 
               <li><a href="#!/settings"><i class="fa fa-cog"></i> Settings</a></li>
-            <!--  <li><a href="#!/" ng-click="mainCtrl.logout()"><img src="images/signout.svg"></img> Sign out</a></li> -->
-            </ul>
+             <li><a href="#!/" ng-click="mainCtrl.logout()"><img src="images/signout.svg"></img> Sign out</a></li> 
+            </ul> 
           </li>
         </ul>
         <ul class="nav navbar-nav navbar-right" style="margin-right:10px;">
           <li class="dropdown" ng-click="mainCtrl.getMessages()">
-            <!-- <a class="dropdown-toggle" data-toggle="dropdown" style="padding:5px 15px 0px 20px; margin-top: 13px;" aria-expanded="false">
+             <a class="dropdown-toggle" data-toggle="dropdown" style="padding:5px 15px 0px 20px; margin-top: 13px;" aria-expanded="false">
               <i ng-if="mainCtrl.unreadMessages" class="fa fa-envelope fa-lg" title="Unread messages">
                 <span class="badge" style="background-color: #f89406; font-family: sans-serif; z-index: 100; position: absolute; top: -10px; right: -18px">{{mainCtrl.unreadMessages}}</span>
               </i>
               <i ng-if="!mainCtrl.unreadMessages" class="fa fa-envelope-o fa-lg" title="No unread message"></i>
-            </a> -->
+            </a> 
             <ul class="dropdown-menu dropdown-messages" >
               <li class="dropdown-header text-muted" ng-if="mainCtrl.messages.length"><h4>Latest messages</h4></li>
               <li class="dropdown-header text-muted" ng-if="!mainCtrl.messages.length"><h4>Inbox empty.</h4></li>
@@ -100,11 +108,11 @@
                   </div>
                   <div ng-click="mainCtrl.openMessageModal(msg)" class="message-preview">{{msg.preview| limitTo:80}} {{msg.preview.length > 80 ? ' ...' : ''}}</div>
                   <a ng-if="msg.path" href="#!/{{msg.path}}"> go to requested path.</a>
-                </div>
+                </div> -->
               </li>
-              <a class="pull-right" ng-if="mainCtrl.messages.length" ng-click="mainCtrl.openMessageModal()" style="text-decoration:none;"> See all messages</a>
-              <a class="pull-right" ng-if="!mainCtrl.messages.length" ng-click="mainCtrl.openMessageModal()" style="text-decoration:none;"> Goto messages</a>
-            </ul>
+             <!-- <a class="pull-right" ng-if="mainCtrl.messages.length" ng-click="mainCtrl.openMessageModal()" style="text-decoration:none;"> See all messages</a> -->
+             <!-- <a class="pull-right" ng-if="!mainCtrl.messages.length" ng-click="mainCtrl.openMessageModal()" style="text-decoration:none;"> Goto messages</a> -->
+            </ul> 
           </li>          
         </ul>
         <!--ng-show="showDatasets"-->
