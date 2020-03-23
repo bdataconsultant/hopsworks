@@ -187,7 +187,7 @@ ul.dropdown-messages .dropdown-header {
   overflow: hidden;
   position: absolute;
   right: 0;/*start from right*/
-  top: 145px;
+  top: 200px;
   bottom: 0;
   transition: all 0.3s ease;
   -webkit-transition: all 0.3s ease;
@@ -314,3 +314,9 @@ md-toolbar {
     color: white;
 } */
 
+.sidebar-warning-icon {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 3000;
+}
