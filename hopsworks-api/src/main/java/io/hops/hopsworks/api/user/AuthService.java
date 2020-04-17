@@ -175,11 +175,8 @@ public class AuthService {
     // A session needs to be create explicitly before doing to the login operation
     req.getSession();
 
-    // Do pre cauth realm check
-    String passwordWithSaltPlusOtp = authController.preCustomRealmLoginCheck(user, password, otp, req);
-
     // Do login
-    Response response = login(user, passwordWithSaltPlusOtp, req);
+    Response response = login(user, password, req);
 
     if (LOGGER.isLoggable(Level.FINEST)) {
       logUserLogin(req);

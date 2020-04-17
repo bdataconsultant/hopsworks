@@ -112,24 +112,9 @@ public class LoginBean implements Serializable {
       context.addMessage(null, new FacesMessage("Login failed. User" + this.credentials.getUsername()));
       return "";
     }
-    String passwordWithSaltPlusOtp;
+
     try {
-      passwordWithSaltPlusOtp = authController.preCustomRealmLoginCheck(user, this.credentials.getPassword(),
-          this.credentials.getOtp(), request);
-    } catch (UserException ex) {
-      LOGGER.log(Level.SEVERE, null, ex);
-      context.addMessage(null, new FacesMessage("Login failed."));
-      return "";
-    } catch (EJBException ie) {
-      String msg = ie.getCausedByException().getMessage();
-      if (msg != null && !msg.isEmpty() && msg.contains("Second factor required.")) {
-        setTwoFactor(true);
-      }
-      context.addMessage(null, new FacesMessage(msg));
-      return "/login.xhtml";
-    }
-    try {
-      request.login(this.credentials.getUsername(), passwordWithSaltPlusOtp);
+      request.login(this.credentials.getUsername(), this.credentials.getPassword());
       authController.registerLogin(user, request);
     } catch (ServletException e) {
       authController.registerAuthenticationFailure(user, request);
