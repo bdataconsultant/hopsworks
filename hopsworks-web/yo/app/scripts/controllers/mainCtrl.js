@@ -70,8 +70,9 @@ angular.module('hopsWorksApp')
                   logout: headerLogout,
                   appUrlsConfig: {
                     bigdata: '/giotto-web',
-                    iot: '/home',
-                    admin: '/oneadmin'
+                    iot: '/fe-iot/',
+                    admin: '/oneadmin/',
+                    udm: '/udm-fe/'
                   }
                 });
             // initialize
