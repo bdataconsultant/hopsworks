@@ -44,12 +44,19 @@ import io.hops.hopsworks.api.filter.NoCacheResponse;
 import io.hops.hopsworks.api.jwt.JWTHelper;
 import io.hops.hopsworks.api.util.RESTApiJsonResponse;
 import io.hops.hopsworks.common.constants.message.ResponseMessages;
+import io.hops.hopsworks.common.dao.user.BbcGroup;
 import io.hops.hopsworks.common.dao.user.UserDTO;
 import io.hops.hopsworks.common.dao.user.UserFacade;
 import io.hops.hopsworks.common.dao.user.Users;
 import io.hops.hopsworks.common.dao.user.security.audit.AccountAuditFacade;
 import io.hops.hopsworks.common.dao.user.security.audit.UserAuditActions;
+import io.hops.hopsworks.common.dao.user.security.ua.SecurityQuestion;
+import io.hops.hopsworks.common.dao.user.security.ua.UserAccountStatus;
+import io.hops.hopsworks.common.dao.user.security.ua.UserAccountType;
 import io.hops.hopsworks.common.jacc.JaccUtil;
+import io.hops.hopsworks.common.security.utils.Secret;
+import io.hops.hopsworks.common.security.utils.SecurityUtils;
+import io.hops.hopsworks.common.user.ValidationKeyType;
 import io.hops.hopsworks.common.util.DateUtils;
 import io.hops.hopsworks.exceptions.HopsSecurityException;
 import io.hops.hopsworks.jwt.JWTController;
@@ -89,12 +96,10 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.security.GeneralSecurityException;
 import java.security.NoSuchAlgorithmException;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import static javax.ws.rs.core.HttpHeaders.AUTHORIZATION;
@@ -126,6 +131,8 @@ public class AuthService {
   private Settings settings;
   @EJB
   private JWTController jwtController;
+  @EJB
+  private SecurityUtils securityUtils;
 
   @GET
   @Path("session")
@@ -153,6 +160,86 @@ public class AuthService {
   }
 
   @POST
+  @Path("login")
+  @Produces(MediaType.APPLICATION_JSON)
+  public Response login(@FormParam("email") String email, @FormParam("password") String password,
+                        @FormParam("otp") String otp, @Context HttpServletRequest req) throws UserException, SigningKeyNotFoundException,
+          NoSuchAlgorithmException, LoginException, DuplicateSigningKeyException {
+
+    if (email == null || email.isEmpty()) {
+      throw new IllegalArgumentException("Email was not provided");
+    }
+    if (password == null || password.isEmpty()) {
+      throw new IllegalArgumentException("Password can not be empty.");
+    }
+
+    Users user = userFacade.findByUsername(email);
+    if (user != null) {
+      if (!needLogin(req, user)) {
+        return Response.ok().build();
+      }
+
+      if (user.getBbcGroupCollection() == null || user.getBbcGroupCollection().isEmpty()) {
+        throw new UserException(RESTCodes.UserErrorCode.NO_ROLE_FOUND, Level.FINE);
+      }
+
+      statusValidator.checkStatus(user.getStatus());
+    }
+
+    // A session needs to be create explicitly before doing to the login operation
+    req.getSession();
+
+    // Do login
+    try {
+      req.login(email, password);
+      String userGroup = JaccUtil.getAuthenticatedUserRole();
+
+      if (user == null) {
+        // insert user
+        Secret secret = securityUtils.generateSecret(password);
+        Timestamp now = new Timestamp(new Date().getTime());
+
+        user = new Users(email, secret.getSha256HexDigest(), null, "Frank",
+                "Gallagher", now, "-", "-", UserAccountStatus.ACTIVATED_ACCOUNT, null, null, now, ValidationKeyType.EMAIL,
+                null, null, UserAccountType.M_ACCOUNT_TYPE, now, null, settings.getMaxNumProjPerUser(),
+                false, secret.getSalt(), 0);
+
+        List<BbcGroup> groups = new ArrayList<>();
+        user.setBbcGroupCollection(groups);
+        userFacade.persist(user);
+
+        userController.activateUser(userGroup, user, user, req);
+      } else {
+        //  update user's password
+        //  TODO SHOULD DO ONLY IF PASSWORD IS DIFFERENT
+        try {
+          Secret secret = securityUtils.generateSecret(password);
+          authController.changePassword(user, secret, req);
+        } catch (Exception ex) {
+          throw new UserException(RESTCodes.UserErrorCode.AUTHENTICATION_FAILURE, Level.SEVERE, null,
+                  ex.getMessage(), ex);
+        }
+
+      }
+      authController.registerLogin(user, req);
+    } catch (ServletException e) {
+      authController.registerAuthenticationFailure(user, req);
+      throw new UserException(RESTCodes.UserErrorCode.AUTHENTICATION_FAILURE, Level.FINE, null, e.getMessage(), e);
+    }
+
+    RESTApiJsonResponse json = new RESTApiJsonResponse();
+    json.setSessionID(req.getSession().getId());
+    json.setData(user.getEmail());
+    // JWT claims will be added by JWTHelper
+    String token = jWTHelper.createToken(user, settings.getJWTIssuer(), null);
+
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      logUserLogin(req);
+    }
+    return Response.ok().header(AUTHORIZATION, Constants.BEARER + token).entity(json).build();
+  }
+
+  /*@POST
   @Path("login")
   @Produces(MediaType.APPLICATION_JSON)
   public Response login(@FormParam("email") String email, @FormParam("password") String password,
@@ -184,7 +271,7 @@ public class AuthService {
     }
 
     return response;
-  }
+  }*/
 
   @GET
   @Path("logout")
@@ -413,7 +500,6 @@ public class AuthService {
     statusValidator.checkStatus(user.getStatus());
     try {
       req.login(user.getEmail(), password);
-      JaccUtil.getCallerRoles(null);
       authController.registerLogin(user, req);
     } catch (ServletException e) {
       authController.registerAuthenticationFailure(user, req);
