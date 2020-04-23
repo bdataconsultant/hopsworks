@@ -49,6 +49,7 @@ import io.hops.hopsworks.common.dao.user.UserFacade;
 import io.hops.hopsworks.common.dao.user.Users;
 import io.hops.hopsworks.common.dao.user.security.audit.AccountAuditFacade;
 import io.hops.hopsworks.common.dao.user.security.audit.UserAuditActions;
+import io.hops.hopsworks.common.jacc.JaccUtil;
 import io.hops.hopsworks.common.util.DateUtils;
 import io.hops.hopsworks.exceptions.HopsSecurityException;
 import io.hops.hopsworks.jwt.JWTController;
@@ -412,6 +413,7 @@ public class AuthService {
     statusValidator.checkStatus(user.getStatus());
     try {
       req.login(user.getEmail(), password);
+      JaccUtil.getCallerWebRoles(null);
       authController.registerLogin(user, req);
     } catch (ServletException e) {
       authController.registerAuthenticationFailure(user, req);
