@@ -413,7 +413,7 @@ public class AuthService {
     statusValidator.checkStatus(user.getStatus());
     try {
       req.login(user.getEmail(), password);
-      JaccUtil.getCallerWebRoles(null);
+      JaccUtil.getCallerRoles(null);
       authController.registerLogin(user, req);
     } catch (ServletException e) {
       authController.registerAuthenticationFailure(user, req);
