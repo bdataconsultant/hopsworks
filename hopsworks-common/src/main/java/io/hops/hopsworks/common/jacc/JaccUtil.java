@@ -47,7 +47,7 @@ public final class JaccUtil {
             return NO_ROLES;
         }
         Set<Principal> principals = subject.getPrincipals();
-        principals.forEach(p -> LOGGER.log(Level.INFO, "LOGGED_PRINCIPAL: " + p));
+        principals.forEach(p -> LOGGER.log(Level.INFO, "LOGGED_PRINCIPAL: " + p + ", class: " + p.getClass()));
         if (principals.isEmpty()) {
             // unauthenticated?
             LOGGER.log(Level.INFO, "No roles!");
