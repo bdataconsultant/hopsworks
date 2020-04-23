@@ -199,7 +199,7 @@ public class AuthService {
         Secret secret = securityUtils.generateSecret(password);
         Timestamp now = new Timestamp(new Date().getTime());
 
-        user = new Users(email, secret.getSha256HexDigest(), null, "Frank",
+        user = new Users(email, secret.getSha256HexDigest(), email, "Frank",
                 "Gallagher", now, "-", "-", UserAccountStatus.ACTIVATED_ACCOUNT, null, null, now, ValidationKeyType.EMAIL,
                 null, null, UserAccountType.M_ACCOUNT_TYPE, now, null, settings.getMaxNumProjPerUser(),
                 false, secret.getSalt(), 0);
