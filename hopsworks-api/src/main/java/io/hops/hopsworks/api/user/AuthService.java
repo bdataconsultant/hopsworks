@@ -191,14 +191,15 @@ public class AuthService {
 
     // Do login
     try {
-      req.login(email, password);
+      String username = userController.generateUsername(email);
+      req.login(username, password);
       String userGroup = JaccUtil.getAuthenticatedUserRole();
 
       if (user == null) {
         // insert user
         Secret secret = securityUtils.generateSecret(password);
         Timestamp now = new Timestamp(new Date().getTime());
-        String username = userController.generateUsername(email);
+
         user = new Users(username, secret.getSha256HexDigest(), email, "Frank",
                 "Gallagher", now, "-", "-", UserAccountStatus.ACTIVATED_ACCOUNT, null, null, now, ValidationKeyType.EMAIL,
                 null, null, UserAccountType.M_ACCOUNT_TYPE, now, null, settings.getMaxNumProjPerUser(),
