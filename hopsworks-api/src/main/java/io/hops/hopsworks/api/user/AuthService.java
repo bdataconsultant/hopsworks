@@ -192,7 +192,6 @@ public class AuthService {
     // Do login
     try {
       req.login(email, password);
-      String userGroup = JaccUtil.getAuthenticatedUserRole();
 
       if (user == null) {
         // insert user
@@ -208,7 +207,7 @@ public class AuthService {
         user.setBbcGroupCollection(groups);
         userFacade.persist(user);
 
-        userController.activateUser(userGroup, user, user, req);
+        userController.activateUser("HOPS_USER", user, user, req);
       } else {
         //  update user's password
         //  TODO SHOULD DO ONLY IF PASSWORD IS DIFFERENT
