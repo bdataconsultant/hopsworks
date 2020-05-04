@@ -27,10 +27,10 @@
         <div id="profile-sidebar" class="list-group col-xs-3 col-sm-3 col-md-3 col-lg-3" style="width: 256px;">
             <a class="list-group-item" ng-class="{active: profileCtrl.activeTab === 'profile'}"
                ng-click="profileCtrl.activeTab = 'profile'">Profile</a>
-            <a class="list-group-item" ng-class="{active: profileCtrl.activeTab === 'credentials', disabled: profileCtrl.externalAccountType()}"
+           <!-- <a class="list-group-item" ng-class="{active: profileCtrl.activeTab === 'credentials', disabled: profileCtrl.externalAccountType()}"
                ng-click="profileCtrl.activeTab = 'credentials'">Login credentials</a>
             <a class="list-group-item" ng-class="{active: profileCtrl.activeTab === 'security', disabled: profileCtrl.externalAccountType()}"
-               ng-click="profileCtrl.activeTab = 'security'">Security question</a>
+               ng-click="profileCtrl.activeTab = 'security'">Security question</a>-->
             <a class="list-group-item"
                ng-class="{active: profileCtrl.activeTab === 'twoFactor', disabled: (profileCtrl.otp !== 'true' || profileCtrl.externalAccountType())}"
                ng-click="profileCtrl.activeTab = 'twoFactor'">Two-factor</a>
@@ -129,7 +129,7 @@
             </div>
             <!-- End of Profile -->
             <!-- Login credentials -->
-            <div class="row" id="tab1" ng-show="profileCtrl.activeTab === 'credentials'">
+            <!--<div class="row" id="tab1" ng-show="profileCtrl.activeTab === 'credentials'">
                 <div class="breadcrumb">
                     <p class="active">Login credentials</p>
                 </div>
@@ -213,10 +213,10 @@
                         </div>
                     </div>
                 </form>
-            </div>
+            </div>-->
             <!-- End of Login credentials -->
             <!-- Security question -->
-            <div class="row" id="tab2" ng-show="profileCtrl.activeTab === 'security'">
+            <!--<div class="row" id="tab2" ng-show="profileCtrl.activeTab === 'security'">
                 <div class="breadcrumb">
                     <p class="active">Security question</p>
                 </div>
@@ -293,7 +293,7 @@
                         </div>
                     </div>
                 </form>
-            </div>
+            </div>-->
             <!-- End of Security question -->
             <!-- Two factor -->
             <div class="row" id="tab3" ng-show="profileCtrl.activeTab === 'twoFactor'">
