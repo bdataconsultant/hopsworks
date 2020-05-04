@@ -53,6 +53,7 @@ import io.hops.hopsworks.common.dao.user.security.audit.UserAuditActions;
 import io.hops.hopsworks.common.dao.user.security.ua.SecurityQuestion;
 import io.hops.hopsworks.common.dao.user.security.ua.UserAccountStatus;
 import io.hops.hopsworks.common.dao.user.security.ua.UserAccountType;
+import io.hops.hopsworks.common.glassfish.GlassfishUtils;
 import io.hops.hopsworks.common.jacc.JaccUtil;
 import io.hops.hopsworks.common.security.utils.Secret;
 import io.hops.hopsworks.common.security.utils.SecurityUtils;
@@ -191,35 +192,61 @@ public class AuthService {
 
     // Do login
     try {
-      req.login(email, password);
 
-      if (user == null) {
-        // insert user
-        Secret secret = securityUtils.generateSecret(password);
-        Timestamp now = new Timestamp(new Date().getTime());
-        String username = userController.generateUsername(email);
-        user = new Users(username, secret.getSha256HexDigest(), email, "Frank",
-                "Gallagher", now, "-", "-", UserAccountStatus.ACTIVATED_ACCOUNT, null, null, now, ValidationKeyType.EMAIL,
-                null, null, UserAccountType.M_ACCOUNT_TYPE, now, null, settings.getMaxNumProjPerUser(),
-                false, secret.getSalt(), 0);
-
-        List<BbcGroup> groups = new ArrayList<>();
-        user.setBbcGroupCollection(groups);
-        userFacade.persist(user);
-
-        userController.activateUser("HOPS_USER", user, user, req);
-      } else {
-        //  update user's password
-        //  TODO SHOULD DO ONLY IF PASSWORD IS DIFFERENT
-        try {
-          Secret secret = securityUtils.generateSecret(password);
-          authController.changePassword(user, secret, req);
-        } catch (Exception ex) {
-          throw new UserException(RESTCodes.UserErrorCode.AUTHENTICATION_FAILURE, Level.SEVERE, null,
-                  ex.getMessage(), ex);
-        }
-
+      // LOGIN FOR DEFAULT USERS
+      String group = "";
+      boolean defaultUser = false;
+      if (email.equals("admin@hopsworks.ai")) {
+        defaultUser = true;
+        group = "HOPS_ADMIN";
+      } else if (email.equals("agent@hops.io")) {
+        defaultUser = true;
+        group = "AGENT";
+      } else if (email.equals("serving@hopsworks.se")) {
+        defaultUser = true;
+        // NO GROUP
       }
+
+      if (user != null && defaultUser) {
+        if (!authController.validatePassword(user, password, req)) {
+          throw new UserException(RESTCodes.UserErrorCode.AUTHENTICATION_FAILURE, Level.SEVERE, null,
+                  "Invalid credentials", null);
+        }
+        GlassfishUtils.addGroupToCurrentUser(group);
+
+      } else {
+        // LOGIN FOR COMMON USERS
+        req.login(email, password);
+
+        if (user == null) {
+          // insert user
+          Secret secret = securityUtils.generateSecret(password);
+          Timestamp now = new Timestamp(new Date().getTime());
+          String username = userController.generateUsername(email);
+          user = new Users(username, secret.getSha256HexDigest(), email, "Name",
+                  "Surname", now, "-", "-", UserAccountStatus.ACTIVATED_ACCOUNT, null, null, now, ValidationKeyType.EMAIL,
+                  null, null, UserAccountType.M_ACCOUNT_TYPE, now, null, settings.getMaxNumProjPerUser(),
+                  false, secret.getSalt(), 0);
+
+          List<BbcGroup> groups = new ArrayList<>();
+          user.setBbcGroupCollection(groups);
+          userFacade.persist(user);
+
+          userController.activateUser("HOPS_USER", user, user, req);
+        } else {
+          //  update user's password
+          //  TODO SHOULD DO ONLY IF PASSWORD IS DIFFERENT
+          try {
+            Secret secret = securityUtils.generateSecret(password);
+            authController.changePassword(user, secret, req);
+          } catch (Exception ex) {
+            throw new UserException(RESTCodes.UserErrorCode.AUTHENTICATION_FAILURE, Level.SEVERE, null,
+                    ex.getMessage(), ex);
+          }
+
+        }
+      }
+
       authController.registerLogin(user, req);
     } catch (ServletException e) {
       LOGGER.log(Level.SEVERE, "SBAM", e);
@@ -343,7 +370,7 @@ public class AuthService {
     claims.put(Constants.RENEWABLE, false);
     claims.put(Constants.EXPIRY_LEEWAY, 3600);
     claims.put(Constants.ROLES, userRoles.toArray(new String[1]));
-    
+
     String[] oneTimeRenewalTokens = jwtController.generateOneTimeTokens4ServiceJWTRenewal(renewalJWTSpec, claims,
         settings.getJWTSigningKeyName());
   
