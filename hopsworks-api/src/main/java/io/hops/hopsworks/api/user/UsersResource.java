@@ -191,10 +191,10 @@ public class UsersResource {
     return Response.created(userDTO.getHref()).entity(userDTO).build();
   }
 
-  @POST
-  @Path("credentials")
-  @Produces(MediaType.APPLICATION_JSON)
-  @ApiOperation(value = "Updates logedin User\'s credentials.", response = RESTApiJsonResponse.class)
+  //@POST
+  //@Path("credentials")
+  //@Produces(MediaType.APPLICATION_JSON)
+  //@ApiOperation(value = "Updates logedin User\'s credentials.", response = RESTApiJsonResponse.class)
   public Response changeLoginCredentials(
       @FormParam("oldPassword") String oldPassword,
       @FormParam("newPassword") String newPassword,
