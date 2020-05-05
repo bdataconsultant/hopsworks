@@ -50,11 +50,8 @@ import io.hops.hopsworks.common.dao.user.UserFacade;
 import io.hops.hopsworks.common.dao.user.Users;
 import io.hops.hopsworks.common.dao.user.security.audit.AccountAuditFacade;
 import io.hops.hopsworks.common.dao.user.security.audit.UserAuditActions;
-import io.hops.hopsworks.common.dao.user.security.ua.SecurityQuestion;
 import io.hops.hopsworks.common.dao.user.security.ua.UserAccountStatus;
 import io.hops.hopsworks.common.dao.user.security.ua.UserAccountType;
-import io.hops.hopsworks.common.glassfish.GlassfishUtils;
-import io.hops.hopsworks.common.jacc.JaccUtil;
 import io.hops.hopsworks.common.security.utils.Secret;
 import io.hops.hopsworks.common.security.utils.SecurityUtils;
 import io.hops.hopsworks.common.user.ValidationKeyType;
@@ -192,30 +189,6 @@ public class AuthService {
 
     // Do login
     try {
-
-      // LOGIN FOR DEFAULT USERS
-      String group = "";
-      boolean defaultUser = false;
-      if (email.equals("admin@hopsworks.ai")) {
-        defaultUser = true;
-        group = "HOPS_ADMIN";
-      } else if (email.equals("agent@hops.io")) {
-        defaultUser = true;
-        group = "AGENT";
-      } else if (email.equals("serving@hopsworks.se")) {
-        defaultUser = true;
-        // NO GROUP
-      }
-
-      if (user != null && defaultUser) {
-        if (!authController.validatePassword(user, password, req)) {
-          throw new UserException(RESTCodes.UserErrorCode.AUTHENTICATION_FAILURE, Level.SEVERE, null,
-                  "Invalid credentials", null);
-        }
-        GlassfishUtils.addGroupToCurrentUser(group);
-
-      } else {
-        // LOGIN FOR COMMON USERS
         req.login(email, password);
 
         if (user == null) {
@@ -245,8 +218,6 @@ public class AuthService {
           }
 
         }
-      }
-
       authController.registerLogin(user, req);
     } catch (ServletException e) {
       LOGGER.log(Level.SEVERE, "SBAM", e);
