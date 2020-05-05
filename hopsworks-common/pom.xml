@@ -362,7 +362,7 @@
     </dependency>
 
     <!-- Glassfish runtime -->
-    <dependency>
+    <!--<dependency>
       <groupId>org.glassfish.main.security</groupId>
       <artifactId>security</artifactId>
       <version>4.1.2.181</version>
@@ -373,7 +373,7 @@
       <artifactId>common-util</artifactId>
       <version>4.1.2.181</version>
       <scope>provided</scope>
-    </dependency>
+    </dependency>-->
   </dependencies>
 
   <build>
