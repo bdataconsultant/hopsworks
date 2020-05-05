@@ -181,7 +181,7 @@ public class AuthService {
         throw new UserException(RESTCodes.UserErrorCode.NO_ROLE_FOUND, Level.FINE);
       }
 
-      statusValidator.checkStatus(user.getStatus());
+      //statusValidator.checkStatus(user.getStatus());
     }
 
     // A session needs to be create explicitly before doing to the login operation
