@@ -52,6 +52,7 @@ import io.hops.hopsworks.common.dao.user.security.audit.AccountAuditFacade;
 import io.hops.hopsworks.common.dao.user.security.audit.UserAuditActions;
 import io.hops.hopsworks.common.dao.user.security.ua.UserAccountStatus;
 import io.hops.hopsworks.common.dao.user.security.ua.UserAccountType;
+import io.hops.hopsworks.common.jacc.JaccUtil;
 import io.hops.hopsworks.common.security.utils.Secret;
 import io.hops.hopsworks.common.security.utils.SecurityUtils;
 import io.hops.hopsworks.common.user.ValidationKeyType;
@@ -205,7 +206,7 @@ public class AuthService {
           user.setBbcGroupCollection(groups);
           userFacade.persist(user);
 
-          userController.activateUser("HOPS_USER", user, user, req);
+          userController.activateUser(JaccUtil.getAuthenticatedUserRole(), user, user, req);
         } else {
           //  update user's password
           //  TODO SHOULD DO ONLY IF PASSWORD IS DIFFERENT
