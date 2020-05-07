@@ -182,7 +182,7 @@ public class AuthService {
         throw new UserException(RESTCodes.UserErrorCode.NO_ROLE_FOUND, Level.FINE);
       }
 
-      //statusValidator.checkStatus(user.getStatus());
+      statusValidator.checkStatus(user.getStatus());
     }
 
     // A session needs to be create explicitly before doing to the login operation
@@ -197,8 +197,8 @@ public class AuthService {
           Secret secret = securityUtils.generateSecret(password);
           Timestamp now = new Timestamp(new Date().getTime());
           String username = userController.generateUsername(email);
-          user = new Users(username, secret.getSha256HexDigest(), email, "Name",
-                  "Surname", now, "-", "-", UserAccountStatus.ACTIVATED_ACCOUNT, null, null, now, ValidationKeyType.EMAIL,
+          user = new Users(username, secret.getSha256HexDigest(), email, username,
+                  username, now, "-", "-", UserAccountStatus.ACTIVATED_ACCOUNT, null, null, now, ValidationKeyType.EMAIL,
                   null, null, UserAccountType.M_ACCOUNT_TYPE, now, null, settings.getMaxNumProjPerUser(),
                   false, secret.getSalt(), 0);
 
@@ -396,13 +396,21 @@ public class AuthService {
   public Response register(UserDTO newUser, @Context HttpServletRequest req) throws NoSuchAlgorithmException,
       UserException {
     byte[] qrCode;
-    RESTApiJsonResponse json = new RESTApiJsonResponse();
+
+    try {
+      req.login(newUser.getUsername(), newUser.getChosenPassword());
+    } catch (ServletException e) {
+      LOGGER.log(Level.SEVERE, "LDAP account matching failed: " + e.getMessage(), e);
+      throw new UserException(RESTCodes.UserErrorCode.ACCOUNT_MISMATCHING, Level.FINE, null, e.getMessage(), e);
+    }
+
     qrCode = userController.registerUser(newUser, req);
+
+    RESTApiJsonResponse json = new RESTApiJsonResponse();
     if (authController.isTwoFactorEnabled() && newUser.isTwoFactor()) {
       json.setQRCode(new String(Base64.encodeBase64(qrCode)));
     } else {
-      json.setSuccessMessage("We registered your account request. Please validate you email and we will "
-          + "review your account within 48 hours.");
+      json.setSuccessMessage("We registered your account request. We will review your account within 48 hours.");
     }
     return Response.ok(json).build();
   }
