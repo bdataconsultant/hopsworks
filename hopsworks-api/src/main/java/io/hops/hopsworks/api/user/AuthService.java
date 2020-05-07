@@ -398,7 +398,7 @@ public class AuthService {
     byte[] qrCode;
 
     try {
-      req.login(newUser.getUsername(), newUser.getChosenPassword());
+      req.login(newUser.getEmail(), newUser.getChosenPassword());
     } catch (ServletException e) {
       LOGGER.log(Level.SEVERE, "LDAP account matching failed: " + e.getMessage(), e);
       throw new UserException(RESTCodes.UserErrorCode.ACCOUNT_MISMATCHING, Level.FINE, null, e.getMessage(), e);
