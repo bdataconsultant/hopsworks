@@ -31,13 +31,13 @@
                ng-click="profileCtrl.activeTab = 'credentials'">Login credentials</a>
             <a class="list-group-item" ng-class="{active: profileCtrl.activeTab === 'security', disabled: profileCtrl.externalAccountType()}"
                ng-click="profileCtrl.activeTab = 'security'">Security question</a>-->
-            <a class="list-group-item"
+            <!--<a class="list-group-item"
                ng-class="{active: profileCtrl.activeTab === 'twoFactor', disabled: (profileCtrl.otp !== 'true' || profileCtrl.externalAccountType())}"
-               ng-click="profileCtrl.activeTab = 'twoFactor'">Two-factor</a>
-            <a class="list-group-item" ng-class="{active: profileCtrl.activeTab === 'secrets'}"
-               ng-click="profileCtrl.activeTab = 'secrets'; profileCtrl.load_secrets()">Secrets</a>
-            <a class="list-group-item" ng-class="{active: profileCtrl.activeTab === 'apiKeys'}"
-               ng-click="profileCtrl.activeTab = 'apiKeys'; profileCtrl.load_apiKeys()">Api keys</a>
+               ng-click="profileCtrl.activeTab = 'twoFactor'">Two-factor</a>-->
+            <!--<a class="list-group-item" ng-class="{active: profileCtrl.activeTab === 'secrets'}"
+               ng-click="profileCtrl.activeTab = 'secrets'; profileCtrl.load_secrets()">Secrets</a>-->
+            <!--<a class="list-group-item" ng-class="{active: profileCtrl.activeTab === 'apiKeys'}"
+               ng-click="profileCtrl.activeTab = 'apiKeys'; profileCtrl.load_apiKeys()">Api keys</a>-->
         </div>
         <div id="profile-content-loading" class="col-xs-9 col-sm-9 col-md-9 col-lg-9 tab-content text-muted loading-dots"
              ng-if="profileCtrl.pageLoading">Loading</div>
@@ -49,7 +49,7 @@
                     <p class="active">Profile</p>
                 </div>
                 <div class="col-xs-9 col-sm-9 col-md-9 pull-right">
-                    <form method="post" name="profileForm" ng-submit="profileCtrl.updateProfile()"
+                    <form method="post" name="profileForm"
                           class="form-validate" novalidate>
                         <div class="row">
                             <div class="col-xs-6 col-sm-6 col-md-6">
@@ -57,7 +57,7 @@
                                     <label class="text-muted">First Name</label>
                                     <input name="first_name" placeholder="First Name" autocomplete="off"
                                            ng-model="profileCtrl.user.firstname" required class="form-control "
-                                           type="text" ng-disabled="profileCtrl.externalAccountType()">
+                                           type="text" ng-disabled="true">
                                     <span ng-show="(profileForm.$submitted || profileForm.first_name.$dirty) && profileForm.first_name.$error.required"
                                             class="text-danger ng-hide">This field is required</span>
                                 </div>
@@ -66,7 +66,7 @@
                                 <div class="form-group has-feedback">
                                     <label class="text-muted">Last Name</label>
                                     <input name="last_name" placeholder="Last Name" autocomplete="off" ng-model="profileCtrl.user.lastname"
-                                           required class="form-control " type="text" ng-disabled="profileCtrl.externalAccountType()">
+                                           required class="form-control " type="text" ng-disabled="true">
                                     <span ng-show="(profileForm.$submitted || profileForm.last_name.$dirty) && profileForm.last_name.$error.required"
                                             class="text-danger ng-hide">This field is required</span>
                                 </div>
@@ -80,16 +80,14 @@
                                            required class="form-control" type="text" ng-disabled="true">
                                 </div>
                             </div>
-                            <div class="col-xs-6 col-sm-6 col-md-6">
+                            <!--<div class="col-xs-6 col-sm-6 col-md-6">
                                 <label class="text-muted">Phone Number</label>
                                 <input name="phone_number" placeholder="Phone" autocomplete="on" ng-model="profileCtrl.user.phoneNumber"
                                        ng-pattern="/^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/" class="form-control "
                                        type="text" ng-disabled="profileCtrl.externalAccountType()">
                                 <span ng-show="profileForm.phone_number.$dirty && profileForm.phone_number.$error.pattern"
                                       class="text-danger ng-hide">Phone number should be in (+00-000-000000) format.</span>
-                            </div>
-                        </div>
-                        <div class="form-group has-feedback row">
+                            </div>-->
                             <div class="col-xs-6 col-sm-6 col-md-6">
                                 <label class="text-muted">Email address</label>
                                 <input name="user_email" placeholder="Email" autocomplete="off"
@@ -98,6 +96,15 @@
                                 <span class="fa fa-envelope form-control-feedback text-muted" style="right: 15px;"></span>
                             </div>
                         </div>
+                        <!--<div class="form-group has-feedback row">
+                            <div class="col-xs-6 col-sm-6 col-md-6">
+                                <label class="text-muted">Email address</label>
+                                <input name="user_email" placeholder="Email" autocomplete="off"
+                                       ng-model="profileCtrl.user.email" required
+                                       class="form-control" type="email" ng-disabled="true">
+                                <span class="fa fa-envelope form-control-feedback text-muted" style="right: 15px;"></span>
+                            </div>
+                        </div>-->
                         <div class="form-group has-feedback row">
                             <div class="col-xs-12 col-sm-12 col-md-12">
                                 <div>
@@ -113,14 +120,14 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="row form-actions" ng-show="!profileCtrl.externalAccountType()">
+                        <!--<div class="row form-actions" ng-show="!profileCtrl.externalAccountType()">
                             <div class="col-xs-3 col-sm-3 col-md-3 pull-right">
                                 <button type="submit" class="btn btn-block btn-primary"
                                         ng-disabled="profileForm.$pristine || profileCtrl.working">Save
                                     <i ng-if="profileCtrl.working" style="margin-top: 2px" class="fa fa-spinner fa-spin pull-right"></i>
                                 </button>
                             </div>
-                        </div>
+                        </div>-->
                     </form>
                 </div>
                 <div class="col-xs-3 col-sm-3 col-md-3 ">
@@ -296,7 +303,7 @@
             </div>-->
             <!-- End of Security question -->
             <!-- Two factor -->
-            <div class="row" id="tab3" ng-show="profileCtrl.activeTab === 'twoFactor'">
+            <!--<div class="row" id="tab3" ng-show="profileCtrl.activeTab === 'twoFactor'">
                 <div class="breadcrumb">
                     <p class="active">Two-factor authentication</p>
                 </div>
@@ -342,10 +349,10 @@
                         </div>
                     </div>
                 </form>
-            </div>
+            </div>-->
             <!-- End of two factor -->
             <!-- Secrets -->
-            <div class="row" id="tab4" ng-show="profileCtrl.activeTab === 'secrets'">
+            <!--<div class="row" id="tab4" ng-show="profileCtrl.activeTab === 'secrets'">
                 <div class="breadcrumb">
                     <p class="active">Secrets</p>
                 </div>
@@ -435,10 +442,10 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            </div>-->
             <!-- End of Secrets -->
             <!-- Api keys -->
-            <div class="row" id="tab5" ng-show="profileCtrl.activeTab === 'apiKeys'">
+            <!--<div class="row" id="tab5" ng-show="profileCtrl.activeTab === 'apiKeys'">
                 <div class="breadcrumb">
                     <p class="active">Api keys</p>
                 </div>
@@ -540,7 +547,7 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            </div>-->
             <!-- End of Api keys -->
         </div>
     </div>
