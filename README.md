@@ -11,8 +11,8 @@ Giotto big data plaform repository.
 
 ### 2. Install packages
 ```sh
-	npm install -g bower
-    npm install -g grunt-cli
+	npm install -g bower@1.8.8
+    npm install -g grunt-cli@1.2.0
 	npm install
     bower install
 ```
@@ -34,7 +34,7 @@ You can run a local dev server using the serve task defined in Gruntfile.js:
 grunt serve --targetCustomer=CUSTOMER_NAME
 ```
 
-CUSTOMER_NAME value is the name of the customer folder in app/customer_assets. When targetCustomer option isn't specified, "DEFAULT" client name is used.
+CUSTOMER_NAME value is the name of the customer folder in app/customer_assets. When targetCustomer option isn't specified, "DEFAULT" customer name is used.
 
 # Build and Test
 
@@ -44,7 +44,7 @@ In giotto-platform-v1.0.0 directory run:
 ```sh
 mvn clean install -DtargetCustomer=CUSTOMER_NAME
 ```
-CUSTOMER_NAME value is the name of the client folder in app/customer_assets. When targetCustomer option isn't specified, "DEFAULT" client name is used.
+CUSTOMER_NAME value is the name of the customer folder in app/customer_assets. When targetCustomer option isn't specified, "DEFAULT" customer name is used.
 
 # Contribute
 

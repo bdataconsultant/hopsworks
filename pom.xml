@@ -59,7 +59,7 @@
     <module>hopsworks-dela</module>
     <module>hopsworks-jwt</module>
     <module>hopsworks-persistence</module>
-    <module>hopsworks-IT</module>
+    <!--<module>hopsworks-IT</module>-->
     <module>hopsworks-rest-utils</module>
   </modules>
 
@@ -76,7 +76,9 @@
     <profile>
       <id>web</id>
       <activation>
-        <activeByDefault>true</activeByDefault>
+        <property>
+          <name>!skipWebBuild</name>
+        </property>
       </activation>
       <modules>
         <module>hopsworks-web</module>
@@ -94,9 +96,32 @@
 
     <!-- Dependencies -->
     <hive.version>3.0.0.2</hive.version>
+    <!-- deploy lib versions -->
+
+    <cargo.version>1.6.4</cargo.version>
+    <glassfish.version>4.1.2</glassfish.version>
+
+    <!-- Glassfish conf -->
+    <!--suppress UnresolvedMavenProperty -->
+    <glassfish.hostname></glassfish.hostname>
+    <glassfish.admin>adminuser</glassfish.admin>
+    <glassfish.passwd></glassfish.passwd>
+
+    <!--suppress UnresolvedMavenProperty -->
+    <glassfish.port>4848</glassfish.port>
+    
+    <!--suppress UnresolvedMavenProperty -->
+    <glassfish.admin_port>4848</glassfish.admin_port>
+    <glassfish.domain>domain1</glassfish.domain>
+    <maven.deploy.skip>true</maven.deploy.skip>
   </properties>
 
   <dependencies>
+    <dependency>
+      <groupId>org.codehaus.cargo</groupId>
+      <artifactId>cargo-maven2-plugin</artifactId>
+      <version>1.6.4</version>
+    </dependency>
     <dependency>
       <groupId>com.google.zxing</groupId>
       <artifactId>javase</artifactId>
@@ -112,6 +137,13 @@
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
       <version>1.7.21</version>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/org.glassfish.main.deployment/deployment-client -->
+    <dependency>
+      <groupId>org.glassfish.main.deployment</groupId>
+      <artifactId>deployment-client</artifactId>
+      <version>5.0</version>
+      <scope>provided</scope>
     </dependency>
   </dependencies>
   <build>
