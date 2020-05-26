@@ -1,0 +1,50 @@
+pipeline {
+    agent {
+        node {
+            label 'slaves'
+        }
+    }
+    environment {
+        GLASSFISH_ADMIN='adminuser'
+        GLASSFISH_PORT='4848'
+        GLASSFISH_ADMIN_PORT='4848'
+        GLASSFISH_DOMAIN='domain1'
+        GLASSFISH_SKIP='false'
+    }
+    stages {
+        stage('build-deploy big data DEVELOP') {
+            when {
+                // Only say hello if a "greeting" is requested
+                expression { params.DEPLOY_ENVIRONMENT == 'develop' }
+            }
+            steps {
+                dir('hopsworks-web/') {
+                    sh 'pwd'
+                    sh 'ls'
+                    withMaven(
+                        maven: 'maven_3.5.4',
+                        mavenSettingsConfig: 'jfrog.almaviva.it_generic') {
+                        sh 'mvn clean install -DdeployWeb -DskipTests -Dhttps.protocols=TLSv1,TLSv1.1,TLSv1.2 -Dglassfish.hostname=10.206.195.38 -Dglassfish.admin=${GLASSFISH_ADMIN} -Dglassfish.passwd=Almaviva19 -Dglassfish.port=${GLASSFISH_PORT} -Dglassfish.admin_port=${GLASSFISH_ADMIN_PORT} -Dglassfish.domain=${GLASSFISH_DOMAIN}'
+                    }
+                }
+            }
+        }
+        stage('build-deploy big data POC') {
+            when {
+                // Only say hello if a "greeting" is requested
+                expression { params.DEPLOY_ENVIRONMENT == 'poc' }
+            }
+            steps {
+                dir('hopsworks-web/') {
+                    sh 'pwd'
+                    sh 'ls'
+                    withMaven(
+                        maven: 'maven_3.5.4',
+                        mavenSettingsConfig: 'jfrog.almaviva.it_generic') {
+                        sh 'mvn clean install -DdeployWeb -DskipTests -Dhttps.protocols=TLSv1,TLSv1.1,TLSv1.2 -Dglassfish.hostname=10.206.195.44 -Dglassfish.admin=${GLASSFISH_ADMIN} -Dglassfish.passwd=adminpw -Dglassfish.port=${GLASSFISH_PORT} -Dglassfish.admin_port=${GLASSFISH_ADMIN_PORT} -Dglassfish.domain=${GLASSFISH_DOMAIN}'
+                    }
+                }
+            }
+        }
+    }
+}
