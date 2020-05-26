@@ -9,7 +9,9 @@ This is the Giotto big data plaform front-end application. It's an Angularjs app
     cd ./hopsworks-web/yo
 	
 ### 2. Install packages
-	npm install -g bower
+```sh
+	npm install -g bower@1.8.8
+    npm install -g grunt-cli@1.2.0
 	npm install
     bower install
 	

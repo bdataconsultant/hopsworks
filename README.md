@@ -4,12 +4,32 @@ Giotto big data plaform repository.
 
 # Getting Started
 
-TODO: Guide users through getting your code up and running on their own system. In this section you can talk about:
+### 2. Install packages
+```sh
+	npm install -g bower@1.8.8
+    npm install -g grunt-cli@1.2.0
+	npm install
+    bower install
+```
 
-1. Installation process
-2. Software dependencies
-3. Latest releases
-4. API references
+If 'npm install' log shows this error:
+```
+request to http://jfrog.almaviva.it:8081/artifactory/api/npm/giotto-npm/@giotto-jfrog%2fgiotto-platform-header failed, reason: getaddrinfo ENOTFOUND jfrog.almaviva.it
+```
+
+Add this line to your /etc/hosts file (C:\Windows\System32\drivers\etc\hosts on windows):
+```
+10.207.127.8 jfrog.almaviva.it
+```
+
+### 3. Start dev server
+You can run a local dev server using the serve task defined in Gruntfile.js:
+
+```sh
+grunt serve --targetCustomer=CUSTOMER_NAME
+```
+
+CUSTOMER_NAME value is the name of the customer folder in app/customer_assets. When targetCustomer option isn't specified, "DEFAULT" customer name is used.
 
 # Build and Test
 
@@ -19,7 +39,7 @@ Under giotto-platform-v1.0.0/ run:
 ```sh
 mvn clean package -DtargetCustomer=CLIENT_NAME
 ```
-CLIENT_NAME value is the name of the client folder in app/customer_assets. When targetCustomer option isn't specified, "DEFAULT" client name is used.
+CUSTOMER_NAME value is the name of the customer folder in app/customer_assets. When targetCustomer option isn't specified, "DEFAULT" customer name is used.
 
 # Contribute
 
