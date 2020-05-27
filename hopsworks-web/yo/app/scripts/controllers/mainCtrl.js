@@ -47,37 +47,34 @@ angular.module('hopsWorksApp')
           '$http', 'AuthService', 'UtilsService', 'ElasticService', 'DelaProjectService',
           'DelaService', 'md5', 'ModalService', 'ProjectService', 'growl',
           'MessageService', '$routeParams', '$window', 'HopssiteService', 'BannerService',
-          'AirflowService',
+          'AirflowService', 'customerConfig',
           function ($interval, $cookies, $location, $scope, $rootScope, $http, AuthService, UtilsService,
                   ElasticService, DelaProjectService, DelaService, md5, ModalService, 
                   ProjectService, growl,
                   MessageService, $routeParams, $window, HopssiteService, BannerService,
-                  AirflowService) {
+                  AirflowService, customerConfig) {
             
-            // HEADER PLUGIN INIZIALIZATION
-             try {
-               document.getElementById("platform-header").remove();
-             } catch(e) {}
-            var wrapper = document.getElementById('hwWrapper');
-            var headerDiv = document.createElement("platform-header");
-            headerDiv.setAttribute("id", "platform-header");
-            wrapper.appendChild(headerDiv)
-            var instance = new GiottoPlatformHeader(
-                headerDiv, 
-                {
-                  logoDir: "images/big-data-logo-login.png", 
-                  appContext: 'bigdata',
-                  logout: headerLogout,
-                  appUrlsConfig: {
-                    bigdata: '/giotto-web',
-                    iot: '/fe-iot/',
-                    admin: '/oneadmin/',
-                    udm: '/udm-fe/'
+          // HEADER PLUGIN INIZIALIZATION
+          if(!!document.getElementById("platform-header")) {
+            document.getElementById("platform-header").remove();
+          }
+           var wrapper = document.getElementById('hwWrapper');
+           var headerDiv = document.createElement("platform-header");
+           headerDiv.setAttribute("id", "platform-header");
+           wrapper.appendChild(headerDiv)
+              var instance = new GiottoPlatformHeader(
+                  headerDiv,
+                  {
+                    logoDir: customerConfig.header.logoDir,
+                    appContext: customerConfig.header.appContext,
+                    appTitle: customerConfig.header.appTitle,
+                    logout: headerLogout,
+                    appUrlsConfig: customerConfig.header.appUrlsConfig
                   }
-                });
-            // initialize
-            instance.init();
-            
+                );
+              // initialize
+              instance.init();
+
             function headerLogout() {
               headerDiv.remove();
               localStorage.clear();

@@ -289,7 +289,10 @@ module.exports = function (grunt) {
     usemin: {
       html: ['<%= yeoman.dist %>/{,*/}*.html'],
       css: ['<%= yeoman.dist %>/styles/{,*/}*.css'],
-      js: ['<%= yeoman.dist %>/scripts/{,*/}*.js'],
+      js: [
+        '<%= yeoman.dist %>/scripts/{,*/}*.js',
+        '<%= yeoman.app %>/customer_assets/<%= yeoman.targetCustomer %>/providers/*.js'
+      ],
       options: {
         assetsDirs: [
           '<%= yeoman.dist %>',
@@ -370,17 +373,6 @@ module.exports = function (grunt) {
             cwd: '<%= yeoman.bower %>',
             src: '**/img/*.{png,jpg,jpeg,gif}',
             dest: '<%= yeoman.dist %>/img'
-          }
-        ]
-      }
-    },
-    imageminDev: {
-      tmp: {
-        files: [ {
-            expand: true,
-            cwd: '<%= yeoman.app %>/customer_assets/<%= yeoman.targetCustomer %>/images',
-            src: '{,*/}*.{png,jpg,jpeg,gif}',
-            dest: '.tmp/images'
           }
         ]
       }
@@ -469,17 +461,30 @@ module.exports = function (grunt) {
         dest: '.tmp/styles/',
         src: '{,*/}*.css'
       },
+      customerStyles: {
+        expand: true,
+        cwd: '<%= yeoman.app %>/customer_assets/<%= yeoman.targetCustomer %>/styles',
+        src: '{,*/}*.css',
+        dest: '.tmp/styles'
+      },
       customerImages: {
         expand: true,
         cwd: '<%= yeoman.app %>/customer_assets/<%= yeoman.targetCustomer %>/images',
         src: '{,*/}*.{png,jpg,jpeg,gif}',
         dest: '.tmp/images'
+      },
+      customerProvider: {
+        expand: true,
+        cwd: '<%= yeoman.app %>/customer_assets/<%= yeoman.targetCustomer %>/providers',
+        src: '{,*/}*.js',
+        dest: 'app/scripts/providers'
       }
     },
     // Run some tasks in parallel to speed up the build process
     concurrent: {
       server: [
         'copy:styles',
+        'copy:customerStyles',
         'copy:customerImages'
       ],
       test: [
@@ -487,6 +492,7 @@ module.exports = function (grunt) {
       ],
       dist: [
         'copy:styles',
+        'copy:customerStyles',
         'imagemin',
         'svgmin'
       ]
