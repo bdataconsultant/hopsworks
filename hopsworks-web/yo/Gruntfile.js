@@ -477,12 +477,13 @@ module.exports = function (grunt) {
         expand: true,
         cwd: '<%= yeoman.app %>/customer_assets/<%= yeoman.targetCustomer %>/providers',
         src: '{,*/}*.js',
-        dest: 'app/scripts/providers'
+        dest: '.tmp/scripts/providers'
       }
     },
     // Run some tasks in parallel to speed up the build process
     concurrent: {
       server: [
+        'copy:customerProvider',
         'copy:styles',
         'copy:customerStyles',
         'copy:customerImages'
