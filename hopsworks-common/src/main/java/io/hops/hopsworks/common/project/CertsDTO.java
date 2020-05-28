@@ -46,6 +46,7 @@ public class CertsDTO {
   private String fileExtension;
   private String kStore;
   private String tStore;
+  private String certsPassword;
 
   public CertsDTO() {
   }
@@ -54,10 +55,11 @@ public class CertsDTO {
     this.fileExtension = fileExtension;
   }
 
-  public CertsDTO(String fileExtension, String kStore, String tStore) {
+  public CertsDTO(String fileExtension, String kStore, String tStore, String certsPassword) {
     this.fileExtension = fileExtension;
     this.kStore = kStore;
     this.tStore = tStore;
+    this.certsPassword = certsPassword;
   }
 
   public String getFileExtension() {
@@ -82,6 +84,14 @@ public class CertsDTO {
 
   public void settStore(String tStore) {
     this.tStore = tStore;
+  }
+
+  public String getCertsPassword() {
+    return certsPassword;
+  }
+
+  public void setCertsPassword(String certsPassword) {
+    this.certsPassword = certsPassword;
   }
   
   
