@@ -741,6 +741,7 @@ angular.module('hopsWorksApp')
                           var certs = success.data;
                           download(atob(certs.kStore), 'keyStore.' + certs.fileExtension);
                           download(atob(certs.tStore), 'trustStore.' + certs.fileExtension);
+                          download(atob(certs.certsPassword), 'certsPassword');
                         }, function (error) {
                           var errorMsg = (typeof error.data.usrMsg !== 'undefined')? error.data.usrMsg : "";
                           growl.error(errorMsg, {title: error.data.errorMsg, ttl: 5000});

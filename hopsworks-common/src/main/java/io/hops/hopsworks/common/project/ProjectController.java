@@ -2618,7 +2618,7 @@ public class ProjectController {
           + "please check spam first and then contact the administrator.", "");
       emailBean.sendEmail(user.getEmail(), Message.RecipientType.TO, "Giotto certificate information",
           "The password for keystore and truststore is:" + accessCredentials.getPassword());
-      return new CertsDTO("jks", accessCredentials.getkStore(), accessCredentials.gettStore());
+      return new CertsDTO("jks", accessCredentials.getkStore(), accessCredentials.gettStore(), accessCredentials.getPassword());
     } catch (Exception ex) {
       LOGGER.log(Level.SEVERE, null, ex);
       throw new DatasetException(RESTCodes.DatasetErrorCode.DOWNLOAD_ERROR, Level.SEVERE, "projectId: " + projectId,
