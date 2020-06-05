@@ -63,8 +63,8 @@ angular.module('hopsWorksApp')
               //              self.projectTypes = ['JOBS', 'KAFKA', 'JUPYTER', 'HIVE', 'DELA', 'SERVING', 'FEATURESTORE', 'AIRFLOW'];
               //self.selectionProjectTypes = ['JOBS', 'KAFKA', 'JUPYTER', 'HIVE', 'DELA', 'SERVING', 'FEATURESTORE', 'AIRFLOW'];
 
-              self.projectTypes = ['JOBS', 'KAFKA', 'JUPYTER', 'HIVE', 'DELA', 'SERVING', 'FEATURESTORE', 'AIRFLOW'];
-              self.selectionProjectTypes = ['JOBS', 'KAFKA', 'HIVE', 'AIRFLOW', 'JUPYTER', 'SERVING'];
+              self.projectTypes = ['JOBS', 'KAFKA', 'JUPYTER', 'HIVE', 'DELA', 'SERVING', 'AIRFLOW'];
+              self.selectionProjectTypes = ['JOBS', 'KAFKA', 'HIVE', 'AIRFLOW', 'JUPYTER', 'SERVING', 'FEATURESTORE'];
 
               // v1.0
               // self.projectTypes = ['JOBS', 'KAFKA', 'JUPYTER', 'HIVE', 'DELA', 'SERVING', 'FEATURESTORE', 'AIRFLOW'];
@@ -75,7 +75,7 @@ angular.module('hopsWorksApp')
               //                self.selectionProjectTypes = ['JOBS', 'KAFKA', 'JUPYTER', 'HIVE', 'SERVING', 'FEATURESTORE', 'AIRFLOW'];
               
               self.projectTypes = ['JOBS', 'KAFKA', 'JUPYTER', 'HIVE', 'SERVING', 'FEATURESTORE', 'AIRFLOW'];
-              self.selectionProjectTypes = ['JOBS', 'KAFKA', 'HIVE', 'AIRFLOW', 'JUPYTER', 'SERVING'];
+              self.selectionProjectTypes = ['JOBS', 'KAFKA', 'HIVE', 'AIRFLOW', 'JUPYTER', 'SERVING', 'FEATURESTORE'];
               
               // v1.0
               // self.projectTypes = ['JOBS', 'KAFKA', 'JUPYTER', 'HIVE', 'SERVING', 'FEATURESTORE', 'AIRFLOW'];
