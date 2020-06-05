@@ -116,6 +116,14 @@ public class CommunicationController {
     this.hostname = hostname;
   }
 
+  public ServiceInstancesController getServiceInstancesController() {
+    return serviceInstancesController;
+  }
+ 
+  public void setServiceInstancesController(ServiceInstancesController serviceInstancesController) {
+    this.serviceInstancesController = serviceInstancesController;
+  }
+
   private Hosts findHostByName(String hostname) throws Exception {
     try {
       return hostEJB.findByHostname(hostname);
