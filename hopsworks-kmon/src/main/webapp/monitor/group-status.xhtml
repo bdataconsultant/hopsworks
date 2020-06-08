@@ -94,7 +94,7 @@
             <p:toolbarGroup align="left">  
 
               <p:commandButton value="Status" icon="ui-icon-home" 
-                               action="#{urlController.serviceStatus}" ajax="false">
+                              action="#{urlController.clusterStatus()}" ajax="false">
                 <f:param name="group" value="#{serviceInstancesController.group}"/>
               </p:commandButton>  
               <p:commandButton styleClass="Selected" value="Instances" icon="ui-icon-note" 
