@@ -137,7 +137,7 @@
           Experiments<img style="margin-right:8px" height="27" src="images/experiments.png"/>
         </a>
       </li> -->
-
+      
       <li ng-click="projectCtrl.goToAirflow()" ng-show="projectCtrl.showAirflow()">
         <a>
           <!-- &nbspAirflow -->
@@ -146,6 +146,20 @@
           <div style="font-size: small" class="ng-binding">Airflow</div>
           <!-- <img ng-show="projectCtrl.activeService === 'airflow'" class="pull-right" style="margin-left:10px; margin-right:10px" height="25"
                src="images/airflow-200x198.png"/> -->
+        </a>
+      </li>
+
+      <li style="cursor: pointer">
+        <a href="https://10.207.237.22:9443/nifi/login">
+          <img src="images/icons/nifi_logo_white.png" style="width: 30px"/>
+          <div style="font-size: 13px" class="ng-binding">NiFi</div>
+        </a>
+      </li>
+      
+      <li style="cursor: pointer">
+        <a href="http://10.207.237.28:21000/login.jsp">
+          <img src="images/icons/atlas_logo_white.png" style="width: 40px"/>
+          <div style="font-size: 13px" class="ng-binding">Data catalog</div>
         </a>
       </li>
 
