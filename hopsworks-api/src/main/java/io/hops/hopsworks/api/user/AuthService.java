@@ -221,7 +221,7 @@ public class AuthService {
         }
       authController.registerLogin(user, req);
     } catch (ServletException e) {
-      LOGGER.log(Level.SEVERE, "SBAM", e);
+      LOGGER.log(Level.SEVERE, "Authentication error", e);
       authController.registerAuthenticationFailure(user, req);
       throw new UserException(RESTCodes.UserErrorCode.AUTHENTICATION_FAILURE, Level.FINE, null, e.getMessage(), e);
     }
