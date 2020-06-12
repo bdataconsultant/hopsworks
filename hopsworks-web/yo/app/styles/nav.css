@@ -320,3 +320,23 @@ md-toolbar {
     right: 8px;
     z-index: 3000;
 }
+
+.pon-footer {
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 10px;
+    text-align: center;
+}
+
+.pon-footer-fixed {
+    position: fixed;
+}
+
+.pon-footer-sticky {
+    position: sticky;
+}
+
+.pon-footer img {
+    width: 500px;
+}

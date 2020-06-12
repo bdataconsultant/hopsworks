@@ -82,10 +82,12 @@ angular.module('hopsWorksApp')
               self.logout();
             }
             // HEADER PLUGIN INIZIALIZATION
-            
+
             const MIN_SEARCH_TERM_LEN = 2;
             var self = this;
 
+            self.showPonFooter = customerConfig.showPonFooter;            
+            
             self.ui = "/giotto-api/airflow/login?q=username=";
 
             self.email = $cookies.get('email');
