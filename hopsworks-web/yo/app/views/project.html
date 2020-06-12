@@ -83,6 +83,7 @@
                                              max-size="projectCtrl.pageSize"
                                              on-page-change="projectCtrl.getActivitiesNextPage()">
                     </dir-pagination-controls>
+                    <div ng-if="mainCtrl.showPonFooter" ng-include="'views/ponFooter.html'"></div>
                   </div>
                 </div>
                 <!-- /#page-content-wrapper -->
@@ -91,5 +92,4 @@
           </section>
         </div>
     </div>
-    <div ng-if="mainCtrl.showPonFooter" ng-include="'ponFooter.html'"></div>
   </div>
