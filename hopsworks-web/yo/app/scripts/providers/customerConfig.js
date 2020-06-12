@@ -2,6 +2,7 @@
   "use strict";
   angular.module("hopsWorksApp").provider("customerConfig", function() {
     var values = {
+      showPonFooter: true,
       header: {
         logoDir: "images/big-data-logo-header.png",
         appContext: "bigdata",
