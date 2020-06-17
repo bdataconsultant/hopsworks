@@ -10,7 +10,8 @@
         appUrlsConfig: {
           bigdata: "/giotto-web",
           iot: "/home",
-          admin: "/oneadmin"
+          admin: "/oneadmin",
+          udm: "/udm-fe"
         }
       }
     };

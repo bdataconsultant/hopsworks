@@ -6,11 +6,12 @@
       header: {
         logoDir: "images/big-data-logo-header.png",
         appContext: "bigdata",
-        appTitle: "CITTÀ METROPOLITANA DI MESSINA",
+        appTitle: "CITTÀ DI MESSINA",
         appUrlsConfig: {
           bigdata: "/giotto-web",
           iot: "/home",
-          admin: "/oneadmin"
+          admin: "/oneadmin",
+          udm: "/udm-fe"
         }
       }
     };
