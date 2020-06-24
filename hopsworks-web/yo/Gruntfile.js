@@ -290,8 +290,7 @@ module.exports = function (grunt) {
       html: ['<%= yeoman.dist %>/{,*/}*.html'],
       css: ['<%= yeoman.dist %>/styles/{,*/}*.css'],
       js: [
-        '<%= yeoman.dist %>/scripts/{,*/}*.js',
-        '<%= yeoman.app %>/customer_assets/<%= yeoman.targetCustomer %>/providers/*.js'
+        '<%= yeoman.dist %>/scripts/{,*/}*.js'
       ],
       options: {
         assetsDirs: [
@@ -478,6 +477,12 @@ module.exports = function (grunt) {
         cwd: '<%= yeoman.app %>/customer_assets/<%= yeoman.targetCustomer %>/providers',
         src: '{,*/}*.js',
         dest: '.tmp/scripts/providers'
+      },
+      customerProviderBuild: {
+        expand: true,
+        cwd: '<%= yeoman.app %>/customer_assets/<%= yeoman.targetCustomer %>/providers',
+        src: '{,*/}*.js',
+        dest: '<%= yeoman.app %>/scripts/providers'
       }
     },
     // Run some tasks in parallel to speed up the build process
@@ -492,6 +497,7 @@ module.exports = function (grunt) {
         'copy:styles'
       ],
       dist: [
+        'copy:customerProviderBuild',
         'copy:styles',
         'copy:customerStyles',
         'imagemin',
