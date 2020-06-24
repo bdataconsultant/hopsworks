@@ -327,6 +327,7 @@ md-toolbar {
     width: 100%;
     padding: 10px;
     text-align: center;
+    background-color: white;
 }
 
 .pon-footer-fixed {
