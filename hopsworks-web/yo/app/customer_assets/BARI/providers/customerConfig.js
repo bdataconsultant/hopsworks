@@ -12,17 +12,17 @@
           iot: "/home",
           admin: "/oneadmin",
           udm: "/udm-fe"
-        },
-      },
+        }
+      }
     };
 
     return {
-      $get: function () {
+      $get: function() {
         return values;
       },
-      set: function (constants) {
+      set: function(constants) {
         angular.extend(values, constants);
-      },
+      }
     };
   });
 })(angular);
