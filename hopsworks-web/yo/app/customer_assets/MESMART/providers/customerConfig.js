@@ -6,7 +6,7 @@
       header: {
         logoDir: "images/big-data-logo-header.png",
         appContext: "bigdata",
-        appTitle: "CITTÀ DI MESSINA",
+        appTitle: "MESSINA",
         appUrlsConfig: {
           bigdata: "/giotto-web",
           iot: "/home",
