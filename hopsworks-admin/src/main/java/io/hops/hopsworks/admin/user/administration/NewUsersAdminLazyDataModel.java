@@ -38,6 +38,6 @@ public class NewUsersAdminLazyDataModel extends UsersLazyDataModel {
     Set<UserFacade.SortBy> sort) {
     UserFacade.FilterBy fby = new FilterBy(UserFacade.Filters.STATUS_LT, UserAccountStatus.ACTIVATED_ACCOUNT.name());
     filter.add(fby);
-    return userFacade.findAll(first, pageSize, filter, sort);
+    return userFacade.findAllButHops(first, pageSize, filter, sort);
   }
 }
