@@ -34,6 +34,7 @@ nbactions.xml
 
 ### Intellj ###
 hopsworks-web/overlays/
+.idea/
 
 ### Java ###
 *.class
@@ -69,6 +70,7 @@ dist/
 # Logs
 logs
 *.log
+node
 
 # Runtime data
 pids
