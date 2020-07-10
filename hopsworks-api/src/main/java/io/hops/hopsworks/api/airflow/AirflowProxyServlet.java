@@ -305,6 +305,7 @@ public class AirflowProxyServlet extends ProxyServlet {
 
 
       String curUrl = servletRequest.getRequestURL().toString();//no query
+      LOGGER.info("REQUEST_URL " + curUrl);
      // curUrl=getOriginalCurl(curUrl);
 
       String pathInfo = servletRequest.getPathInfo();
