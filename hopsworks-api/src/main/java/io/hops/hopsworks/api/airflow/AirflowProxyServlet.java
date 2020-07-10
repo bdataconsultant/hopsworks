@@ -273,9 +273,11 @@ public class AirflowProxyServlet extends ProxyServlet {
             + " but no " + HttpHeaders.LOCATION
             + " header was found in the response");
       }
+      LOGGER.info("LOCATION HEADER: " + locationHeader.getValue());
       // Modify the redirect to go to this proxy servlet rather that the proxied host
       String locStr = rewriteUrlFromResponse(servletRequest, locationHeader.
           getValue());
+      LOGGER.info("NEW LOCATION:" + locStr);
       copyResponseHeaders(proxyResponse, servletRequest, servletResponse);
       servletResponse.sendRedirect(locStr);
       return true;
@@ -320,6 +322,7 @@ public class AirflowProxyServlet extends ProxyServlet {
       curl = curl.replaceAll("http:","https:");
     }
     String forward_host = servletRequest.getHeader(FORWARD_HOST_HEADER_NAME);
+    LOGGER.info("FORWARD_HOST:" + forward_host);
 
     if(this.doReplaceTargetHost && (forward_host != null && !curl.contains(forward_host) ) && this.rewriteHostToReplace!=null && this.rewriteTargetHost!=null){
       curl = curl.replaceAll(this.rewriteHostToReplace,this.rewriteTargetHost);
