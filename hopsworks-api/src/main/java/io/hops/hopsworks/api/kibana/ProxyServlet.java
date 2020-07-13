@@ -324,10 +324,10 @@ public class ProxyServlet extends HttpServlet {
             + " -- " + proxyRequest.getRequestLine().getUri());
       }
       HttpHost httpHost = getTargetHost(servletRequest);
-      LOGGER.info("SERVLET REQUEST" + servletRequest);
-      LOGGER.info("BEFORE PROXY CALL" + proxyRequest.getRequestLine().getUri());
+      LOGGER.info("SERVLET REQUEST " + servletRequest.getRequestURL().toString());
+      LOGGER.info("BEFORE PROXY CALL " + proxyRequest.getRequestLine().getUri());
       proxyResponse = proxyClient.execute(httpHost, proxyRequest);
-      LOGGER.info("AFTER PROXY CALL" + proxyResponse.getStatusLine().getStatusCode());
+      LOGGER.info("AFTER PROXY CALL " + proxyResponse.getStatusLine().getStatusCode());
 
       // Process the response
       int statusCode = proxyResponse.getStatusLine().getStatusCode();
