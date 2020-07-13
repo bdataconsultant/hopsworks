@@ -268,6 +268,7 @@ public class AirflowProxyServlet extends ProxyServlet {
          * 304
          */) {
       Header locationHeader = proxyResponse.getLastHeader(HttpHeaders.LOCATION);
+      LOGGER.info("LOCATION HEADER: " + locationHeader.getValue());
       if (locationHeader == null) {
         throw new ServletException("Received status code: " + statusCode
             + " but no " + HttpHeaders.LOCATION
@@ -298,19 +299,24 @@ public class AirflowProxyServlet extends ProxyServlet {
   protected String rewriteUrlFromResponse(HttpServletRequest servletRequest,
                                           String theUrl) {
     //TODO document example paths
+    LOGGER.info("theUrl:" + theUrl);
     final String targetUri = getTargetUri(servletRequest);
+    LOGGER.info("targetUri:" + targetUri);
     if (theUrl.startsWith(targetUri)) {
 
 
       String curUrl = servletRequest.getRequestURL().toString();//no query
+      LOGGER.info("curUrl:" + curUrl);
      // curUrl=getOriginalCurl(curUrl);
 
       String pathInfo = servletRequest.getPathInfo();
       if (pathInfo != null) {
         assert curUrl.endsWith(pathInfo);
         curUrl = curUrl.substring(0, curUrl.length() - pathInfo.length());//take pathInfo off
+        LOGGER.info("new_curUrl:" + curUrl);
       }
       theUrl = curUrl + theUrl.substring(targetUri.length());
+      LOGGER.info("new_theUrl:" + theUrl);
     }
     return getOriginalCurl(servletRequest, theUrl);
   }
@@ -324,7 +330,7 @@ public class AirflowProxyServlet extends ProxyServlet {
     if(this.doReplaceTargetHost && (forward_host != null && !curl.contains(forward_host) ) && this.rewriteHostToReplace!=null && this.rewriteTargetHost!=null){
       curl = curl.replaceAll(this.rewriteHostToReplace,this.rewriteTargetHost);
     }
-
+    LOGGER.info("originalCurl:" + curl);
     return curl;
   }
   
