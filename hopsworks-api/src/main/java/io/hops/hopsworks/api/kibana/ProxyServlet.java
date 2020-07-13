@@ -619,10 +619,12 @@ public class ProxyServlet extends HttpServlet {
     StringBuilder uri = new StringBuilder(500);
     String targetUri = getTargetUri(servletRequest);
     uri.append(targetUri);
+    LOGGER.info("TARGET_URI:" + uri.toString());
     // Handle the path given to the servlet
     if (servletRequest.getPathInfo() != null) {//ex: /my/path.html
       uri.append(encodeUriQuery(servletRequest.getPathInfo()));
     }
+    LOGGER.info("TARGET_URI_WITH_PATH:" + uri.toString());
     // Handle the query string & fragment
     //ex:(following '?'): name=value&foo=bar#fragment
     String queryString = servletRequest.getQueryString();
@@ -662,16 +664,21 @@ public class ProxyServlet extends HttpServlet {
    */
   protected String rewriteUrlFromResponse(HttpServletRequest servletRequest,
       String theUrl) {
+    LOGGER.info("theUrl:" + theUrl);
     //TODO document example paths
     final String targetUri = getTargetUri(servletRequest);
+    LOGGER.info("targetUri:" + targetUri);
     if (theUrl.startsWith(targetUri)) {
       String curUrl = servletRequest.getRequestURL().toString();//no query
+      LOGGER.info("curUrl:" + curUrl);
       String pathInfo = servletRequest.getPathInfo();
       if (pathInfo != null) {
         assert curUrl.endsWith(pathInfo);
         curUrl = curUrl.substring(0, curUrl.length() - pathInfo.length());//take pathInfo off
+        LOGGER.info("new_curUrl:" + curUrl);
       }
       theUrl = curUrl + theUrl.substring(targetUri.length());
+      LOGGER.info("new_theUrl:" + theUrl);
     }
     return theUrl;
   }
