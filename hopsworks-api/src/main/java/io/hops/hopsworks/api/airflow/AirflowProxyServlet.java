@@ -278,7 +278,9 @@ public class AirflowProxyServlet extends ProxyServlet {
       String locStr = rewriteUrlFromResponse(servletRequest, locationHeader.
           getValue());
       copyResponseHeaders(proxyResponse, servletRequest, servletResponse);
+      LOGGER.info("BEFORE SEND_EDIRECT");
       servletResponse.sendRedirect(locStr);
+      LOGGER.info("AFTER SEND_REDIRECT");
       return true;
     }
     // 304 needs special handling.  See:
