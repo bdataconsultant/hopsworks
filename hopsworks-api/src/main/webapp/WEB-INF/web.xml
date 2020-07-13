@@ -228,7 +228,7 @@
       <param-value>true</param-value>
     </init-param><init-param>
       <param-name>targetHostRewrite</param-name>
-      <param-value>10.206.195.38:8181;10.207.235.121</param-value>
+      <param-value>10.206.195.38:8181;tb-ingress.thingsboard.10.206.195.41.xip.io</param-value>
     </init-param>
 
     <init-param>
