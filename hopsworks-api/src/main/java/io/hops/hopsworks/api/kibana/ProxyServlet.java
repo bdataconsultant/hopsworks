@@ -324,9 +324,10 @@ public class ProxyServlet extends HttpServlet {
             + " -- " + proxyRequest.getRequestLine().getUri());
       }
       HttpHost httpHost = getTargetHost(servletRequest);
+      LOGGER.info("SERVLET REQUEST" + servletRequest);
       LOGGER.info("BEFORE PROXY CALL" + proxyRequest.getRequestLine().getUri());
       proxyResponse = proxyClient.execute(httpHost, proxyRequest);
-      LOGGER.info("AFTER PROXY CALL" + proxyRequest.getRequestLine().getUri());
+      LOGGER.info("AFTER PROXY CALL" + proxyResponse.getStatusLine().getStatusCode());
 
       // Process the response
       int statusCode = proxyResponse.getStatusLine().getStatusCode();
@@ -392,6 +393,7 @@ public class ProxyServlet extends HttpServlet {
          * 304
          */) {
       Header locationHeader = proxyResponse.getLastHeader(HttpHeaders.LOCATION);
+      LOGGER.info("LOCATION HEADER: " + locationHeader.getValue());
       if (locationHeader == null) {
         throw new ServletException("Received status code: " + statusCode
             + " but no " + HttpHeaders.LOCATION
