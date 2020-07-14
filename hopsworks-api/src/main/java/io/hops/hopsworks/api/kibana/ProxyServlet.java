@@ -282,101 +282,107 @@ public class ProxyServlet extends HttpServlet {
   protected void service(HttpServletRequest servletRequest,
       HttpServletResponse servletResponse)
       throws ServletException, IOException {
-    //initialize request attributes from caches if unset by a subclass by this point
-    if (servletRequest.getAttribute(ATTR_TARGET_URI) == null) {
-      servletRequest.setAttribute(ATTR_TARGET_URI, targetUri);
-    }
-    if (servletRequest.getAttribute(ATTR_TARGET_HOST) == null) {
-      servletRequest.setAttribute(ATTR_TARGET_HOST, targetHost);
-    }
-
-    // Make the Request
-    // note: we won't transfer the protocol version because I'm not 
-    // sure it would truly be compatible
-    String method = servletRequest.getMethod();
-    String proxyRequestUri = rewriteUrlFromRequest(servletRequest);
-    HttpRequest proxyRequest;
-    //spec: RFC 2616, sec 4.3: either of these two headers signal that there is
-    //a message body.
-    if (servletRequest.getHeader(HttpHeaders.CONTENT_LENGTH) != null
-        || servletRequest.getHeader(HttpHeaders.TRANSFER_ENCODING) != null) {
-      HttpEntityEnclosingRequest eProxyRequest
-          = new BasicHttpEntityEnclosingRequest(method, proxyRequestUri);
-      // Add the input entity (streamed)
-      // note: we don't bother ensuring we close the servletInputStream since 
-      // the container handles it
-      eProxyRequest.setEntity(new InputStreamEntity(servletRequest.
-          getInputStream(), servletRequest.getContentLength()));
-      proxyRequest = eProxyRequest;
-    } else {
-      proxyRequest = new BasicHttpRequest(method, proxyRequestUri);
-    }
-
-    copyRequestHeaders(servletRequest, proxyRequest);
-
-    setXForwardedForHeader(servletRequest, proxyRequest);
-
-    HttpResponse proxyResponse = null;
     try {
-      // Execute the request
-      if (doLog) {
-        log("proxy " + method + " uri: " + servletRequest.getRequestURI()
-            + " -- " + proxyRequest.getRequestLine().getUri());
+      //initialize request attributes from caches if unset by a subclass by this point
+      if (servletRequest.getAttribute(ATTR_TARGET_URI) == null) {
+        servletRequest.setAttribute(ATTR_TARGET_URI, targetUri);
       }
-      HttpHost httpHost = getTargetHost(servletRequest);
-      LOGGER.info("SERVLET REQUEST " + servletRequest.getRequestURL().toString());
-      LOGGER.info("BEFORE PROXY CALL " + proxyRequest.getRequestLine().getUri());
-      proxyResponse = proxyClient.execute(httpHost, proxyRequest);
-      LOGGER.info("AFTER PROXY CALL " + proxyResponse.getStatusLine().getStatusCode());
-
-      // Process the response
-      int statusCode = proxyResponse.getStatusLine().getStatusCode();
-
-      if (doResponseRedirectOrNotModifiedLogic(servletRequest, servletResponse,
-          proxyResponse, statusCode)) {
-        //the response is already "committed" now without any body to send
-        //TODO copy response headers?
-        return;
+      if (servletRequest.getAttribute(ATTR_TARGET_HOST) == null) {
+        servletRequest.setAttribute(ATTR_TARGET_HOST, targetHost);
       }
 
-      // Pass the response code. This method with the "reason phrase" is 
-      //deprecated but it's the only way to pass the reason along too.
-      //noinspection deprecation
-      servletResponse.setStatus(statusCode, proxyResponse.getStatusLine().
-          getReasonPhrase());
+      // Make the Request
+      // note: we won't transfer the protocol version because I'm not
+      // sure it would truly be compatible
+      String method = servletRequest.getMethod();
+      String proxyRequestUri = rewriteUrlFromRequest(servletRequest);
+      HttpRequest proxyRequest;
+      //spec: RFC 2616, sec 4.3: either of these two headers signal that there is
+      //a message body.
+      if (servletRequest.getHeader(HttpHeaders.CONTENT_LENGTH) != null
+              || servletRequest.getHeader(HttpHeaders.TRANSFER_ENCODING) != null) {
+        HttpEntityEnclosingRequest eProxyRequest
+                = new BasicHttpEntityEnclosingRequest(method, proxyRequestUri);
+        // Add the input entity (streamed)
+        // note: we don't bother ensuring we close the servletInputStream since
+        // the container handles it
+        eProxyRequest.setEntity(new InputStreamEntity(servletRequest.
+                getInputStream(), servletRequest.getContentLength()));
+        proxyRequest = eProxyRequest;
+      } else {
+        proxyRequest = new BasicHttpRequest(method, proxyRequestUri);
+      }
 
-      copyResponseHeaders(proxyResponse, servletRequest, servletResponse);
+      copyRequestHeaders(servletRequest, proxyRequest);
 
-      // Send the content to the client
-      copyResponseEntity(proxyResponse, servletResponse);
+      setXForwardedForHeader(servletRequest, proxyRequest);
 
+      HttpResponse proxyResponse = null;
+      try {
+        // Execute the request
+        if (doLog) {
+          log("proxy " + method + " uri: " + servletRequest.getRequestURI()
+                  + " -- " + proxyRequest.getRequestLine().getUri());
+        }
+        HttpHost httpHost = getTargetHost(servletRequest);
+        LOGGER.info("SERVLET REQUEST " + servletRequest.getRequestURL().toString());
+        LOGGER.info("BEFORE PROXY CALL " + proxyRequest.getRequestLine().getUri());
+        proxyResponse = proxyClient.execute(httpHost, proxyRequest);
+        LOGGER.info("AFTER PROXY CALL " + proxyResponse.getStatusLine().getStatusCode());
+
+        // Process the response
+        int statusCode = proxyResponse.getStatusLine().getStatusCode();
+
+        if (doResponseRedirectOrNotModifiedLogic(servletRequest, servletResponse,
+                proxyResponse, statusCode)) {
+          //the response is already "committed" now without any body to send
+          //TODO copy response headers?
+          return;
+        }
+
+        // Pass the response code. This method with the "reason phrase" is
+        //deprecated but it's the only way to pass the reason along too.
+        //noinspection deprecation
+        servletResponse.setStatus(statusCode, proxyResponse.getStatusLine().
+                getReasonPhrase());
+
+        copyResponseHeaders(proxyResponse, servletRequest, servletResponse);
+
+        // Send the content to the client
+        copyResponseEntity(proxyResponse, servletResponse);
+
+      } catch (Exception e) {
+        //abort request, according to best practice with HttpClient
+        if (proxyRequest instanceof AbortableHttpRequest) {
+          AbortableHttpRequest abortableHttpRequest
+                  = (AbortableHttpRequest) proxyRequest;
+          abortableHttpRequest.abort();
+        }
+        if (e instanceof RuntimeException) {
+          throw (RuntimeException) e;
+        }
+        if (e instanceof ServletException) {
+          throw (ServletException) e;
+        }
+        //noinspection ConstantConditions
+        if (e instanceof IOException) {
+          throw (IOException) e;
+        }
+        throw new RuntimeException(e);
+
+      } finally {
+        // make sure the entire entity was consumed, so the connection is released
+        if (proxyResponse != null) {
+          consumeQuietly(proxyResponse.getEntity());
+        }
+        //Note: Don't need to close servlet outputStream:
+        // http://stackoverflow.com/questions/1159168/should-one-call-close-on
+        //-httpservletresponse-getoutputstream-getwriter
+
+      }
     } catch (Exception e) {
-      //abort request, according to best practice with HttpClient
-      if (proxyRequest instanceof AbortableHttpRequest) {
-        AbortableHttpRequest abortableHttpRequest
-            = (AbortableHttpRequest) proxyRequest;
-        abortableHttpRequest.abort();
-      }
-      if (e instanceof RuntimeException) {
-        throw (RuntimeException) e;
-      }
-      if (e instanceof ServletException) {
-        throw (ServletException) e;
-      }
-      //noinspection ConstantConditions
-      if (e instanceof IOException) {
-        throw (IOException) e;
-      }
-      throw new RuntimeException(e);
-
-    } finally {
-      // make sure the entire entity was consumed, so the connection is released
-      if (proxyResponse != null) {
-        consumeQuietly(proxyResponse.getEntity());
-      }
-      //Note: Don't need to close servlet outputStream:
-      // http://stackoverflow.com/questions/1159168/should-one-call-close-on
-      //-httpservletresponse-getoutputstream-getwriter
+      LOGGER.log(Level.SEVERE, "SBATRAM! \n", e);
+      throw e;
     }
   }
 
