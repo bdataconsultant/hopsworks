@@ -221,17 +221,6 @@
     <servlet-class>io.hops.hopsworks.api.airflow.AirflowProxyServlet</servlet-class>
 
     <init-param>
-      <param-name>replaceHttpProtocol</param-name>
-      <param-value>true</param-value>
-    </init-param><init-param>
-      <param-name>replaceTargetHost</param-name>
-      <param-value>true</param-value>
-    </init-param><init-param>
-      <param-name>targetHostRewrite</param-name>
-      <param-value>10.206.195.38:8181;tb-ingress.thingsboard.10.206.195.41.xip.io</param-value>
-    </init-param>
-
-    <init-param>
       <param-name>targetUri</param-name>
       <param-value>http://localhost:12358/giotto-api/airflow</param-value>
     </init-param>
