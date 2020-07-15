@@ -53,7 +53,7 @@ public class AirflowProxyServlet extends ProxyServlet {
   //Custom config proxy rewrite
   private static final String REPLACE_HTTP_PROTOCOL = "replaceHttpProtocol";
   private static final String REPLACE_TARGET_HOST = "replaceTargetHost";
-  private static final String REWRITE_TARGET_HOST = "targetHostRewrite";
+  private static final String REWRITE_TARGET_HOST = "airflow.target.host.rewrite";
   private static final String REWRITE_HOST_SEPARATOR = ";";
   private static final String FORWARD_HOST_HEADER_NAME = "x-forwarded-host";
 
@@ -103,7 +103,7 @@ public class AirflowProxyServlet extends ProxyServlet {
     }
 
     if(doReplaceTargetHost){
-      String rewriteString = getConfigParam(REWRITE_TARGET_HOST);
+      String rewriteString = System.getProperty(REWRITE_TARGET_HOST);
       if (rewriteString != null && rewriteString.contains(REWRITE_HOST_SEPARATOR)) {
         String[] hosts = rewriteString.split(REWRITE_HOST_SEPARATOR);
         this.rewriteHostToReplace=hosts[0];
