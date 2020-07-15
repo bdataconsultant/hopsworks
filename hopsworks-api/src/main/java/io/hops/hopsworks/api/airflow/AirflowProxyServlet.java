@@ -51,9 +51,9 @@ public class AirflowProxyServlet extends ProxyServlet {
   private static final Pattern TRIGGER_DAG_PATTERN = Pattern.compile(".+/trigger/?$");
 
   //Custom config proxy rewrite
-  private static final String REPLACE_HTTP_PROTOCOL = "replaceHttpProtocol";
-  private static final String REPLACE_TARGET_HOST = "replaceTargetHost";
-  private static final String REWRITE_TARGET_HOST = "airflow.target.host.rewrite";
+  private static final String REPLACE_HTTP_PROTOCOL = "airflow.replaceHttpProtocol";
+  private static final String REPLACE_TARGET_HOST = "airflow.replaceTargetHost";
+  private static final String REWRITE_TARGET_HOST = "airflow.targetHostRewrite";
   private static final String REWRITE_HOST_SEPARATOR = ";";
   private static final String FORWARD_HOST_HEADER_NAME = "x-forwarded-host";
 
@@ -92,12 +92,12 @@ public class AirflowProxyServlet extends ProxyServlet {
   protected void initTarget() throws ServletException {
     super.initTarget();
 
-    String doReplacaProtocol = getConfigParam(REPLACE_HTTP_PROTOCOL);
-    if (doReplacaProtocol != null) {
-      this.doReplaceHttpProtocol = Boolean.parseBoolean(doReplacaProtocol);
+    String doReplaceProtocol = System.getProperty(REPLACE_HTTP_PROTOCOL);
+    if (doReplaceProtocol != null) {
+      this.doReplaceHttpProtocol = Boolean.parseBoolean(doReplaceProtocol);
     }
 
-    String doRewriteUrl = getConfigParam(REPLACE_TARGET_HOST);
+    String doRewriteUrl = System.getProperty(REPLACE_TARGET_HOST);
     if (doRewriteUrl != null) {
       this.doReplaceTargetHost = Boolean.parseBoolean(doRewriteUrl);
     }
