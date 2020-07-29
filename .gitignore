@@ -122,7 +122,7 @@ src/main/setup/glassfish-resources.xml
 /hopsworks-web/yo/nbproject/
 /hopsworks-cluster/src/main/webapp/node_modules/
 /hopsworks-cluster/src/main/webapp/vendor/
-/hopsworks-web/yo/node
+/hopsworks-web/yo/node/
 
 .project
 .classpath
