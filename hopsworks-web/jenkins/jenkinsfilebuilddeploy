@@ -24,7 +24,7 @@ pipeline {
                     withMaven(
                         maven: 'maven_3.5.4',
                         mavenSettingsConfig: 'jfrog.almaviva.it_generic') {
-                        sh 'mvn clean install -DdeployWeb -DskipTests -Dhttps.protocols=TLSv1,TLSv1.1,TLSv1.2 -Dglassfish.hostname=10.206.195.38 -Dglassfish.admin=${GLASSFISH_ADMIN} -Dglassfish.passwd=Almaviva19 -Dglassfish.port=${GLASSFISH_PORT} -Dglassfish.admin_port=${GLASSFISH_ADMIN_PORT} -Dglassfish.domain=${GLASSFISH_DOMAIN}'
+                        sh 'mvn clean install -DdeployWeb=${DEPLOY} -DtargetCustomer=${CUSTOMER} -DskipTests -Dhttps.protocols=TLSv1,TLSv1.1,TLSv1.2 -Dglassfish.hostname=10.206.195.38 -Dglassfish.admin=${GLASSFISH_ADMIN} -Dglassfish.passwd=Almaviva19 -Dglassfish.port=${GLASSFISH_PORT} -Dglassfish.admin_port=${GLASSFISH_ADMIN_PORT} -Dglassfish.domain=${GLASSFISH_DOMAIN}'
                     }
                 }
             }
@@ -41,7 +41,7 @@ pipeline {
                     withMaven(
                         maven: 'maven_3.5.4',
                         mavenSettingsConfig: 'jfrog.almaviva.it_generic') {
-                        sh 'mvn clean install -DdeployWeb -DskipTests -Dhttps.protocols=TLSv1,TLSv1.1,TLSv1.2 -Dglassfish.hostname=10.206.195.44 -Dglassfish.admin=${GLASSFISH_ADMIN} -Dglassfish.passwd=adminpw -Dglassfish.port=${GLASSFISH_PORT} -Dglassfish.admin_port=${GLASSFISH_ADMIN_PORT} -Dglassfish.domain=${GLASSFISH_DOMAIN}'
+                        sh 'mvn clean install -DdeployWeb=${DEPLOY} -DtargetCustomer=${CUSTOMER} -DskipTests -Dhttps.protocols=TLSv1,TLSv1.1,TLSv1.2 -Dglassfish.hostname=10.206.195.44 -Dglassfish.admin=${GLASSFISH_ADMIN} -Dglassfish.passwd=adminpw -Dglassfish.port=${GLASSFISH_PORT} -Dglassfish.admin_port=${GLASSFISH_ADMIN_PORT} -Dglassfish.domain=${GLASSFISH_DOMAIN}'
                     }
                 }
             }
