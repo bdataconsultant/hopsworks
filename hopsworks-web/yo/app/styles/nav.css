@@ -331,7 +331,7 @@ md-toolbar {
 }
 
 .pon-footer-fixed {
-    position: fixed;
+    position: sticky;
 }
 
 .pon-footer-sticky {
