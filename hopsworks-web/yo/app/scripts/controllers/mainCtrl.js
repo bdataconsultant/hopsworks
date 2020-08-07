@@ -86,13 +86,22 @@ angular.module('hopsWorksApp')
             const MIN_SEARCH_TERM_LEN = 2;
             var self = this;
 
-            self.showPonFooter = customerConfig.showPonFooter;            
+            self.showPonFooter = customerConfig.showPonFooter;
             
             self.ui = "/giotto-api/airflow/login?q=username=";
 
             self.email = $cookies.get('email');
             self.emailHash = md5.createHash(self.email || '');
             var elasticService = ElasticService();
+
+            self.navProjectName = "";
+            if(!!$routeParams.projectID) {
+              ProjectService.get({id: $routeParams.projectID}).$promise.then(
+                function (response) {
+                  self.navProjectName = response.projectName;
+                }
+              );
+            }
 
             if (!angular.isUndefined($routeParams.datasetName)) {
               self.searchType = "datasetCentric";

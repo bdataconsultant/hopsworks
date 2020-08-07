@@ -314,6 +314,11 @@ md-toolbar {
     color: white;
 } */
 
+.navbar-project-name {
+    color: white;
+    font-size: 32px;
+}
+
 .sidebar-warning-icon {
     position: absolute;
     top: 8px;
