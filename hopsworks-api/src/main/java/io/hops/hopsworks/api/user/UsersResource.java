@@ -40,6 +40,7 @@ package io.hops.hopsworks.api.user;
 
 import io.hops.hopsworks.api.activities.UserActivitiesResource;
 import io.hops.hopsworks.api.filter.Audience;
+import io.hops.hopsworks.api.filter.NoCacheResponse;
 import io.hops.hopsworks.api.jwt.JWTHelper;
 import io.hops.hopsworks.api.user.apiKey.ApiKeyResource;
 import io.hops.hopsworks.api.util.RESTApiJsonResponse;
@@ -49,10 +50,10 @@ import io.hops.hopsworks.common.constants.message.ResponseMessages;
 import io.hops.hopsworks.common.dao.project.Project;
 import io.hops.hopsworks.common.dao.project.team.ProjectTeam;
 import io.hops.hopsworks.common.dao.project.team.ProjectTeamFacade;
-import io.hops.hopsworks.common.dao.user.BbcGroup;
-import io.hops.hopsworks.common.dao.user.BbcGroupFacade;
-import io.hops.hopsworks.common.dao.user.UserProjectDTO;
-import io.hops.hopsworks.common.dao.user.Users;
+import io.hops.hopsworks.common.dao.user.*;
+import io.hops.hopsworks.common.dao.user.security.audit.AccountAuditFacade;
+import io.hops.hopsworks.common.dao.user.security.audit.AccountsAuditActions;
+import io.hops.hopsworks.common.dao.user.security.audit.RolesAuditAction;
 import io.hops.hopsworks.common.dao.user.security.secrets.SecretPlaintext;
 import io.hops.hopsworks.common.project.ProjectController;
 import io.hops.hopsworks.common.security.secrets.SecretsController;
@@ -79,19 +80,15 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
+import javax.ws.rs.core.*;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.ws.rs.core.SecurityContext;
 import javax.inject.Inject;
 import javax.ws.rs.BeanParam;
 import javax.ws.rs.PathParam;
-import javax.ws.rs.core.UriInfo;
 
 @Path("/users")
 @Stateless
@@ -124,6 +121,14 @@ public class UsersResource {
   private SecretsController secretsController;
   @EJB
   private SecretsBuilder secretsBuilder;
+
+  // this attributes were added for updateUserByEmail
+  @EJB
+  private UserFacade userFacade;
+  @EJB
+  private NoCacheResponse noCacheResponse;
+  @EJB
+  private AccountAuditFacade auditManager;
 
   @GET
   @Produces(MediaType.APPLICATION_JSON)
@@ -368,4 +373,32 @@ public class UsersResource {
     return this.apiKeyResource;
   }
 
+  @POST
+  @Path("/updateUser/{email}")
+  @Produces(MediaType.APPLICATION_JSON)
+  public Response updateUserByEmail(@Context HttpServletRequest req, @Context SecurityContext sc,
+                                    @PathParam("email") String email, Users user) throws UserException {
+    Users u = userFacade.findByEmail(email);
+    if (u != null) {
+      if (user.getStatus() != null) {
+        u.setStatus(user.getStatus());
+        u = userFacade.update(u);
+        Users initiator = jWTHelper.getUserPrincipal(sc);
+        auditManager.registerRoleChange(initiator, AccountsAuditActions.CHANGEDSTATUS.name(),
+                AccountsAuditActions.SUCCESS.name(), u.getStatusName(), u, req);
+      }
+      if (user.getFname() != null) {
+        u.setFname(user.getFname());
+      }
+      if (user.getLname() != null) {
+        u.setLname(user.getLname());
+      }
+      u = userFacade.update(u);
+    } else {
+      throw new UserException(RESTCodes.UserErrorCode.USER_WAS_NOT_FOUND, Level.FINE);
+    }
+    GenericEntity<Users> result = new GenericEntity<Users>(u) {
+    };
+    return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).entity(result).build();
+  }
 }
