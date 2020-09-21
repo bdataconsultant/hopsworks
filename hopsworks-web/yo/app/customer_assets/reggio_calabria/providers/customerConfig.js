@@ -11,6 +11,7 @@
           bigdata: '/giotto-web/',
           iot: '/home/',
           admin: '/oneadmin/',
+          udm: "/udm-fe/",
           mlai: '/serving-ai/'
         }
       }
