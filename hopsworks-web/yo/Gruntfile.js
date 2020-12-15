@@ -464,6 +464,12 @@ module.exports = function (grunt) {
         dest: '.tmp/styles/',
         src: '{,*/}*.css'
       },
+      customerStyles: {
+        expand: true,
+        cwd: '<%= yeoman.app %>/customer_assets/<%= yeoman.targetCustomer %>/styles',
+        src: '{,*/}*.css',
+        dest: '.tmp/styles'
+      },
       customerImages: {
         expand: true,
         cwd: '<%= yeoman.app %>/customer_assets/<%= yeoman.targetCustomer %>/images',
