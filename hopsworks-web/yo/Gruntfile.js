@@ -469,19 +469,35 @@ module.exports = function (grunt) {
         cwd: '<%= yeoman.app %>/customer_assets/<%= yeoman.targetCustomer %>/images',
         src: '{,*/}*.{png,jpg,jpeg,gif}',
         dest: '.tmp/images'
+      },
+      customerProvider: {
+        expand: true,
+        cwd: '<%= yeoman.app %>/customer_assets/<%= yeoman.targetCustomer %>/providers',
+        src: '{,*/}*.js',
+        dest: '.tmp/scripts/providers'
+      },
+      customerProviderBuild: {
+        expand: true,
+        cwd: '<%= yeoman.app %>/customer_assets/<%= yeoman.targetCustomer %>/providers',
+        src: '{,*/}*.js',
+        dest: '<%= yeoman.app %>/scripts/providers'
       }
     },
     // Run some tasks in parallel to speed up the build process
     concurrent: {
       server: [
+        'copy:customerProvider',
         'copy:styles',
+        'copy:customerStyles',
         'copy:customerImages'
       ],
       test: [
         'copy:styles'
       ],
       dist: [
+        'copy:customerProviderBuild',
         'copy:styles',
+        'copy:customerStyles',
         'imagemin',
         'svgmin'
       ]

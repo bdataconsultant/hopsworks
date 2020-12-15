@@ -47,15 +47,16 @@ angular.module('hopsWorksApp')
           '$http', 'AuthService', 'UtilsService', 'ElasticService', 'DelaProjectService',
           'DelaService', 'md5', 'ModalService', 'ProjectService', 'growl',
           'MessageService', '$routeParams', '$window', 'HopssiteService', 'BannerService',
-          'AirflowService',
+        'AirflowService', 'customerConfig',
           function ($interval, $cookies, $location, $scope, $rootScope, $http, AuthService, UtilsService,
                   ElasticService, DelaProjectService, DelaService, md5, ModalService, 
                   ProjectService, growl,
                   MessageService, $routeParams, $window, HopssiteService, BannerService,
-                  AirflowService) {
+                  AirflowService, customerConfig) {
             const MIN_SEARCH_TERM_LEN = 2;
             var self = this;
 
+            self.showPonFooter = customerConfig.showPonFooter;
 
             self.ui = "/giotto-api/airflow/login?q=username=";
 

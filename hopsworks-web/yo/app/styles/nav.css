@@ -314,3 +314,23 @@ md-toolbar {
     color: white;
 } */
 
+.pon-footer {
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 10px;
+    text-align: center;
+    background-color: white;
+}
+
+.pon-footer-fixed {
+    position: sticky;
+}
+
+.pon-footer-sticky {
+    position: sticky;
+}
+
+.pon-footer img {
+    width: 500px;
+}

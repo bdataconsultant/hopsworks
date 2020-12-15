@@ -40,10 +40,12 @@
 'use strict';
 
 angular.module('hopsWorksApp')
-        .controller('LoginCtrl', ['$location', '$cookies', '$http', '$rootScope', 'growl', 'TourService', 'AuthService', 'BannerService', 'md5', 'ModalService', 'VariablesService',
-          function ($location, $cookies, $http, $rootScope, growl, TourService, AuthService, BannerService, md5, ModalService, VariablesService) {
+        .controller('LoginCtrl', ['$location', '$cookies', '$http', '$rootScope', 'growl', 'TourService', 'AuthService', 'BannerService', 'md5', 'ModalService', 'VariablesService',  'customerConfig',
+          function ($location, $cookies, $http, $rootScope, growl, TourService, AuthService, BannerService, md5, ModalService, VariablesService, customerConfig) {
 
             var self = this;
+
+            self.showPonFooter = customerConfig.showPonFooter;
 
             self.announcement = "";
             self.secondFactorRequired = false;
