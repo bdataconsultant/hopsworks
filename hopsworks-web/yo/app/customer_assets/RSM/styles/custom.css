@@ -1,8 +1,10 @@
 /*
 palette
 main: #8b2d40
+green: #009b48
 border: #742130
 hover: #429450
+btn-primary: #337ab7
 */
 
 /*cards.css*/
@@ -217,7 +219,7 @@ nav.navbar-sics span.badge.new {
   -moz-transition:  width .2s ease-in;
   -ms-transition:  width .2s ease-in;
   transition: width .2s ease-in; */
-  background: #429450;
+  background: #009b48;
 }
 
 .sidebar-nav li:nth-child(2) a:active,
@@ -326,9 +328,15 @@ nav.navbar-sics span.badge.new {
   color: #8b2d40;
 }
 
+.btn-success {
+  color: #fff;
+  background-color: #009b48;
+  border-color: #009b48;
+}
+
 #gettingStaredSection .btn-default {
   color: #ffffff;
-  background-color: #4cae4c;
+  background-color: #009b48;
   border-color: #8b2d40;
 }
 
@@ -347,9 +355,11 @@ fieldset[disabled] .btn-default:active,
 #gettingStaredSection .btn-default.disabled.active,
 #gettingStaredSection .btn-default[disabled].active,
 fieldset[disabled] .btn-default.active {
-  background-color: #4cae4c;
+  background-color: #009b48;
   border-color: #8b2d40;
 }
+
+
 
 #tourColumn .btn-danger {
   color: #ffffff;
@@ -366,7 +376,7 @@ fieldset[disabled] .btn-default.active {
 
 /*other*/
 .btn-primary {
-  background-color: #8b2d40;
+  background-color: #337ab7;
 }
 
 a {
@@ -421,4 +431,8 @@ path {
 
 .pagination > .active > a:focus {
   background-color: #8b2d40 !important;
+}
+
+.pon-footer img {
+  width: 200px;
 }
