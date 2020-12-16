@@ -381,7 +381,13 @@ fieldset[disabled] .btn-default.active {
   border: 1px solid #ccc;
 }
 
-.btn-primary:hover button:active {
+.btn-primary:hover {
+  background-color: #ffc640 !important;
+  color: #3e3e3e;
+  border: 1px solid #ccc;
+}
+
+btn-primary:active {
   background-color: #ffc640 !important;
   color: #3e3e3e;
   border: 1px solid #ccc;
@@ -405,7 +411,13 @@ path {
   border: 1px solid #ccc;
 }
 
-.login-container button:hover button:active {
+.login-container button:hover {
+  background-color: #ffc640 !important;
+  color: #3e3e3e;
+  border: 1px solid #ccc;
+}
+
+.login-container button:active {
   background-color: #ffc640 !important;
   color: #3e3e3e;
   border: 1px solid #ccc;
@@ -427,6 +439,12 @@ path {
 }
 
 .register-container button:hover button:active {
+  background-color: #ffc640 !important;
+  color: #3e3e3e;
+  border: 1px solid #ccc;
+}
+
+.register-container button:active {
   background-color: #ffc640 !important;
   color: #3e3e3e;
   border: 1px solid #ccc;
