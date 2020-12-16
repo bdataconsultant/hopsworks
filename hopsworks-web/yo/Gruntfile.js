@@ -473,7 +473,7 @@ module.exports = function (grunt) {
       customerImages: {
         expand: true,
         cwd: '<%= yeoman.app %>/customer_assets/<%= yeoman.targetCustomer %>/images',
-        src: '{,*/}*.{png,jpg,jpeg,gif}',
+        src: '{,*/}*.{png,jpg,jpeg,gif,svg}',
         dest: '.tmp/images'
       },
       customerProvider: {

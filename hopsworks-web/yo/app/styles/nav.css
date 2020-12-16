@@ -320,17 +320,13 @@ md-toolbar {
     width: 100%;
     padding: 10px;
     text-align: center;
-    background-color: white;
 }
-
 .pon-footer-fixed {
-    position: sticky;
+    position: fixed;
 }
-
 .pon-footer-sticky {
     position: sticky;
 }
-
 .pon-footer img {
     width: 500px;
 }

@@ -39,7 +39,6 @@
 
 <div ng-controller="MainCtrl as mainCtrl">
   <div ng-include="'nav.html'"></div>
-</div>
 <div ng-controller="KafkaCtrl as kafkaCtrl">
 
   <div id="wrapper" class="toggled">
@@ -398,6 +397,7 @@
         </div>
       </div>
     </section>
+    <div ng-if="mainCtrl.showPonFooter" ng-include="'views/ponFooter.html'"></div>
   </div>
   <!-- <tour class="ng-scope" step="kafkaCtrl.tourService.currentStep_TourThree"
         post-tour="closeTour()"

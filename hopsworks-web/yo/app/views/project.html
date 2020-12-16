@@ -53,7 +53,6 @@
                 </div>
               </div>
               <div ng-if="!mainCtrl.showSearchPage">
-                <div class="widget-body col-md-10 thin-scrollbar" style="height: 90%; overflow-y: auto;">
                   <div class="timeline clearfix">
                     <div class="mid-line"></div>
                     <div dir-paginate="activity in projectCtrl.activities | itemsPerPage:projectCtrl.pageSize"
@@ -83,8 +82,8 @@
                                              max-size="projectCtrl.pageSize"
                                              on-page-change="projectCtrl.getActivitiesNextPage()">
                     </dir-pagination-controls>
+                    <div ng-if="mainCtrl.showPonFooter" ng-include="'views/ponFooter.html'"></div>
                   </div>
-                </div>
                 <!-- /#page-content-wrapper -->
               </div>
             </div>
