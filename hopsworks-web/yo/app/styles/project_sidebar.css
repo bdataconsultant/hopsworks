@@ -73,6 +73,10 @@
   display: none;
 }
 
+#sidebar-wrapper {
+  scrollbar-width: none; /*don't show scrollbar on firefox*/
+}
+
 #wrapper.toggled #sidebar-wrapper {
   width: 100px;
 }

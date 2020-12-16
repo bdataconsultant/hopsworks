@@ -1,10 +1,10 @@
 /*
 palette
-main: #8b2d40
+main: rgb(142, 0, 28)
 green: #009b48
 border: #742130
-hover: #429450
-btn-primary: #337ab7
+hover: #009b48
+btn-primary: #ffb300
 */
 
 /*cards.css*/
@@ -13,7 +13,7 @@ btn-primary: #337ab7
     border-color: #e7eaec;
   }
   100% {
-    border-color: #8b2d40;
+    border-color: rgb(142, 0, 28);
   }
 }
 @keyframes color-change-2x {
@@ -21,7 +21,7 @@ btn-primary: #337ab7
     border-color: #e7eaec;
   }
   100% {
-    border-color: #8b2d40;
+    border-color: rgb(142, 0, 28);
   }
 }
 
@@ -29,12 +29,12 @@ btn-primary: #337ab7
   display: flex;
   padding: 10px;
   font-size: 1.15rem;
-  color: #8b2d40;
+  color: rgb(142, 0, 28);
 }
 
 .home-badge {
   background: #ffffff;
-  color: #8b2d40;
+  color: rgb(142, 0, 28);
   height: 20px;
 }
 
@@ -43,14 +43,14 @@ btn-primary: #337ab7
 .nav .open > a:focus,
 .nav .open > a:hover {
   background-color: transparent;
-  border-color: #8b2d40;
+  border-color: rgb(142, 0, 28);
 }
 
 nav.navbar-sics {
   height: 80px;
-  background: #8b2d40;
+  background: rgb(142, 0, 28);
   border-bottom: none;
-  box-shadow: 0 0 2px 0 #8b2d40;
+  box-shadow: 0 0 2px 0 rgb(142, 0, 28);
   padding: 14px 14px 14px 0;
 }
 
@@ -67,17 +67,17 @@ nav.navbar-sics ul.navbar-nav a:active {
 }
 nav.navbar-sics ul.navbar-nav a:hover {
   color: white;
-  text-decoration: underline; /*border-color: #8b2d40;*/
+  text-decoration: underline; /*border-color: rgb(142, 0, 28);*/
 }
 nav.navbar-sics li.divider {
-  background: #8b2d40;
+  background: rgb(142, 0, 28);
 }
 nav.navbar-sics button.navbar-toggle {
-  background: #8b2d40;
+  background: rgb(142, 0, 28);
   border-radius: 2px;
 }
 nav.navbar-sics button.navbar-toggle:hover {
-  background: #8b2d40;
+  background: rgb(142, 0, 28);
 }
 nav.navbar-sics button.navbar-toggle > span.icon-bar {
   background: #fff;
@@ -87,21 +87,21 @@ nav.navbar-sics ul.dropdown-menu {
   background: #fff;
   border-radius: 4px;
   margin: 4px 0;
-  box-shadow: 0 0 4px 0 #8b2d40;
+  box-shadow: 0 0 4px 0 rgb(142, 0, 28);
 }
 nav.navbar-sics ul.dropdown-menu > li > a {
-  color: #8b2d40;
+  color: rgb(142, 0, 28);
 }
 nav.navbar-sics ul.dropdown-menu > li > a > img > path {
-  fill: #8b2d40;
-  color: #8b2d40;
+  fill: rgb(142, 0, 28);
+  color: rgb(142, 0, 28);
 }
 nav.navbar-sics ul.dropdown-menu > li > a:hover {
-  background: #8b2d40;
+  background: rgb(142, 0, 28);
   color: #fff;
 }
 nav.navbar-sics span.badge {
-  background: #8b2d40;
+  background: rgb(142, 0, 28);
   font-weight: normal;
   font-size: 11px;
   margin: 0 4px;
@@ -112,14 +112,14 @@ nav.navbar-sics span.badge.new {
 }
 
 .navbar2 {
-  background: #8b2d40 !important;
+  background: rgb(142, 0, 28) !important;
 }
 
 .list-group-item.active,
 .list-group-item.active:focus,
 .list-group-item.active:hover {
-  background-color: #8b2d40;
-  border-color: #8b2d40;
+  background-color: rgb(142, 0, 28);
+  border-color: rgb(142, 0, 28);
   color: #fff;
   z-index: 100;
   height: 43px;
@@ -128,8 +128,8 @@ nav.navbar-sics span.badge.new {
 .list-group-item.active,
 .list-group-item.active:focus,
 .list-group-item.active:hover {
-  background-color: #8b2d40;
-  border-color: #8b2d40;
+  background-color: rgb(142, 0, 28);
+  border-color: rgb(142, 0, 28);
   color: #fff;
   z-index: 100;
   height: 43px;
@@ -144,7 +144,7 @@ nav.navbar-sics span.badge.new {
   margin-left: -100px;
   overflow-y: auto;
   overflow-x: hidden;
-  background: #8b2d40;
+  background: rgb(142, 0, 28);
   -webkit-transition: all 0.5s ease;
   -moz-transition: all 0.5s ease;
   -o-transition: all 0.5s ease;
@@ -159,7 +159,7 @@ nav.navbar-sics span.badge.new {
   z-index: -1;
   height: 100%;
   width: 3px;
-  background-color: #8b2d40;
+  background-color: rgb(142, 0, 28);
   -webkit-transition: width 0.2s ease-in;
   -moz-transition: width 0.2s ease-in;
   -ms-transition: width 0.2s ease-in;
@@ -177,40 +177,40 @@ nav.navbar-sics span.badge.new {
 }
 
 .sidebar-nav li:nth-child(2):before {
-  background-color: #8b2d40;
+  background-color: rgb(142, 0, 28);
 }
 .sidebar-nav li:nth-child(3):before {
-  background-color: #8b2d40;
+  background-color: rgb(142, 0, 28);
 }
 .sidebar-nav li:nth-child(4):before {
-  background-color: #8b2d40;
+  background-color: rgb(142, 0, 28);
 }
 .sidebar-nav li:nth-child(5):before {
-  background-color: #8b2d40;
+  background-color: rgb(142, 0, 28);
 }
 .sidebar-nav li:nth-child(6):before {
-  background-color: #8b2d40;
+  background-color: rgb(142, 0, 28);
 }
 .sidebar-nav li:nth-child(7):before {
-  background-color: #8b2d40;
+  background-color: rgb(142, 0, 28);
 }
 .sidebar-nav li:nth-child(8):before {
-  background-color: #8b2d40;
+  background-color: rgb(142, 0, 28);
 }
 .sidebar-nav li:nth-child(9):before {
-  background-color: #8b2d40;
+  background-color: rgb(142, 0, 28);
 }
 .sidebar-nav li:nth-child(10):before {
-  background-color: #8b2d40;
+  background-color: rgb(142, 0, 28);
 }
 .sidebar-nav li:nth-child(11):before {
-  background-color: #8b2d40;
+  background-color: rgb(142, 0, 28);
 }
 .sidebar-nav li:nth-child(12):before {
-  background-color: #8b2d40;
+  background-color: rgb(142, 0, 28);
 }
 .sidebar-nav li:nth-child(13):before {
-  background-color: #8b2d40;
+  background-color: rgb(142, 0, 28);
 }
 
 .sidebar-nav li:hover {
@@ -226,88 +226,88 @@ nav.navbar-sics span.badge.new {
 .sidebar-nav li:nth-child(2) a:focus,
 .sidebar-nav li:nth-child(2).open a:active,
 .sidebar-nav li:nth-child(2).open a:focus {
-  background-color: #8b2d40;
+  background-color: rgb(142, 0, 28);
 }
 
 .sidebar-nav li:nth-child(3) a:active,
 .sidebar-nav li:nth-child(3) a:focus,
 .sidebar-nav li:nth-child(3).open a:active,
 .sidebar-nav li:nth-child(3).open a:focus {
-  background-color: #8b2d40;
+  background-color: rgb(142, 0, 28);
 }
 
 .sidebar-nav li:nth-child(4) a:active,
 .sidebar-nav li:nth-child(4) a:focus,
 .sidebar-nav li:nth-child(4).open a:active,
 .sidebar-nav li:nth-child(4).open a:focus {
-  background-color: #8b2d40;
+  background-color: rgb(142, 0, 28);
 }
 
 .sidebar-nav li:nth-child(5) a:active,
 .sidebar-nav li:nth-child(5) a:focus,
 .sidebar-nav li:nth-child(5).open a:active,
 .sidebar-nav li:nth-child(5).open a:focus {
-  background-color: #8b2d40;
+  background-color: rgb(142, 0, 28);
 }
 
 .sidebar-nav li:nth-child(6) a:active,
 .sidebar-nav li:nth-child(6) a:focus,
 .sidebar-nav li:nth-child(6).open a:active,
 .sidebar-nav li:nth-child(6).open a:focus {
-  background-color: #8b2d40;
+  background-color: rgb(142, 0, 28);
 }
 
 .sidebar-nav li:nth-child(7) a:active,
 .sidebar-nav li:nth-child(7) a:focus,
 .sidebar-nav li:nth-child(7).open a:active,
 .sidebar-nav li:nth-child(7).open a:focus {
-  background-color: #8b2d40;
+  background-color: rgb(142, 0, 28);
 }
 
 .sidebar-nav li:nth-child(8) a:active,
 .sidebar-nav li:nth-child(8) a:focus,
 .sidebar-nav li:nth-child(8).open a:active,
 .sidebar-nav li:nth-child(8).open a:focus {
-  background-color: #8b2d40;
+  background-color: rgb(142, 0, 28);
 }
 
 .sidebar-nav li:nth-child(9) a:active,
 .sidebar-nav li:nth-child(9) a:focus,
 .sidebar-nav li:nth-child(9).open a:active,
 .sidebar-nav li:nth-child(9).open a:focus {
-  background-color: #8b2d40;
+  background-color: rgb(142, 0, 28);
 }
 
 .sidebar-nav li:nth-child(10) a:active,
 .sidebar-nav li:nth-child(10) a:focus,
 .sidebar-nav li:nth-child(10).open a:active,
 .sidebar-nav li:nth-child(10).open a:focus {
-  background-color: #8b2d40;
+  background-color: rgb(142, 0, 28);
 }
 
 /*publicDataset.css*/
 .publicdataset-issue:hover {
   cursor: pointer;
   text-decoration: none;
-  color: #8b2d40 !important;
+  color: rgb(142, 0, 28) !important;
 }
 
 .highlighted {
   font-weight: normal;
   font-style: italic;
-  color: #8b2d40;
+  color: rgb(142, 0, 28);
 }
 
 /*style.css*/
 .panel-filter > .panel-heading {
-  background-color: #8b2d40;
+  background-color: rgb(142, 0, 28);
   color: #fff;
   height: 43px;
   border-radius: 0;
 }
 
 .panel-filter > .panel-footer {
-  background-color: #8b2d40;
+  background-color: rgb(142, 0, 28);
   color: #fff;
   height: 43px;
   padding: 0 20px 0 5px;
@@ -315,17 +315,17 @@ nav.navbar-sics span.badge.new {
 }
 
 .modal-header {
-  background-color: #8b2d40;
+  background-color: rgb(142, 0, 28);
   color: #ffffff;
 }
 
 .pager {
-  background-color: #8b2d40;
+  background-color: rgb(142, 0, 28);
   margin: 0px;
 }
 
 .editable-controls .editable-input {
-  color: #8b2d40;
+  color: rgb(142, 0, 28);
 }
 
 .btn-success {
@@ -337,7 +337,7 @@ nav.navbar-sics span.badge.new {
 #gettingStaredSection .btn-default {
   color: #ffffff;
   background-color: #009b48;
-  border-color: #8b2d40;
+  border-color: rgb(142, 0, 28);
 }
 
 #gettingStaredSection .btn-default.disabled,
@@ -356,7 +356,7 @@ fieldset[disabled] .btn-default:active,
 #gettingStaredSection .btn-default[disabled].active,
 fieldset[disabled] .btn-default.active {
   background-color: #009b48;
-  border-color: #8b2d40;
+  border-color: rgb(142, 0, 28);
 }
 
 
@@ -364,7 +364,7 @@ fieldset[disabled] .btn-default.active {
 #tourColumn .btn-danger {
   color: #ffffff;
   background-color: #bd1b1b;
-  border-color: #8b2d40;
+  border-color: rgb(142, 0, 28);
 }
 
 .nav .open > a,
@@ -376,11 +376,19 @@ fieldset[disabled] .btn-default.active {
 
 /*other*/
 .btn-primary {
-  background-color: #337ab7;
+  background-color: #ffb300;
+  color: #3e3e3e;
+  border: 1px solid #ccc;
+}
+
+.btn-primary:hover button:active {
+  background-color: #ffc640 !important;
+  color: #3e3e3e;
+  border: 1px solid #ccc;
 }
 
 a {
-  color: #8b2d40;
+  color: rgb(142, 0, 28);
 }
 
 path {
@@ -392,7 +400,15 @@ path {
 }
 
 .login-container button {
-  background-color: #8b2d40 !important;
+  background-color: #ffb300 !important;
+  color: #3e3e3e;
+  border: 1px solid #ccc;
+}
+
+.login-container button:hover button:active {
+  background-color: #ffc640 !important;
+  color: #3e3e3e;
+  border: 1px solid #ccc;
 }
 
 .login-container img {
@@ -405,7 +421,15 @@ path {
 }
 
 .register-container button {
-  background-color: #8b2d40 !important;
+  background-color: #ffb300 !important;
+  color: #3e3e3e;
+  border: 1px solid #ccc;
+}
+
+.register-container button:hover button:active {
+  background-color: #ffc640 !important;
+  color: #3e3e3e;
+  border: 1px solid #ccc;
 }
 
 .register-container img {
@@ -414,23 +438,23 @@ path {
 }
 
 .pagination a {
-  color: #8b2d40 !important;
+  color: rgb(142, 0, 28) !important;
 }
 
 .pagination > .active > a {
-  background-color: #8b2d40;
+  background-color: rgb(142, 0, 28);
   color: white !important;
   border-color: #ddd !important;
 }
 
 .pagination > .active > a:hover {
-  background-color: #429450;
+  background-color: #009b48;
   color: white !important;
   border-color: #ddd !important;
 }
 
 .pagination > .active > a:focus {
-  background-color: #8b2d40 !important;
+  background-color: rgb(142, 0, 28) !important;
 }
 
 .pon-footer img {
