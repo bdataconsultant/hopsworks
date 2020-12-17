@@ -381,13 +381,19 @@ fieldset[disabled] .btn-default.active {
   border: 1px solid #ccc;
 }
 
+.btn-info {
+  color: #3e3e3e;
+  background-color: #ffc640;
+  border-color: #ffc640;
+}
+
 .btn-primary:hover {
   background-color: #ffc640 !important;
   color: #3e3e3e;
   border: 1px solid #ccc;
 }
 
-btn-primary:active {
+.btn-primary:active {
   background-color: #ffc640 !important;
   color: #3e3e3e;
   border: 1px solid #ccc;
@@ -438,7 +444,7 @@ path {
   border: 1px solid #ccc;
 }
 
-.register-container button:hover button:active {
+.register-container button:hover {
   background-color: #ffc640 !important;
   color: #3e3e3e;
   border: 1px solid #ccc;
