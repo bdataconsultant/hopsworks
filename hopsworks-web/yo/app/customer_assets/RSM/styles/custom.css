@@ -2,6 +2,7 @@
 palette
 main: rgb(142, 0, 28)
 green: #009b48
+green_active: #19a75b
 border: #742130
 hover: #009b48
 btn-primary: #ffb300
@@ -334,6 +335,18 @@ nav.navbar-sics span.badge.new {
   border-color: #009b48;
 }
 
+.btn-success.active {
+  background-color: #009b48;
+}
+
+.btn-success:active {
+  background-color: #19a75b;
+}
+
+.btn-success:hover {
+  background-color: #19a75b;
+}
+
 #gettingStaredSection .btn-default {
   color: #ffffff;
   background-color: #009b48;
@@ -383,6 +396,18 @@ fieldset[disabled] .btn-default.active {
 
 .btn-info {
   color: #3e3e3e;
+  background-color: #ffb300;
+  border-color: #ffb300;
+}
+
+.btn-info:hover {
+  color: #3e3e3e;
+  background-color: #ffc640;
+  border-color: #ffc640;
+}
+
+.btn-info:active {
+  color: #3e3e3e;
   background-color: #ffc640;
   border-color: #ffc640;
 }
@@ -407,8 +432,23 @@ path {
   fill: white;
 }
 
+.login-color-placeholder {
+  height: 4.5vh;
+  background-color: #f7f8f9;
+}
+
+.login-container {
+  width: 100%;
+  margin-top: 0;
+  padding-top: 99px;
+  background-color: #f7f8f9;
+}
+
 .login-container .panel {
-  border: #792121 1px solid !important;
+  background-color: #fff;
+  border: #792121 0px solid !important;
+  box-shadow: 0 4px 9px -3px rgba(102,136,153,.15);
+  padding: 8px;
 }
 
 .login-container button {
@@ -430,12 +470,13 @@ path {
 }
 
 .login-container img {
-  width: 130px !important;
+  height: 60px !important;
   padding-top: 12px !important;
 }
 
 .register-container .panel {
-  border: #792121 1px solid !important;
+  border: #792121 0px solid !important;
+  box-shadow: 0 4px 9px -3px rgba(102,136,153,.15);
 }
 
 .register-container button {
@@ -461,6 +502,24 @@ path {
   padding-top: 12px !important;
 }
 
+.sortorder {
+  color: #ffb300;
+}
+
+#filemgr a:hover,
+a:active,
+a:focus,
+table th > a:hover,
+table th > a:active,
+table th > a:focus {
+  color: #ffb300;
+}
+
+#filemgr .sortorder:after {
+  color: #ffb300;
+  content: '\25bc';
+}
+
 .pagination a {
   color: rgb(142, 0, 28) !important;
 }
@@ -481,6 +540,14 @@ path {
   background-color: rgb(142, 0, 28) !important;
 }
 
+.content-wrapper {
+  min-height: 415px;
+}
+
 .pon-footer img {
   width: 200px;
+}
+
+.pon-footer-grey {
+  background-color: #f7f8f9;
 }
