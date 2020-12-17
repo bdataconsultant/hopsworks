@@ -47,10 +47,11 @@
                 <div class="panel" style="border:#337ab7 1px solid">
                     <div class="panel-heading text-center" style="background-color:transparent">
                         <a style="text-decoration:none; font-family: Lobster; font-size: 30px; margin-left: 5px; color: #fff;">
-                            <img alt="" class="block-center img-rounded" style="margin-left:0px" width="190" src="images/big-data-logo-login.png">
+                            <img alt="" class="block-center img-rounded" style="margin-left:0px" src="images/big-data-logo-login.png">
                         </a>
                     </div>
                     <div class="panel-body">
+                        <h3 style="margin-top: 0px; margin-bottom: 25px; text-align: center; font-size: 23px; font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif;">RSM Data Lake - Platform</h3>
                         <!-- <p class="text-center">SIGN IN TO CONTINUE.</p> -->
                         <form name="loginForm" ng-submit="loginCtrl.login()" role="form">
                             <div class="form-group has-feedback">
@@ -180,7 +181,8 @@
             ></virtual-step>
         </tour> -->
     </div>
-    <div ng-if="loginCtrl.showPonFooter" class="pon-footer pon-footer-fixed">
+    <div ng-if="loginCtrl.showPonFooter" class="pon-footer pon-footer-sticky pon-footer-grey">
         <img src="images/pon-metro-logo.png"/>
     </div>
+    <div class="login-color-placeholder"></div>
 </div>
