@@ -2,7 +2,7 @@
     "use strict";
     angular.module("hopsWorksApp").provider("customerConfig", function() {
       var values = {
-        showPonFooter: false,
+        showPonFooter: true,
       };
   
       return {

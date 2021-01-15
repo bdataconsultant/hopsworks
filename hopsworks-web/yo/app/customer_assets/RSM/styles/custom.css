@@ -339,6 +339,10 @@ nav.navbar-sics span.badge.new {
   background-color: #009b48;
 }
 
+.btn-success.active:hover {
+  background-color: #19a75b;
+}
+
 .btn-success:active {
   background-color: #19a75b;
 }
@@ -428,17 +432,33 @@ a {
   color: rgb(142, 0, 28);
 }
 
+a:hover, a:focus {
+    color: #ffb300;
+    text-decoration: underline;
+    text-decoration-line: underline;
+    text-decoration-thickness: initial;
+    text-decoration-style: initial;
+    text-decoration-color: initial;
+}
+
 path {
   fill: white;
 }
 
-.login-color-placeholder {
-  height: 4.5vh;
-  background-color: #f7f8f9;
+.content-wrapper {
+  min-height: 69%;
 }
+
+@media (min-width: 768px) {
+  #filemgr .container-fluid {
+    height: calc(56% - 75px);
+  }
+}
+
 
 .login-container {
   width: 100%;
+  min-height: 0;
   margin-top: 0;
   padding-top: 99px;
   background-color: #f7f8f9;
@@ -520,6 +540,16 @@ table th > a:focus {
   content: '\25bc';
 }
 
+#filemgr .sortorder.reverse:after {
+  color: #ffb300;
+  /* content: '\25b2'; */
+}
+
+#filemgr .table-files .selected {
+    background: #8b2d40 !important;
+    color: white !important;
+}
+
 .pagination a {
   color: rgb(142, 0, 28) !important;
 }
@@ -549,5 +579,7 @@ table th > a:focus {
 }
 
 .pon-footer-grey {
+  top: 0;
+  height: 100%;
   background-color: #f7f8f9;
 }
