@@ -546,11 +546,16 @@ table th > a:focus {
 }
 
 #filemgr .table-files .selected {
-  background: #8e001c !important;
+  background: rgb(142, 0, 28) !important;
 }
 
 #filemgr .iconset .thumbnail.selected, .table-files .selected td, .table-files .selected td a {
   color: #ffb300;
+}
+
+#filemgr .dropdown-menu > li > a {
+  padding: 6px 20px;
+  color: rgb(142, 0, 28);
 }
 
 .pagination a {
