@@ -546,7 +546,7 @@ table th > a:focus {
 }
 
 #filemgr .table-files .selected {
-    background: #8b2d40 !important;
+  background: #8e001c !important;
 }
 
 #filemgr .iconset .thumbnail.selected, .table-files .selected td, .table-files .selected td a {
