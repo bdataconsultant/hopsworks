@@ -1,0 +1,15 @@
+{
+    "bigdata": {
+        "main": "pink",
+        "gradientSecondary": "#0c4d32",
+        "border": "#105739",
+        "hover": "#429450",
+        "headerPrimary": "#115235",
+        "headerSecondary": " #166744",
+        "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/ff/Facebook_logo_36x36.svg/36px-Facebook_logo_36x36.svg.png",
+        "loginLogo": "https://www.google.com/photos/about/static/images/logos/logo_photos_192px.svg",
+        "favIcon": "https://generazionifuture.org/wp-content/uploads/cropped-favicon-free-img-300x300.png",
+        "platformHeaderLogo": "https://www.google.com/photos/about/static/images/logos/logo_photos_192px.svg",
+        "footerImage": "https://images.sharefaith.com/images/3/a0708405aa/img_mouseover3.jpg"
+    }
+}
