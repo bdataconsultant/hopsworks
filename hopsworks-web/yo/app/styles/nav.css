@@ -317,6 +317,9 @@ md-toolbar {
 .navbar-project-name {
     color: white;
     font-size: 32px;
+    width: fit-content;
+    margin-top: 6px;
+    margin-left: 30px;
 }
 
 .sidebar-warning-icon {

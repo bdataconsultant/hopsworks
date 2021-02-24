@@ -38,17 +38,18 @@
   -->
 
 <html>
+
 <head>
     <meta charset="utf-8">
     <title>Big Data Platform</title>
     <meta name="description" content="">
     <meta name="viewport" content="width=device-width">
-    <link rel="icon" type="image/png" href="images/giotto-favi.png"/>
+    <link rel="icon" type="image/png" id="favicon" href="images/giotto-favi.png" />
     <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Lobster'>
     <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Varela+Round'>
     <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Roboto:500'>
     <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Source+Sans+Pro'>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css"/>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" />
     <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
     <!-- build:css(.) styles/vendor.css -->
     <!-- bower:css -->
@@ -57,7 +58,8 @@
     <link rel="stylesheet" href="bower_components/jstree/dist/themes/default/style.css" />
     <link rel="stylesheet" href="bower_components/ng-prettyjson/src/ng-prettyjson.css" />
     <link rel="stylesheet" href="bower_components/ng-sortable/dist/ng-sortable.css" />
-    <link rel="stylesheet" href="bower_components/eonasdan-bootstrap-datetimepicker/build/css/bootstrap-datetimepicker.min.css" />
+    <link rel="stylesheet"
+        href="bower_components/eonasdan-bootstrap-datetimepicker/build/css/bootstrap-datetimepicker.min.css" />
     <link rel="stylesheet" href="bower_components/bootstrap-switch/dist/css/bootstrap3/bootstrap-switch.css" />
     <link rel="stylesheet" href="bower_components/angular-ui-select/dist/select.css" />
     <link rel="stylesheet" href="bower_components/v-accordion/dist/v-accordion.css" />
@@ -79,10 +81,10 @@
     <link rel="stylesheet" href="styles/filebrowser.css">
     <link rel="stylesheet" href="styles/board.css">
     <link rel="stylesheet" href="styles/message.css">
-    <link rel="stylesheet" href="styles/angular-tour.css"/>
+    <link rel="stylesheet" href="styles/angular-tour.css" />
     <link rel="stylesheet" href="styles/timeline.css">
     <link rel="stylesheet" href="styles/ExampleProjectLoaderFix.css">
-    <link rel="stylesheet" href="styles/jquery.qtip.css"/>
+    <link rel="stylesheet" href="styles/jquery.qtip.css" />
     <link rel="stylesheet" href="styles/loading.css">
     <link rel="stylesheet" href="styles/angular-resizable.css">
     <link rel="stylesheet" href="styles/cards.css">
@@ -99,8 +101,10 @@
     <link rel="stylesheet" href="styles/custom.css">
     <!-- endbuild -->
 </head>
-<body ng-app="hopsWorksApp" style="background-image:url('images/giotto-sfondo-lum.png');">
-<!--[if lt IE 7]>
+
+<body ng-app="hopsWorksApp">
+    <!-- style="background-image:url('images/giotto-sfondo-lum.png');" -->
+    <!--[if lt IE 7]>
 <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade
     your browser</a> to improve your experience.</p>
 <![endif]-->
@@ -115,7 +119,7 @@
     <!-- endbuild -->
     <!-- build:js(.) scripts/modules.js -->
     <script src="node_modules/@giotto-jfrog/giotto-platform-header/dist/index.js"></script>
-    <script src="node_modules/apexcharts/dist/apexcharts.js"></script>    
+    <script src="node_modules/apexcharts/dist/apexcharts.js"></script>
     <!-- endbuild -->
     <!-- build:js(.) scripts/vendor.js -->
     <!-- bower:js -->
@@ -343,6 +347,7 @@
     <script src="scripts/services/DatasetBrowserService.js"></script>
     <script src="scripts/services/ApiKeyService.js"></script>
     <script src="scripts/services/DataValidationService.js"></script>
+    <script src="scripts/services/CustomizationService.js"></script>
     <!-- Providers -->
     <script src="scripts/providers/filemgr/config.js"></script>
     <script src="scripts/providers/customerConfig.js"></script>
@@ -350,5 +355,7 @@
     <script src="scripts/entities/filemgr/chmod.js"></script>
     <script src="scripts/entities/filemgr/item.js"></script>
     <!-- endbuild -->
+
 </body>
+
 </html>
