@@ -347,5 +347,5 @@ md-toolbar {
 }
 
 .pon-footer img {
-    width: 500px;
+    width: var(--footer-img-width)
 }

@@ -65,33 +65,33 @@ angular.module('hopsWorksApp')
 
 
       function headerLogout() {
-        headerDiv.remove();
-        localStorage.clear();
-        sessionStorage.clear();
         self.logout();
       }
       // HEADER PLUGIN INIZIALIZATION
 
 
-
+      var platformHeader;
       function initizializeHeader(header) {
-        var instance = new GiottoPlatformHeader(
+        platformHeader = new GiottoPlatformHeader(
           headerDiv,
           {
             logoDir: header.logoDir,
             appContext: 'bigdata',
             appTitle: header.appTitle,
             logout: headerLogout,
+            oauth2LogOutUrl: header.oauth2LogOutUrl,
+            logOutRedirectUrl: header.logOutRedirectUrl,
             appUrlsConfig: header.appUrlsConfig
           }
         );
-        instance.init();
+        platformHeader.init();
         document.getElementById('gph__logo').setAttribute("src", header.logoDir);
       }
 
       function loadThemeAndImages(configObject) {
         $scope.platformHeaderLogo = configObject.platformHeaderLogo;
         $scope.footerImage = configObject.footerImage;
+        $scope.navbarLogo = configObject.logo;
         $scope.loginLogo = configObject.loginLogo;
         $scope.favIcon = configObject.favIcon;
         document.getElementById("favicon").setAttribute("href", configObject.favIcon);
@@ -101,9 +101,9 @@ angular.module('hopsWorksApp')
         document.documentElement.style.setProperty("--hover", configObject.hover);
         document.documentElement.style.setProperty("--header-primary", configObject.headerPrimary);
         document.documentElement.style.setProperty("--header-secondary", configObject.headerSecondary);
-        document.documentElement.style.setProperty(" --header-title-color", configObject.headerTitleColor);
-        document.documentElement.style.setProperty(" --header-logo-height", configObject.headerLogoHeight);
-
+        document.documentElement.style.setProperty("--header-title-color", configObject.headerTitleColor);
+        document.documentElement.style.setProperty("--header-logo-height", configObject.headerLogoHeight);
+        document.documentElement.style.setProperty("--footer-img-width", configObject.footerImgWidth);
       }
 
       // THEME INIZIALIZATION
@@ -180,12 +180,20 @@ angular.module('hopsWorksApp')
 
         AuthService.logout(self.user).then(
           function (success) {
+            var redirectUrl;
+            if(!!customerConfig.header.oauth2LogOutUrl)
+              redirectUrl = platformHeader.logOut()();
             AuthService.cleanSession();
             AuthService.removeToken();
-            $location.url('/login');
+            localStorage.clear();
+            sessionStorage.clear();
+            if(!!customerConfig.header.oauth2LogOutUrl && !!redirectUrl)
+              location.href = redirectUrl;
+            else 
+              $location.url('/oneadmin/');
           }, function (error) {
             self.errorMessage = error.data.msg;
-          });
+          }); 
       };
 
       var checkDelaEnabled = function () {

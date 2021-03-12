@@ -7,6 +7,8 @@
         logoDir: "images/big-data-logo-header.png",
         appContext: "bigdata",
         appTitle: "SMART CITY PLATFORM",
+        oauth2LogOutUrl: "https://smartcityplatform.develop.it/oidc/logout",
+        logOutRedirectUrl: "https://smartcityplatform.develop.it/oneadmin/login",
         appUrlsConfig: {
           bigdata: "/giotto-web",
           iot: "/home",
@@ -22,6 +24,7 @@
       headerPrimary: "#e0e0e0",
       headerSecondary: "#337ab7",
       headerLogoHeight: "55px",
+      footerImgWidth: "340px",
       logo: "images/big-data-logo-header.png",
       loginLogo: "images/big-data-logo-login.png",
       favIcon: "images/giotto-favi.png",
