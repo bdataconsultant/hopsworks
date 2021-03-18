@@ -9,6 +9,7 @@
         appTitle: "SMART CITY PLATFORM",
         oauth2LogOutUrl: "https://smartcityplatform.develop.it/oidc/logout",
         logOutRedirectUrl: "https://smartcityplatform.develop.it/oneadmin/login",
+        federatedLogoutUrl: null,
         appUrlsConfig: {
           bigdata: "/giotto-web",
           iot: "/home",
