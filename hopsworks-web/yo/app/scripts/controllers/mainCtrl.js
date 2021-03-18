@@ -81,6 +81,7 @@ angular.module('hopsWorksApp')
             logout: headerLogout,
             oauth2LogOutUrl: header.oauth2LogOutUrl,
             logOutRedirectUrl: header.logOutRedirectUrl,
+            federatedLogoutUrl: header.federatedLogoutUrl,
             appUrlsConfig: header.appUrlsConfig
           }
         );
