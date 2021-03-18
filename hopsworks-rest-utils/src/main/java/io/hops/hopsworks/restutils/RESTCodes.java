@@ -847,7 +847,8 @@ public class RESTCodes {
     SECRET_EMPTY(48, "Secret is empty", Response.Status.NOT_FOUND),
     SECRET_EXISTS(49, "Same Secret already exists", Response.Status.CONFLICT),
     SECRET_ENCRYPTION_ERROR(50, "Error encrypting/decrypting Secret", Response.Status.INTERNAL_SERVER_ERROR),
-    ACCOUNT_NOT_ACTIVE(51, "This account is not active", Response.Status.BAD_REQUEST);
+    ACCOUNT_NOT_ACTIVE(51, "This account is not active", Response.Status.BAD_REQUEST),
+    ACCOUNT_MISMATCHING(60, "Registration failed, account mismatching", Response.Status.BAD_REQUEST);
 
     private Integer code;
     private String message;

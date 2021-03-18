@@ -57,7 +57,7 @@
   </security-role>
   <login-config>
     <auth-method>BASIC</auth-method>
-    <realm-name>cauthRealm</realm-name>
+    <realm-name>cldapRealm</realm-name>
   </login-config>
   
   <session-config>

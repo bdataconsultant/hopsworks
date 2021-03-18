@@ -44,11 +44,18 @@ import io.hops.hopsworks.api.filter.NoCacheResponse;
 import io.hops.hopsworks.api.jwt.JWTHelper;
 import io.hops.hopsworks.api.util.RESTApiJsonResponse;
 import io.hops.hopsworks.common.constants.message.ResponseMessages;
+import io.hops.hopsworks.common.dao.user.BbcGroup;
 import io.hops.hopsworks.common.dao.user.UserDTO;
 import io.hops.hopsworks.common.dao.user.UserFacade;
 import io.hops.hopsworks.common.dao.user.Users;
 import io.hops.hopsworks.common.dao.user.security.audit.AccountAuditFacade;
 import io.hops.hopsworks.common.dao.user.security.audit.UserAuditActions;
+import io.hops.hopsworks.common.dao.user.security.ua.UserAccountStatus;
+import io.hops.hopsworks.common.dao.user.security.ua.UserAccountType;
+import io.hops.hopsworks.common.jacc.JaccUtil;
+import io.hops.hopsworks.common.security.utils.Secret;
+import io.hops.hopsworks.common.security.utils.SecurityUtils;
+import io.hops.hopsworks.common.user.ValidationKeyType;
 import io.hops.hopsworks.common.util.DateUtils;
 import io.hops.hopsworks.exceptions.HopsSecurityException;
 import io.hops.hopsworks.jwt.JWTController;
@@ -88,12 +95,10 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.security.GeneralSecurityException;
 import java.security.NoSuchAlgorithmException;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import static javax.ws.rs.core.HttpHeaders.AUTHORIZATION;
@@ -125,6 +130,8 @@ public class AuthService {
   private Settings settings;
   @EJB
   private JWTController jwtController;
+  @EJB
+  private SecurityUtils securityUtils;
 
   @GET
   @Path("session")
@@ -155,6 +162,86 @@ public class AuthService {
   @Path("login")
   @Produces(MediaType.APPLICATION_JSON)
   public Response login(@FormParam("email") String email, @FormParam("password") String password,
+                        @FormParam("otp") String otp, @Context HttpServletRequest req) throws UserException, SigningKeyNotFoundException,
+          NoSuchAlgorithmException, LoginException, DuplicateSigningKeyException {
+
+    if (email == null || email.isEmpty()) {
+      throw new IllegalArgumentException("Email was not provided");
+    }
+    if (password == null || password.isEmpty()) {
+      throw new IllegalArgumentException("Password can not be empty.");
+    }
+
+    Users user = userFacade.findByEmail(email);
+    if (user != null) {
+      if (!needLogin(req, user)) {
+        return Response.ok().build();
+      }
+
+      if (user.getBbcGroupCollection() == null || user.getBbcGroupCollection().isEmpty()) {
+        throw new UserException(RESTCodes.UserErrorCode.NO_ROLE_FOUND, Level.FINE);
+      }
+
+      statusValidator.checkStatus(user.getStatus());
+    }
+
+    // A session needs to be create explicitly before doing to the login operation
+    req.getSession();
+
+    // Do login
+    try {
+        req.login(email, password);
+
+        if (user == null) {
+          // insert user
+          Secret secret = securityUtils.generateSecret(password);
+          Timestamp now = new Timestamp(new Date().getTime());
+          String username = userController.generateUsername(email);
+          user = new Users(username, secret.getSha256HexDigest(), email, username,
+                  username, now, "-", "-", UserAccountStatus.ACTIVATED_ACCOUNT, null, null, now, ValidationKeyType.EMAIL,
+                  null, null, UserAccountType.M_ACCOUNT_TYPE, now, null, settings.getMaxNumProjPerUser(),
+                  false, secret.getSalt(), 0);
+
+          List<BbcGroup> groups = new ArrayList<>();
+          user.setBbcGroupCollection(groups);
+          userFacade.persist(user);
+
+          userController.activateUser(JaccUtil.getAuthenticatedUserRole(), user, user, req);
+        } else {
+          //  update user's password
+          //  TODO SHOULD DO ONLY IF PASSWORD IS DIFFERENT
+          try {
+            Secret secret = securityUtils.generateSecret(password);
+            authController.changePassword(user, secret, req);
+          } catch (Exception ex) {
+            throw new UserException(RESTCodes.UserErrorCode.AUTHENTICATION_FAILURE, Level.SEVERE, null,
+                    ex.getMessage(), ex);
+          }
+
+        }
+      authController.registerLogin(user, req);
+    } catch (ServletException e) {
+      LOGGER.log(Level.SEVERE, "Authentication error", e);
+      authController.registerAuthenticationFailure(user, req);
+      throw new UserException(RESTCodes.UserErrorCode.AUTHENTICATION_FAILURE, Level.FINE, null, e.getMessage(), e);
+    }
+
+    RESTApiJsonResponse json = new RESTApiJsonResponse();
+    json.setSessionID(req.getSession().getId());
+    json.setData(user.getEmail());
+    // JWT claims will be added by JWTHelper
+    String token = jWTHelper.createToken(user, settings.getJWTIssuer(), null);
+
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      logUserLogin(req);
+    }
+    return Response.ok().header(AUTHORIZATION, Constants.BEARER + token).entity(json).build();
+  }
+
+  /*@POST
+  @Path("login")
+  @Produces(MediaType.APPLICATION_JSON)
+  public Response login(@FormParam("email") String email, @FormParam("password") String password,
       @FormParam("otp") String otp, @Context HttpServletRequest req) throws UserException, SigningKeyNotFoundException,
       NoSuchAlgorithmException, LoginException, DuplicateSigningKeyException {
 
@@ -175,18 +262,15 @@ public class AuthService {
     // A session needs to be create explicitly before doing to the login operation
     req.getSession();
 
-    // Do pre cauth realm check
-    String passwordWithSaltPlusOtp = authController.preCustomRealmLoginCheck(user, password, otp, req);
-
     // Do login
-    Response response = login(user, passwordWithSaltPlusOtp, req);
+    Response response = login(user, password, req);
 
     if (LOGGER.isLoggable(Level.FINEST)) {
       logUserLogin(req);
     }
 
     return response;
-  }
+  }*/
 
   @GET
   @Path("logout")
@@ -258,7 +342,7 @@ public class AuthService {
     claims.put(Constants.RENEWABLE, false);
     claims.put(Constants.EXPIRY_LEEWAY, 3600);
     claims.put(Constants.ROLES, userRoles.toArray(new String[1]));
-    
+
     String[] oneTimeRenewalTokens = jwtController.generateOneTimeTokens4ServiceJWTRenewal(renewalJWTSpec, claims,
         settings.getJWTSigningKeyName());
   
@@ -312,13 +396,21 @@ public class AuthService {
   public Response register(UserDTO newUser, @Context HttpServletRequest req) throws NoSuchAlgorithmException,
       UserException {
     byte[] qrCode;
-    RESTApiJsonResponse json = new RESTApiJsonResponse();
+
+    try {
+      req.login(newUser.getEmail(), newUser.getChosenPassword());
+    } catch (ServletException e) {
+      LOGGER.log(Level.SEVERE, "LDAP account matching failed: " + e.getMessage(), e);
+      throw new UserException(RESTCodes.UserErrorCode.ACCOUNT_MISMATCHING, Level.FINE, null, e.getMessage(), e);
+    }
+
     qrCode = userController.registerUser(newUser, req);
+
+    RESTApiJsonResponse json = new RESTApiJsonResponse();
     if (authController.isTwoFactorEnabled() && newUser.isTwoFactor()) {
       json.setQRCode(new String(Base64.encodeBase64(qrCode)));
     } else {
-      json.setSuccessMessage("We registered your account request. Please validate you email and we will "
-          + "review your account within 48 hours.");
+      json.setSuccessMessage("We registered your account request. We will review your account within 48 hours.");
     }
     return Response.ok(json).build();
   }

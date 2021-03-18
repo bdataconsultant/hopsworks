@@ -114,8 +114,8 @@ public class UserValidator {
 
   public boolean isValidNewUser(UserDTO newUser) throws UserException {
     isValidEmail(newUser.getEmail());
-    isValidPassword(newUser.getChosenPassword(), newUser.getRepeatedPassword());
-    isValidsecurityQA(newUser.getSecurityQuestion(), newUser.getSecurityAnswer());
+    //isValidPassword(newUser.getChosenPassword(), newUser.getRepeatedPassword());
+    //isValidsecurityQA(newUser.getSecurityQuestion(), newUser.getSecurityAnswer());
     if (newUser.getToS()) {
       throw new UserException(RESTCodes.UserErrorCode.TOS_NOT_AGREED, Level.FINE);
     }

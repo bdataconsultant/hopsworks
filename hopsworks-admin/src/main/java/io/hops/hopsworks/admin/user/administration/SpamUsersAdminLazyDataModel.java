@@ -38,6 +38,6 @@ public class SpamUsersAdminLazyDataModel extends UsersLazyDataModel {
     Set<UserFacade.SortBy> sort) {
     UserFacade.FilterBy fby = new FilterBy(UserFacade.Filters.STATUS, UserAccountStatus.SPAM_ACCOUNT.name());
     filter.add(fby);
-    return userFacade.findAll(first, pageSize, filter, sort);
+    return userFacade.findAllButHops(first, pageSize, filter, sort);
   }
 }

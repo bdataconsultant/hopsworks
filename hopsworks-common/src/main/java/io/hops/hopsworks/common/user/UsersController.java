@@ -125,23 +125,25 @@ public class UsersController {
 
   public byte[] registerUser(UserDTO newUser, HttpServletRequest req) throws UserException {
     userValidator.isValidNewUser(newUser);
-    Users user = createNewUser(newUser, UserAccountStatus.NEW_MOBILE_ACCOUNT, UserAccountType.M_ACCOUNT_TYPE);
+    Users user = createNewUser(newUser, UserAccountStatus.VERIFIED_ACCOUNT, UserAccountType.M_ACCOUNT_TYPE);
     addAddress(user);
     addOrg(user);
-    //to prevent sending email for test user emails
     try {
-      if (!newUser.isTestUser()) {
+      /*if (!newUser.isTestUser()) {
         // Notify user about the request if not test user.
         authController.sendEmailValidationKey(user, user.getValidationKey(), req);
-      }
-      // Only register the user if i can send the email. To prevent fake emails
+      }*/
       userFacade.persist(user);
+      BbcGroup bbcGroup = bbcGroupFacade.findByGroupName("HOPS_USER");
+      if (bbcGroup != null) {
+        registerGroup(user, bbcGroup.getGid());
+      }
       qrCode = QRCodeGenerator.getQRCodeBytes(newUser.getEmail(), Settings.ISSUER, user.getSecret());
       accountAuditFacade.registerAccountChange(user, AccountsAuditActions.REGISTRATION.name(),
         AccountsAuditActions.SUCCESS.name(), "New validation key", user, req);
       accountAuditFacade.registerAccountChange(user, AccountsAuditActions.QRCODE.name(),
         AccountsAuditActions.SUCCESS.name(), "", user, req);
-    } catch (WriterException | MessagingException | IOException ex) {
+    } catch (WriterException | IOException ex) {
       accountAuditFacade.registerAccountChange(user, AccountsAuditActions.REGISTRATION.name(),
           AccountsAuditActions.FAILED.name(), "", user, req);
       accountAuditFacade.registerAccountChange(user, AccountsAuditActions.QRCODE.name(),
@@ -202,9 +204,10 @@ public class UsersController {
     Timestamp now = new Timestamp(new Date().getTime());
     SecurityQuestion secQuestion = SecurityQuestion.getQuestion(newUser.getSecurityQuestion());
     String secAnswer = securityUtils.getHash(newUser.getSecurityAnswer().toLowerCase());
+    Integer maxNumProjects = 0;
     Users user = new Users(uname, secret.getSha256HexDigest(), newUser.getEmail(), newUser.getFirstName(),
       newUser.getLastName(), now, "-", "-", accountStatus, otpSecret, activationKey, now, ValidationKeyType.EMAIL,
-      secQuestion, secAnswer, accountType, now, newUser.getTelephoneNum(), settings.getMaxNumProjPerUser(),
+      secQuestion, secAnswer, accountType, now, newUser.getTelephoneNum(), maxNumProjects,
       newUser.isTwoFactor(), secret.getSalt(), newUser.getToursState());
     user.setBbcGroupCollection(groups);
     return user;
@@ -260,8 +263,8 @@ public class UsersController {
     a.setAddress1("-");
     a.setAddress2("-");
     a.setAddress3("-");
-    a.setCity("Stockholm");
-    a.setCountry("SE");
+    a.setCity("-");
+    a.setCountry("-");
     a.setPostalcode("-");
     a.setState("-");
     user.setAddress(a);

@@ -29,6 +29,6 @@ public class UsersAdminLazyDataModel extends UsersLazyDataModel {
   @Override
   public AbstractFacade.CollectionInfo getUsers(int first, int pageSize, Set<UserFacade.FilterBy> filter,
     Set<UserFacade.SortBy> sort) {
-    return userFacade.findAll(first, pageSize, filter, sort);
+    return userFacade.findAllButHops(first, pageSize, filter, sort);
   }
 }

@@ -632,9 +632,9 @@ public class AuthController {
    * @param req
    */
   public void registerAuthenticationFailure(Users user, HttpServletRequest req) {
-    registerFalseLogin(user, req);
-    accountAuditFacade.registerLoginInfo(user, UserAuditActions.LOGIN.name(), UserAuditActions.FAILED.name(), req);
-    LOGGER.log(Level.FINEST, "Authentication failure user: {0}. ", user.getEmail());
+    //registerFalseLogin(user, req);
+    //accountAuditFacade.registerLoginInfo(user, UserAuditActions.LOGIN.name(), UserAuditActions.FAILED.name(), req);
+    //LOGGER.log(Level.FINEST, "Authentication failure user: {0}. ", user.getEmail());
   }
 
   public void resetFalseLogin(Users user) {
