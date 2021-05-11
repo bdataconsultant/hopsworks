@@ -39,6 +39,8 @@
 
 package io.hops.hopsworks.api.project;
 
+import com.google.api.client.repackaged.com.google.common.base.Strings;
+import com.google.common.io.Files;
 import io.hops.hopsworks.api.filter.AllowedProjectRoles;
 import io.hops.hopsworks.api.filter.Audience;
 import io.hops.hopsworks.api.filter.NoCacheResponse;
@@ -63,7 +65,9 @@ import io.hops.hopsworks.common.dao.featurestore.FeaturestoreController;
 import io.hops.hopsworks.common.dao.hdfs.inode.Inode;
 import io.hops.hopsworks.common.dao.hdfs.inode.InodeFacade;
 import io.hops.hopsworks.common.dao.hdfs.inode.InodeView;
+import io.hops.hopsworks.common.dao.metadata.InodeBasicMetadata;
 import io.hops.hopsworks.common.dao.metadata.Template;
+import io.hops.hopsworks.common.dao.metadata.db.InodeBasicMetadataFacade;
 import io.hops.hopsworks.common.dao.metadata.db.TemplateFacade;
 import io.hops.hopsworks.common.dao.project.Project;
 import io.hops.hopsworks.common.dao.project.ProjectFacade;
@@ -99,6 +103,8 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.security.AccessControlException;
+import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
+import org.glassfish.jersey.media.multipart.FormDataParam;
 
 import javax.ejb.EJB;
 import javax.ejb.TransactionAttribute;
@@ -118,9 +124,8 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.GenericEntity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.io.DataInputStream;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -183,6 +188,10 @@ public class DataSetService {
   private FeaturestoreController featurestoreController;
   @EJB
   private DsUpdateOperations dsUpdateOperations;
+  @EJB
+  private HdfsUsersController hdfsUsersBean;
+  @EJB
+  private InodeBasicMetadataFacade basicMetaFacade;
 
   private Integer projectId;
   private Project project;
@@ -1187,6 +1196,131 @@ public class DataSetService {
     this.uploader.setParams(project, path, templateId, false);
     return this.uploader;
   }
+
+
+  @POST
+  @Path("uploadhdfs/{path: .+}")
+  @Consumes(MediaType.MULTIPART_FORM_DATA)
+  @Produces(MediaType.APPLICATION_JSON)
+  @AllowedProjectRoles({AllowedProjectRoles.DATA_SCIENTIST, AllowedProjectRoles.DATA_OWNER})
+  @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
+  @ApiKeyRequired( acceptedScopes = {ApiScope.DATASET_CREATE}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
+  public Response uploadMethod(
+          @PathParam("path") String path,
+          @FormDataParam("file") InputStream uploadedInputStream,
+          @FormDataParam("file") FormDataContentDisposition fileDetail,
+          @FormDataParam("fileName") String fileName,
+          @Context SecurityContext sc) throws IOException, DatasetException, ProjectException {
+
+    Users user = jWTHelper.getUserPrincipal(sc);
+    String username = hdfsUsersBean.getHdfsUserName(project, user);
+    DsPath dsPath = pathValidator.validatePath(this.project, path);
+    Project owning = datasetController.getOwningProject(dsPath.getDs());
+    //Is user a member of this project? If so get their role
+    boolean isMember = projectTeamFacade.isUserMemberOfProject(owning, user);
+    String role = null;
+    if (isMember) {
+      role = projectTeamFacade.findCurrentRole(owning, user);
+    }
+
+    File tmpDir = Files.createTempDir();
+
+    LOGGER.info(String.format("PUT FILE INTO %s", tmpDir.getAbsolutePath()));
+
+    String uploadedFileLocation = String.format("%s/%s", tmpDir.getAbsolutePath(), fileName);
+
+    File  objFile = new File(uploadedFileLocation);
+    if(objFile.exists())
+    {
+      objFile.delete();
+    }
+
+    saveToFile(uploadedInputStream, uploadedFileLocation);
+
+    DistributedFileSystemOps dfsOps = null;
+
+    try {
+
+      RESTApiJsonResponse json = new RESTApiJsonResponse();
+
+      path = dsPath.getFullPath().toString();
+
+      org.apache.hadoop.fs.Path location = new org.apache.hadoop.fs.Path(path, fileName);
+
+      //If the user has a role in the owning project of the Dataset and that is Data Owner
+      //perform operation as superuser
+      if ((!Strings.isNullOrEmpty(role) && role.equals(AllowedProjectRoles.DATA_OWNER))) {
+        dfsOps = dfs.getDfsOps();
+      } else {
+        dfsOps = dfs.getDfsOps(username);
+      }
+
+      dfsOps.copyToHDFSFromLocal(true, uploadedFileLocation, location.toString());
+      dfsOps.setPermission(location, dfsOps.getParentPermission(location));
+      dfsOps.setOwner(location, username, dfsOps.getFileStatus(location).getGroup());
+
+      org.apache.hadoop.fs.Path parentPath = location.getParent();
+      while (!parentPath.getName().equals(project.getName())) {
+        LOGGER.info(String.format("PARENT PATH NAME %s", parentPath.getName()));
+        dfsOps.setOwner(parentPath, username, dfsOps.getFileStatus(location).getGroup());
+        parentPath = parentPath.getParent();
+      }
+
+      //this is a common file being uploaded so add basic metadata to it
+      //description and searchable
+
+      LOGGER.info(String.format("RECUPERO INODE AL PATH %s", location.toString()));
+
+      Inode fileInode = inodes.getInodeAtPath(location.toString());
+
+      LOGGER.info(String.format("RECUPERATO INODE %s", fileInode.toString()));
+
+      InodeBasicMetadata basicMeta = new InodeBasicMetadata(fileInode, "", true);
+
+      LOGGER.info(String.format("RECUPERATO INODEBASICMETADATA %s", basicMetaFacade.toString()));
+
+      this.basicMetaFacade.addBasicMetadata(basicMeta);
+
+      LOGGER.info("Copied to HDFS");
+
+      tmpDir.delete();
+
+      json.setSuccessMessage("Successfuly uploaded file to " + path);
+      return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).
+              entity(json).build();
+    } catch (AccessControlException ex) {
+      throw new AccessControlException(
+              "Permission denied: You can not upload to this folder. ");
+    } finally {
+      if (dfsOps != null) {
+        dfs.closeDfsClient(dfsOps);
+      }
+    }
+  }
+
+  private void saveToFile(InputStream uploadedInputStream,
+                          String uploadedFileLocation) {
+
+    try {
+      OutputStream out = null;
+      int read = 0;
+      byte[] bytes = new byte[1024];
+
+      out = new FileOutputStream(uploadedFileLocation);
+      while ((read = uploadedInputStream.read(bytes)) != -1) {
+        out.write(bytes, 0, read);
+      }
+      out.flush();
+      out.close();
+    } catch (IOException e) {
+
+      e.printStackTrace();
+    }
+
+  }
+
+
+
 
   @POST
   @Path("/attachTemplate")
