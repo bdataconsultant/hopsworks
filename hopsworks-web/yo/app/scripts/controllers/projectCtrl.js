@@ -46,10 +46,10 @@ angular.module('hopsWorksApp')
         .controller('ProjectCtrl', ['$scope', '$rootScope', '$location', '$routeParams', '$route', '$timeout', '$window', 'UtilsService',
           'growl', 'ProjectService', 'ModalService', 'ActivityService', '$cookies', 'DataSetService',
           'UserService', 'TourService', 'PythonService', 'StorageService', 'CertService', 'VariablesService', 'FileSaver', 'Blob',
-          'AirflowService', '$http',
+          'AirflowService', '$http', 'customerConfig',
         function ($scope, $rootScope, $location, $routeParams, $route, $timeout, $window, UtilsService, growl, ProjectService,
                   ModalService, ActivityService, $cookies, DataSetService, UserService, TourService, PythonService,
-                    StorageService, CertService, VariablesService, FileSaver, Blob, AirflowService, $http) {
+                    StorageService, CertService, VariablesService, FileSaver, Blob, AirflowService, $http, customerConfig) {
 
             var self = this;
             self.loadedView = false;
@@ -76,6 +76,8 @@ angular.module('hopsWorksApp')
                 $rootScope.showTourTips = false;
                 $rootScope.toggleTourTips();
             };
+            self.dataCatalogSidemenuUrl = customerConfig.dataCatalogSidemenuUrl;
+            self.nifiSidemenuUrl = customerConfig.nifiSidemenuUrl;
 
             // We could instead implement a service to get all the available types but this will do it for now
             if ($rootScope.isDelaEnabled) {
