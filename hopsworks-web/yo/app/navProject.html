@@ -149,15 +149,17 @@
         </a>
       </li>
 
-      <li style="cursor: pointer">
-        <a target="_blank" href="https://10.46.112.83:9443/nifi/login">
+      <li ng-if="!!projectCtrl.nifiSidemenuUrl"
+          style="cursor: pointer">
+        <a href="projectCtrl.nifiSidemenuUrl">
           <img src="images/icons/nifi_logo_white.png" style="width: 30px"/>
           <div style="font-size: 13px" class="ng-binding">NiFi</div>
         </a>
       </li>
       
-      <li style="cursor: pointer">
-        <a target="_blank" href="http://datacatalog-coll.dt.tesoro.it:21000">
+      <li ng-if="!!projectCtrl.dataCatalogSidemenuUrl" 
+          style="cursor: pointer">
+        <a href="projectCtrl.dataCatalogSidemenuUrl">
           <img src="images/icons/atlas_logo_white.png" style="width: 40px"/>
           <div style="font-size: 13px" class="ng-binding">Data catalog</div>
         </a>

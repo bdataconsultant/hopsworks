@@ -55,6 +55,9 @@
     </div>
     <!-- <div ng-include="'views/toursPanel.html'" ng-cloak=""></div> -->
     <div ng-include="'views/projectsPanel.html'" ng-cloak=""></div>
+    <div ng-if="mainCtrl.showPonFooter" class="pon-footer pon-footer-fixed">
+      <img src="images/pon-metro-logo.png"/>
+    </div>
   </div>
   <!-- <tour class="ng-scope" step="homeCtrl.tourService.currentStep_TourOne" post-tour="closeTour()" ng-if="homeCtrl.loadedView">
     <virtual-step
