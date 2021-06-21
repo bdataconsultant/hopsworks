@@ -101,6 +101,30 @@
           </modules>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>pl.project13.maven</groupId>
+        <artifactId>git-commit-id-plugin</artifactId>
+        <version>4.0.0</version>
+        <executions>
+            <execution>
+                <id>get-the-git-infos</id>
+                <goals>
+                    <goal>revision</goal>
+                </goals>
+                <phase>initialize</phase>
+            </execution>
+        </executions>
+        <configuration>
+            <generateGitPropertiesFile>true</generateGitPropertiesFile>
+            <generateGitPropertiesFilename>${project.build.directory}/giotto-ear/META-INF/git.properties</generateGitPropertiesFilename>
+            <includeOnlyProperties>
+              <includeOnlyProperty>^git.build.(time)$</includeOnlyProperty>
+              <includeOnlyProperty>^git.branch$</includeOnlyProperty>
+              <includeOnlyProperty>^git.commit.id.(full)$</includeOnlyProperty>
+              <includeOnlyProperty>^git.dirty$</includeOnlyProperty>            </includeOnlyProperties>
+            <commitIdGenerationMode>full</commitIdGenerationMode>
+        </configuration>
+      </plugin>
     </plugins>
     <finalName>giotto-ear</finalName>
   </build>
