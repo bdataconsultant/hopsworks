@@ -16,14 +16,18 @@
 
 package io.hops.hopsworks.common.dao.user.security.secrets;
 
-import io.hops.hopsworks.common.dao.user.Users;
+import io.hops.hopsworks.persistence.entity.user.Users;
+import io.hops.hopsworks.persistence.entity.user.security.secrets.Secret;
+import io.hops.hopsworks.persistence.entity.user.security.secrets.SecretId;
 
 import javax.ejb.Stateless;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
 import javax.persistence.EntityManager;
+import javax.persistence.NoResultException;
 import javax.persistence.PersistenceContext;
 import java.util.List;
+import java.util.Optional;
 
 @Stateless
 @TransactionAttribute(TransactionAttributeType.REQUIRED)
@@ -59,6 +63,17 @@ public class SecretsFacade {
     Secret secret = findById(id);
     if (secret != null) {
       entityManager.remove(secret);
+    }
+  }
+  
+  //only safe for secrets for s3 connectors because they are unique
+  public Optional<Secret> findByName(String name) {
+    try {
+      return Optional.of(entityManager.createNamedQuery("Secret.findByName", Secret.class)
+          .setParameter("name", name)
+          .getSingleResult());
+    } catch (NoResultException e) {
+      return Optional.empty();
     }
   }
   

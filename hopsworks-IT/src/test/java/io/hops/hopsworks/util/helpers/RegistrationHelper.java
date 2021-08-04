@@ -19,7 +19,7 @@ import io.hops.hopsworks.WebDriverFactory;
 import io.hops.hopsworks.util.DBHelper;
 import io.hops.hopsworks.util.Helpers;
 import io.hops.hopsworks.util.JavascriptExec;
-import io.hops.hopsworks.util.User;
+import io.hops.hopsworks.util.models.User;
 import org.openqa.selenium.By;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.WebDriver;
@@ -58,12 +58,8 @@ public class RegistrationHelper {
     driver.findElement(By.name("first_name")).sendKeys(firstName);
     driver.findElement(By.name("last_name")).sendKeys(lastName);
     driver.findElement(By.name("user_email")).sendKeys(email);
-    driver.findElement(By.name("phone_number")).sendKeys("1234567890");
     driver.findElement(By.id("id-password")).sendKeys(password);
     driver.findElement(By.name("user_password_confirm")).sendKeys(password);
-    Select seqQA = new Select(driver.findElement(By.name("sec_question")));
-    seqQA.selectByVisibleText("Name of your first pet?");
-    driver.findElement(By.name("sec_answer")).sendKeys("pet");
     driver.findElement(By.name("user_agreed")).click();
     WebElement testUserElement = driver.findElement(By.name("test_user"));
     JavascriptExec.jsClick(driver, testUserElement);
@@ -78,15 +74,16 @@ public class RegistrationHelper {
     gotoRegisterPage(driver);
     registerTest(firstName, lastName, email, password, twoFactor, driver, dbHelper);
     if (twoFactor) {
-      assertEquals("Four steps, and you're there...", driver.findElement(
-        By.xpath("(.//*[normalize-space(text()) and normalize-space(.)='Hopsworks'])[2]/following::h1[1]"))
+      assertEquals("Four steps, and you're there...", driver.findElement(By.id("two_factor_four_steps"))
         .getText());
       driver.findElement(By.linkText("Ok")).click();
     } else {
-      String attribute = driver.findElement(By.xpath("//div[contains(@class, \"panel-body\")]/div[3]")).getAttribute(
-        "aria-hidden");
+      Helpers.waitForElementVisibility(By.id("regSuccess"), driver);
+      String successAttr = driver.findElement(By.id("regSuccess")).getAttribute("aria-hidden");
+      String errorAttr = driver.findElement(By.id("regError")).getAttribute("aria-hidden");
       //assert no error msg
-      assertEquals("true", attribute);
+      assertEquals("true", errorAttr);
+      assertEquals("false", successAttr);
       driver.findElement(By.linkText("Sign in")).click();
     }
   }

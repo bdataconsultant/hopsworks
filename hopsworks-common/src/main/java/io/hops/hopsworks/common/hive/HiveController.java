@@ -39,28 +39,34 @@
 
 package io.hops.hopsworks.common.hive;
 
-import io.hops.hopsworks.common.dao.dataset.Dataset;
+import com.logicalclocks.servicediscoverclient.exceptions.ServiceDiscoveryException;
+import com.logicalclocks.servicediscoverclient.service.Service;
 import io.hops.hopsworks.common.dao.dataset.DatasetFacade;
-import io.hops.hopsworks.common.dao.dataset.DatasetType;
-import io.hops.hopsworks.common.dao.featurestore.Featurestore;
-import io.hops.hopsworks.common.dao.hdfs.inode.Inode;
-import io.hops.hopsworks.common.dao.hdfs.inode.InodeFacade;
-import io.hops.hopsworks.common.dao.hdfsUser.HdfsUsers;
-import io.hops.hopsworks.common.dao.log.operation.OperationType;
-import io.hops.hopsworks.common.dao.project.Project;
 import io.hops.hopsworks.common.dao.project.ProjectFacade;
-import io.hops.hopsworks.common.dao.user.Users;
 import io.hops.hopsworks.common.dao.user.activity.ActivityFacade;
-import io.hops.hopsworks.common.dao.user.activity.ActivityFlag;
 import io.hops.hopsworks.common.dataset.DatasetController;
-import io.hops.hopsworks.common.featorestore.FeaturestoreConstants;
+import io.hops.hopsworks.common.featurestore.FeaturestoreConstants;
 import io.hops.hopsworks.common.hdfs.DistributedFileSystemOps;
 import io.hops.hopsworks.common.hdfs.FsPermissions;
 import io.hops.hopsworks.common.hdfs.HdfsUsersController;
+import io.hops.hopsworks.common.hdfs.inode.InodeController;
+import io.hops.hopsworks.common.hosts.ServiceDiscoveryController;
+import io.hops.hopsworks.common.provenance.core.HopsFSProvenanceController;
+import io.hops.hopsworks.common.provenance.core.dto.ProvTypeDTO;
 import io.hops.hopsworks.common.security.BaseHadoopClientsService;
 import io.hops.hopsworks.common.util.Settings;
+import io.hops.hopsworks.exceptions.ProvenanceException;
+import io.hops.hopsworks.persistence.entity.dataset.Dataset;
+import io.hops.hopsworks.persistence.entity.dataset.DatasetAccessPermission;
+import io.hops.hopsworks.persistence.entity.dataset.DatasetType;
+import io.hops.hopsworks.persistence.entity.featurestore.Featurestore;
+import io.hops.hopsworks.persistence.entity.hdfs.inode.Inode;
+import io.hops.hopsworks.persistence.entity.hdfs.user.HdfsUsers;
+import io.hops.hopsworks.persistence.entity.log.operation.OperationType;
+import io.hops.hopsworks.persistence.entity.project.Project;
+import io.hops.hopsworks.persistence.entity.user.Users;
+import io.hops.hopsworks.persistence.entity.user.activity.ActivityFlag;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.permission.FsPermission;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -85,7 +91,7 @@ public class HiveController {
   @EJB
   private HdfsUsersController hdfsUsersBean;
   @EJB
-  private InodeFacade inodeFacade;
+  private InodeController inodeController;
   @EJB
   private DatasetFacade datasetFacade;
   @EJB
@@ -96,6 +102,10 @@ public class HiveController {
   private DatasetController datasetController;
   @EJB
   private ActivityFacade activityFacade;
+  @EJB
+  private HopsFSProvenanceController fsProvenanceCtrl;
+  @EJB
+  private ServiceDiscoveryController serviceDiscoveryController;
 
   private final static String driver = "org.apache.hive.jdbc.HiveDriver";
   private final static Logger logger = Logger.getLogger(HiveController.class.getName());
@@ -113,9 +123,9 @@ public class HiveController {
     }
   }
 
-  private void initConnection() throws SQLException {
+  private void initConnection() throws SQLException, ServiceDiscoveryException {
     // Create connection url
-    String hiveEndpoint = settings.getHiveServerHostName(false);
+    String hiveEndpoint = getHiveServerInternalEndpoint();
     jdbcString = "jdbc:hive2://" + hiveEndpoint + "/default;" +
       "auth=noSasl;ssl=true;twoWay=true;" +
       "sslTrustStore=" + bhcs.getSuperTrustStorePath() + ";" +
@@ -149,8 +159,8 @@ public class HiveController {
    */
   @TransactionAttribute(TransactionAttributeType.NEVER)
   public void createDatasetDb(Project project, Users user, DistributedFileSystemOps dfso,
-                              String dbName) throws IOException {
-    createDatasetDb(project, user, dfso, dbName, DatasetType.HIVEDB, null);
+                              String dbName, ProvTypeDTO metaStatus) throws IOException {
+    createDatasetDb(project, user, dfso, dbName, DatasetType.HIVEDB, null, metaStatus);
   }
 
   /**
@@ -166,47 +176,49 @@ public class HiveController {
    * @throws IOException
    */
   @TransactionAttribute(TransactionAttributeType.NEVER)
-  public void createDatasetDb(Project project, Users user, DistributedFileSystemOps dfso,
-                               String dbName, DatasetType datasetType, Featurestore featurestore) throws IOException {
+  public void createDatasetDb(Project project, Users user, DistributedFileSystemOps dfso, String dbName,
+    DatasetType datasetType, Featurestore featurestore, ProvTypeDTO metaStatus)
+    throws IOException {
     if(datasetType != DatasetType.HIVEDB && datasetType != DatasetType.FEATURESTORE) {
       throw new IllegalArgumentException("Invalid dataset type for hive database");
     }
 
     // Hive database names are case insensitive and lower case
     Path dbPath = getDbPath(dbName);
-    Inode dbInode = inodeFacade.getInodeAtPath(dbPath.toString());
+    Inode dbInode = inodeController.getInodeAtPath(dbPath.toString());
 
     // Persist Hive db as dataset in the Hopsworks database
-    Dataset dbDataset = new Dataset(dbInode, project);
-    dbDataset.setType(datasetType);
+    // Make the dataset editable by default
+    Dataset dbDataset = new Dataset(dbInode, project, DatasetAccessPermission.EDITABLE);
+    dbDataset.setDsType(datasetType);
     dbDataset.setSearchable(true);
-    dbDataset.setFeaturestore(featurestore);
+    dbDataset.setFeatureStore(featurestore);
     datasetFacade.persistDataset(dbDataset);
-
-    dfso.setMetaEnabled(dbPath);
-    datasetController.logDataset(dbDataset, OperationType.Add);
-  
-    activityFacade.persistActivity(ActivityFacade.NEW_DATA + dbDataset.getName(), project, user, ActivityFlag.DATASET);
 
     try {
       // Assign database directory to the user and project group
-      hdfsUsersBean.addDatasetUsersGroups(user, project, dbDataset, dfso);
-
-      // Make the dataset editable by default
-      final FsPermission fsPermission = FsPermissions.rwxrwx___T;
-      dfso.setPermission(dbPath, fsPermission);
+      hdfsUsersBean.createDatasetGroupsAndSetPermissions(user, project, dbDataset, dbPath, dfso);
+  
+      fsProvenanceCtrl.updateHiveDatasetProvCore(project, dbPath.toString(), metaStatus, dfso);
+      datasetController.logDataset(project, dbDataset, OperationType.Add);
+      activityFacade.persistActivity(ActivityFacade.NEW_DATA + dbDataset.getName(), project, user,
+        ActivityFlag.DATASET);
 
       // Set the default quota
       switch (datasetType) {
         case HIVEDB:
-          dfso.setHdfsSpaceQuotaInMBs(dbPath, settings.getHiveDbDefaultQuota());
+          if (settings.getHiveDbDefaultQuota() > -1) {
+            dfso.setHdfsSpaceQuotaInMBs(dbPath, settings.getHiveDbDefaultQuota());
+          }
           break;
         case FEATURESTORE:
-          dfso.setHdfsSpaceQuotaInMBs(dbPath, settings.getFeaturestoreDbDefaultQuota());
+          if (settings.getFeaturestoreDbDefaultQuota() > -1) {
+            dfso.setHdfsSpaceQuotaInMBs(dbPath, settings.getFeaturestoreDbDefaultQuota());
+          }
           break;
       }
       projectFacade.setTimestampQuotaUpdate(project, new Date());
-    } catch (IOException e) {
+    } catch (IOException | ProvenanceException e) {
       logger.log(Level.SEVERE, "Cannot assign Hive database directory " + dbPath.toString() +
           " to correct user/group. Trace: " + e);
 
@@ -215,8 +227,7 @@ public class HiveController {
         dfso.rm(dbPath, true);
       } catch (IOException rmEx) {
         // Nothing we can really do here
-        logger.log(Level.SEVERE, "Cannot delete Hive database directory: " + dbPath.toString() +
-            " Trace: " + rmEx);
+        logger.log(Level.SEVERE, "Cannot delete Hive database directory: " + dbPath.toString() + " Trace: " + rmEx);
       }
       throw new IOException(e);
     }
@@ -231,7 +242,7 @@ public class HiveController {
    */
   @TransactionAttribute(TransactionAttributeType.NEVER)
   public void createDatabase(String dbName, String dbComment)
-      throws SQLException {
+      throws SQLException, ServiceDiscoveryException {
     if (conn == null || conn.isClosed()) {
       initConnection();
     }
@@ -256,12 +267,12 @@ public class HiveController {
       .getByProjectAndDsName(project, this.settings.getHiveWarehouse(), project.getName().toLowerCase() + ".db");
     Dataset featurestoreDs = datasetController.getByProjectAndDsName(project, this.settings.getHiveWarehouse(),
       project.getName().toLowerCase() + FeaturestoreConstants.FEATURESTORE_HIVE_DB_SUFFIX + ".db");
-    if ((projectDs != null && projectDs.getType() == DatasetType.HIVEDB)
+    if ((projectDs != null && projectDs.getDsType() == DatasetType.HIVEDB)
         || forceCleanup) {
       dropDatabase(project, dfso, project.getName());
     }
 
-    if ((featurestoreDs != null && featurestoreDs.getType() == DatasetType.FEATURESTORE)
+    if ((featurestoreDs != null && featurestoreDs.getDsType() == DatasetType.FEATURESTORE)
         || forceCleanup) {
       dropDatabase(project, dfso, project.getName() + FeaturestoreConstants.FEATURESTORE_HIVE_DB_SUFFIX);
     }
@@ -280,4 +291,19 @@ public class HiveController {
     return new Path(settings.getHiveWarehouse(), dbName.toLowerCase() + ".db");
   }
 
+  @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
+  public String getHiveServerExternalEndpoint() throws ServiceDiscoveryException {
+    return getHiveServerEndpoint(ServiceDiscoveryController.HopsworksService.HIVE_SERVER_PLAIN);
+  }
+
+  @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
+  public String getHiveServerInternalEndpoint() throws ServiceDiscoveryException {
+    return getHiveServerEndpoint(ServiceDiscoveryController.HopsworksService.HIVE_SERVER_TLS);
+  }
+
+  private String getHiveServerEndpoint(ServiceDiscoveryController.HopsworksService service)
+      throws ServiceDiscoveryException {
+    Service hive = serviceDiscoveryController.getAnyAddressOfServiceWithDNS(service);
+    return hive.getAddress() + ":" + hive.getPort();
+  }
 }

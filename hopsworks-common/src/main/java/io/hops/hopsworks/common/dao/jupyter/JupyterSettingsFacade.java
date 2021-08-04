@@ -47,8 +47,13 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.TypedQuery;
 
-import io.hops.hopsworks.common.jobs.spark.ExperimentType;
-import io.hops.hopsworks.common.jobs.spark.SparkJobConfiguration;
+import io.hops.hopsworks.common.hdfs.Utils;
+import io.hops.hopsworks.common.util.Settings;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.ExperimentType;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.spark.SparkJobConfiguration;
+import io.hops.hopsworks.persistence.entity.jupyter.JupyterSettings;
+import io.hops.hopsworks.persistence.entity.jupyter.JupyterSettingsPK;
+import io.hops.hopsworks.persistence.entity.project.Project;
 import org.apache.commons.codec.digest.DigestUtils;
 
 /**
@@ -81,9 +86,9 @@ public class JupyterSettingsFacade {
     return query.getResultList();
   }
 
-  public JupyterSettings findByProjectUser(int projectId, String email) {
+  public JupyterSettings findByProjectUser(Project project, String email) {
 
-    JupyterSettingsPK pk = new JupyterSettingsPK(projectId, email);
+    JupyterSettingsPK pk = new JupyterSettingsPK(project.getId(), email);
     JupyterSettings js;
     js = em.find(JupyterSettings.class, pk);
     if (js == null) {
@@ -92,8 +97,10 @@ public class JupyterSettingsFacade {
       js = new JupyterSettings(pk);
       js.setSecret(secret);
       js.setJobConfig(new SparkJobConfiguration(ExperimentType.EXPERIMENT));
+      js.setBaseDir(Utils.getProjectPath(project.getName()) + Settings.ServiceDataset.JUPYTER.getName());
       persist(js);
-    } else if(js.getJobConfig() == null) {
+    }
+    if(js.getJobConfig() == null) {
       js.setJobConfig(new SparkJobConfiguration(ExperimentType.EXPERIMENT));
     }
     return js;

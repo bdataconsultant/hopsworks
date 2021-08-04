@@ -40,14 +40,18 @@
 package io.hops.hopsworks.common.jobs.flink;
 
 import com.google.common.base.Strings;
-import io.hops.hopsworks.common.dao.jobs.description.Jobs;
-import io.hops.hopsworks.common.dao.project.Project;
+import com.logicalclocks.servicediscoverclient.exceptions.ServiceDiscoveryException;
 import io.hops.hopsworks.common.hdfs.DistributedFileSystemOps;
+import io.hops.hopsworks.common.hosts.ServiceDiscoveryController;
 import io.hops.hopsworks.common.jobs.AsynchronousJobExecutor;
-import io.hops.hopsworks.common.jobs.configuration.JobType;
 import io.hops.hopsworks.common.jobs.yarn.YarnRunner;
 import io.hops.hopsworks.common.util.FlinkConfigurationUtil;
+import io.hops.hopsworks.common.util.ProjectUtils;
 import io.hops.hopsworks.common.util.Settings;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.JobType;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.flink.FlinkJobConfiguration;
+import io.hops.hopsworks.persistence.entity.jobs.description.Jobs;
+import io.hops.hopsworks.persistence.entity.project.Project;
 import org.apache.flink.client.deployment.ClusterSpecification;
 import org.apache.flink.yarn.YarnClusterDescriptor;
 import org.apache.hadoop.conf.Configuration;
@@ -102,7 +106,10 @@ public class FlinkYarnRunnerBuilder {
   }
 
   YarnRunner getYarnRunner(Project project, String jobUser, DistributedFileSystemOps dfsClient,
-    YarnClient yarnClient, AsynchronousJobExecutor services, Settings settings) throws IOException {
+                           YarnClient yarnClient, AsynchronousJobExecutor services, Settings settings,
+                           String kafkaBrokersString, String hopsworksRestEndpoint,
+                           ServiceDiscoveryController serviceDiscoveryController)
+      throws IOException, ServiceDiscoveryException {
 
     String stagingPath = File.separator + "Projects" + File.separator + project.getName() + File.separator
             + Settings.PROJECT_STAGING_DIR;
@@ -127,7 +134,8 @@ public class FlinkYarnRunnerBuilder {
       project.getName().toLowerCase() + "," + job.getName() + "," + job.getId() + "," + YarnRunner.APPID_PLACEHOLDER);
   
     Map<String, String> finalJobProps = flinkConfigurationUtil
-      .getFrameworkProperties(project, job.getJobConfig(), settings, jobUser, null, null, extraJavaOptions);
+      .setFrameworkProperties(project, job.getJobConfig(), settings, jobUser, extraJavaOptions,
+          kafkaBrokersString, hopsworksRestEndpoint, serviceDiscoveryController);
   
     //Parse properties from Spark config file
     Yaml yaml = new Yaml();
@@ -150,15 +158,9 @@ public class FlinkYarnRunnerBuilder {
                  .createClusterSpecification();
     
     cluster.setLocalJarPath(new Path(settings.getLocalFlinkJarPath()));
-//    if (flinkJobConfiguration.getJobType() == JobType.BEAM_FLINK) {
-//      cluster.addHopsLocalResources("sdk_worker.sh", "hdfs:///user/flink/sdk_worker.sh");
-//      cluster.addHopsLocalResources("boot", "hdfs:///user/flink/boot");
-//    }
-    // Glassfish domain truststore
-    cluster.addHopsLocalResources(Settings.DOMAIN_CA_TRUSTSTORE, settings.getGlassfishTrustStoreHdfs());
-    // Add HopsUtil
-//    cluster.addHopsLocalResources("hops-util.jar", settings.getHopsUtilHdfsPath());
-  
+    cluster.setDocker(ProjectUtils.getFullDockerImageName(project, settings, serviceDiscoveryController, true),
+        settings.getDockerMounts());
+
     builder.setYarnClient(yarnClient);
     builder.setDfsClient(dfsClient);
     builder.setFlinkCluster(cluster);
@@ -166,7 +168,7 @@ public class FlinkYarnRunnerBuilder {
     builder.localResourcesBasePath(stagingPath);
   
     //If "CONDA" is not the first in order of dynamic properties, the sdk_worker.sh script in chef needs to be updated.
-    addDynamicProperty("CONDA", settings.getCurrentCondaEnvironment(project));
+    addDynamicProperty("CONDA", settings.getCurrentCondaEnvironment());
     addDynamicProperty(Settings.LOGSTASH_JOB_INFO,
       project.getName().toLowerCase() + "," + job.getName() + "," + job.getId() + "," + YarnRunner.APPID_PLACEHOLDER);
   

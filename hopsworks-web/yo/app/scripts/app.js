@@ -168,6 +168,36 @@ angular.module('hopsWorksApp', [
                         templateUrl: 'views/error.html',
                         controller: 'ErrorCtrl as errorCtrl'
                     })
+                    .when('/search', {
+                        templateUrl: 'views/search/search.html',
+                        controller: 'SearchCtrl as searchCtrl',
+                        resolve: {
+                            auth: ['$q','AuthGuardService',
+                                function ($q, AuthGuardService) {
+                                    return AuthGuardService.guardSession($q);
+                                }]
+                        }
+                    })
+                    .when('/project/:projectID/search', {
+                        templateUrl: 'views/search/search.html',
+                        controller: 'SearchCtrl as searchCtrl',
+                        resolve: {
+                            auth: ['$q','AuthGuardService',
+                                function ($q, AuthGuardService) {
+                                    return AuthGuardService.guardSession($q);
+                                }]
+                        }
+                    })
+                    .when('/project/:projectID/datasets/:datasetName/:fileName*?/search', {
+                        templateUrl: 'views/search/search.html',
+                        controller: 'SearchCtrl as searchCtrl',
+                        resolve: {
+                            auth: ['$q','AuthGuardService',
+                                function ($q, AuthGuardService) {
+                                    return AuthGuardService.guardSession($q);
+                                }]
+                        }
+                    })
                    .when('/register', {
                       templateUrl: 'views/register.html',
                       controller: 'RegCtrl as regCtrl',
@@ -241,7 +271,6 @@ angular.module('hopsWorksApp', [
                           }]
                       }
                     })
-
                     .when('/project/:projectID/datasets/:datasetName/:fileName*?', {
                       templateUrl: 'views/datasetsBrowser.html',
                       controller: 'ProjectCtrl as projectCtrl',
@@ -300,6 +329,16 @@ angular.module('hopsWorksApp', [
                                       return $q.reject(err);
                                     });
                           }]
+                      }
+                    })
+                    .when('/project/:projectID/airflow/dagcomposer', {
+                      templateUrl: 'views/dagComposer.html',
+                      controller: 'ProjectCtrl as projectCtrl',
+                      resolve: {
+                        auth: ['$q', '$route', 'AuthGuardService',
+                        function ($q, $route, AuthGuardService) {
+                          return AuthGuardService.guardProject($q, $route.current.params.projectID);
+                        }]
                       }
                     })
                     .when('/project/:projectID/newjob', {
@@ -402,8 +441,8 @@ angular.module('hopsWorksApp', [
                           }]
                       }
                     })
-                    .when('/project/:projectID/metadata', {
-                      templateUrl: 'views/metadata.html',
+                    .when('/project/:projectID/models', {
+                      templateUrl: 'views/models.html',
                       controller: 'ProjectCtrl as projectCtrl',
                       resolve: {
                         auth: ['$q', '$route', 'AuthGuardService',
@@ -472,16 +511,6 @@ angular.module('hopsWorksApp', [
                             }]
                     }
                 })
-                .when('/project/:projectID/featurestore/datavalidation', {
-                  templateUrl: 'views/dataValidation.html',
-                  controller: 'ProjectCtrl as projectCtrl',
-                  resolve: {
-                    auth: ['$q', '$route', 'AuthGuardService',
-                          function ($q, $route, AuthGuardService) {
-                            return AuthGuardService.guardProject($q, $route.current.params.projectID);
-                          }]
-                  }
-                })
                 .otherwise({
                   redirectTo: '/'
                 });
@@ -545,6 +574,20 @@ angular.module('hopsWorksApp', [
             return text;
           };
         })
+        .filter('highlightText', function () {
+            return function (text, highlight, term) {
+                if (typeof highlight !== 'undefined') {
+                    return text.replace(new RegExp(term, 'gi'), '<span class="highlight-search-result">$&</span>');
+                } else {
+                    //until dataset and project highlight is fixed
+                    if (text !== undefined && text.toLowerCase().includes(term.toLowerCase())) {
+                        return text.replace(new RegExp(term, 'gi'), '<span class="highlight-search-result">$&</span>');
+                    } else {
+                        return text;
+                    }
+                }
+            };
+        })
         //restrict the number of displayed characters
         .filter('cut', function () {
           return function (value, wordwise, max, tail) {
@@ -570,8 +613,11 @@ angular.module('hopsWorksApp', [
         })
         .filter('strLimit', ['$filter', function($filter) {
             return function(input, limit, more) {
+                if (typeof input === 'undefined') {
+                  return "";
+                }
                 if (input.length <= limit) {
-                    return input;
+                  return input;
                 }
                 return $filter('limitTo')(input, limit) + (more || '...');
             };
@@ -593,7 +639,7 @@ angular.module('hopsWorksApp', [
         }])
         .filter('humanReadableFileSize', ['$filter', 'fileManagerConfig', function($filter, fileManagerConfig) {
           // See https://en.wikipedia.org/wiki/Binary_prefix
-          var decimalByteUnits = [' kB', ' MB', ' GB', ' TB', 'PB', 'EB', 'ZB', 'YB'];
+          var decimalByteUnits = [' KB', ' MB', ' GB', ' TB', 'PB', 'EB', 'ZB', 'YB'];
           var binaryByteUnits = ['KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB'];
 
           return function(input) {
@@ -609,6 +655,20 @@ angular.module('hopsWorksApp', [
             return Math.max(fileSizeInBytes, 0.1).toFixed(1) + ' ' + result;
           };
         }])
+        .filter('dateRangeFilter', ['$filter', function() {
+            return function(items, fieldName, fromDate, toDate) {
+                var filtered = [];
+                var from_date = typeof fromDate === 'undefined'? new Date(null) : new Date(fromDate);
+                var to_date = typeof toDate === 'undefined'? new Date() : new Date(toDate);
+                angular.forEach(items, function(item) {
+                    var createdDate = new Date(item[fieldName]);
+                    if(createdDate.getTime() >= from_date.getTime() && createdDate.getTime() <= to_date.getTime()) {
+                        filtered.push(item);
+                    }
+                });
+                return filtered;
+            };
+        }])
         .filter('dateRangeFilterFeaturegroups', ['$filter', function() {
             return function(items, fromDate, toDate) {
                 var filtered = [];
@@ -623,26 +683,6 @@ angular.module('hopsWorksApp', [
                 return filtered;
             };
         }])
-        .filter('dateRangeFilterFeatures', ['$filter', function() {
-            return function(items, fromDate, toDate) {
-                var filtered = [];
-                //var from_date = Date.parse(fromDate);
-                // var to_date = Date.parse(toDate);
-                angular.forEach(items, function(item) {
-                    var createdDate = new Date(item.date)
-                    if(createdDate > fromDate && createdDate < toDate) {
-                        filtered.push(item);
-                    }
-                });
-                return filtered;
-            };
-        }])
-        .filter('featuresNotInFeaturegroupsFilter', ['$filter', function() {
-        return function(item) {
-            var filtered = [];
-            return filtered;
-        };
-        }])
         .filter('featureSearchFilterByFg', ['$filter', function() {
             return function(items, searchText) {
                 var filtered = [];
@@ -651,11 +691,7 @@ angular.module('hopsWorksApp', [
                         if (item.featuregroup.name.indexOf(searchText) >= 0 ) {
                             filtered.push(item);
                         }
-                    } else {
-                        if (item.trainingDataset.name.indexOf(searchText) >= 0 ) {
-                            filtered.push(item);
-                        }
-                    }
+                    } 
                 });
                 return filtered;
             };

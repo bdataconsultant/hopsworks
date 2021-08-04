@@ -16,8 +16,8 @@
 package io.hops.hopsworks.admin.user.administration;
 
 import io.hops.hopsworks.common.dao.user.UserFacade;
-import io.hops.hopsworks.common.dao.user.Users;
-import io.hops.hopsworks.common.dao.user.security.ua.UserAccountType;
+import io.hops.hopsworks.persistence.entity.user.Users;
+import io.hops.hopsworks.persistence.entity.user.security.ua.UserAccountType;
 import org.primefaces.model.LazyDataModel;
 
 import javax.annotation.PostConstruct;
@@ -70,7 +70,7 @@ public class SpamUserAdministrationBean implements Serializable {
   }
   
   public void deleteUser(Users user) {
-    userAdministrationController.deleteUser(user);
+    userAdministrationController.deleteSpamUser(user);
     LOGGER.log(Level.FINE, "Deleted spam user: {0}", user.getEmail());
   }
   

@@ -38,8 +38,7 @@
   ~ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
   -->
 
-<beans
-        xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+<beans  xmlns="http://xmlns.jcp.org/xml/ns/javaee"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee 
                       http://xmlns.jcp.org/xml/ns/javaee/beans_1_1.xsd"
@@ -48,5 +47,7 @@
         <stereotype>io.hops.hopsworks.common.integrations.LocalhostStereotype</stereotype>
         <stereotype>io.hops.hopsworks.common.integrations.NullJupyterNbVCSStereotype</stereotype>
         <stereotype>io.hops.hopsworks.common.integrations.CommunityStereotype</stereotype>
+        <stereotype>io.hops.hopsworks.common.integrations.UnmanagedStereotype</stereotype>
+        <stereotype>io.hops.hopsworks.common.integrations.NullRemoteAuthStereotype</stereotype>
     </alternatives>
 </beans>

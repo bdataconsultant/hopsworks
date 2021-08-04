@@ -40,31 +40,31 @@ package io.hops.hopsworks.admin.user.profile;
 
 import io.hops.hopsworks.admin.maintenance.ClientSessionState;
 import io.hops.hopsworks.admin.maintenance.MessagesController;
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
+import io.hops.hopsworks.admin.user.administration.AuditedUserAdministration;
+import io.hops.hopsworks.common.dao.user.BbcGroupFacade;
+import io.hops.hopsworks.common.dao.user.UserFacade;
+import io.hops.hopsworks.common.dao.user.security.audit.AccountAuditFacade;
+import io.hops.hopsworks.common.user.UsersController;
+import io.hops.hopsworks.exceptions.UserException;
+import io.hops.hopsworks.persistence.entity.user.BbcGroup;
+import io.hops.hopsworks.persistence.entity.user.Users;
+import io.hops.hopsworks.persistence.entity.user.security.audit.Userlogins;
+import io.hops.hopsworks.persistence.entity.user.security.ua.UserAccountStatus;
+import org.primefaces.context.RequestContext;
+import org.primefaces.extensions.event.ClipboardErrorEvent;
+import org.primefaces.extensions.event.ClipboardSuccessEvent;
+
 import javax.annotation.PostConstruct;
 import javax.ejb.EJB;
 import javax.faces.bean.ManagedBean;
 import javax.faces.bean.ManagedProperty;
 import javax.faces.bean.ViewScoped;
 import javax.faces.context.FacesContext;
+import javax.mail.MessagingException;
 import javax.servlet.http.HttpServletRequest;
-
-import io.hops.hopsworks.admin.user.administration.UserAdministrationController;
-import io.hops.hopsworks.common.dao.user.security.Address;
-import io.hops.hopsworks.common.dao.user.BbcGroup;
-import io.hops.hopsworks.common.dao.user.Users;
-import io.hops.hopsworks.common.dao.user.BbcGroupFacade;
-import io.hops.hopsworks.common.dao.user.UserFacade;
-import io.hops.hopsworks.common.dao.user.security.audit.AccountsAuditActions;
-import io.hops.hopsworks.common.dao.user.security.audit.AccountAuditFacade;
-import io.hops.hopsworks.common.dao.user.security.audit.RolesAuditAction;
-import io.hops.hopsworks.common.dao.user.security.audit.UserAuditActions;
-import io.hops.hopsworks.common.dao.user.security.audit.Userlogins;
-import io.hops.hopsworks.common.dao.user.security.ua.UserAccountStatus;
-import io.hops.hopsworks.common.user.UsersController;
-
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -73,22 +73,18 @@ import java.util.logging.Logger;
 public class AdminProfileAdministration implements Serializable {
 
   private static final long serialVersionUID = 1L;
+  private static final Logger LOGGER = Logger.getLogger(AdminProfileAdministration.class.getName());
 
   @EJB
   private UserFacade userFacade;
   @EJB
   protected UsersController usersController;
-
-  @EJB
-  private AccountAuditFacade am;
-
   @EJB
   private BbcGroupFacade bbcGroupFacade;
-  
   @EJB
   private AccountAuditFacade auditManager;
   @EJB
-  protected UserAdministrationController userAdministrationController;
+  private AuditedUserAdministration auditedUserAdministration;
 
   @ManagedProperty(value = "#{clientSessionState}")
   private ClientSessionState sessionState;
@@ -122,15 +118,7 @@ public class AdminProfileAdministration implements Serializable {
 
   private Userlogins login;
 
-  private Address address;
-
-  public Address getAddress() {
-    return address;
-  }
-
-  public void setAddress(Address address) {
-    this.address = address;
-  }
+  private String newPassword;
 
   public Userlogins getLogin() {
     return login;
@@ -161,7 +149,7 @@ public class AdminProfileAdministration implements Serializable {
   }
 
   public String accountTypeStr() {
-    return userAdministrationController.getAccountType(this.editingUser.getMode());
+    return this.editingUser.getMode().getAccountType();
   }
 
   public List<String> getUserRole(Users p) {
@@ -200,7 +188,15 @@ public class AdminProfileAdministration implements Serializable {
   public void setSelectedGroup(String selectedGroup) {
     this.selectedGroup = selectedGroup;
   }
-
+  
+  public String getNewPassword() {
+    return newPassword;
+  }
+  
+  public void setNewPassword(String newPassword) {
+    this.newPassword = newPassword;
+  }
+  
   /**
    * Filter the current groups of the user.
    *
@@ -233,6 +229,10 @@ public class AdminProfileAdministration implements Serializable {
     this.editStatus = userFacade.findByEmail(this.editingUser.getEmail()).getStatus().name();
     return this.editStatus;
   }
+  
+  public void updateEditingUser() {
+    this.editingUser = userFacade.findByEmail(this.editingUser.getEmail());
+  }
 
   @PostConstruct
   public void init() {
@@ -246,7 +246,6 @@ public class AdminProfileAdministration implements Serializable {
 
     editingUser = (Users) FacesContext.getCurrentInstance().getExternalContext().getSessionMap().get("editinguser");
     if (editingUser != null) {
-      address = editingUser.getAddress();
       login = (Userlogins) FacesContext.getCurrentInstance().getExternalContext().getSessionMap().get(
           "editinguser_logins");
     } else {
@@ -295,72 +294,60 @@ public class AdminProfileAdministration implements Serializable {
    * Update user roles from profile by admin.
    */
   public void updateStatusByAdmin() {
-    HttpServletRequest httpServletRequest = (HttpServletRequest) FacesContext.
-        getCurrentInstance().getExternalContext().getRequest();
+    HttpServletRequest httpServletRequest = (HttpServletRequest) FacesContext.getCurrentInstance().getExternalContext()
+      .getRequest();
     // Update status
     if (!"#!".equals(selectedStatus)) {
-      editingUser.setStatus(UserAccountStatus.valueOf(selectedStatus));
+      UserAccountStatus status = UserAccountStatus.valueOf(selectedStatus);
       try {
-        userFacade.updateStatus(editingUser.getEmail(), UserAccountStatus.valueOf(selectedStatus));
-        am.registerAccountChange(sessionState.getLoggedInUser(), AccountsAuditActions.CHANGEDSTATUS.name(),
-            UserAuditActions.SUCCESS.name(), selectedStatus, editingUser, httpServletRequest);
-        MessagesController.addInfoMessage("Success", "Status updated successfully.");
-      } catch (Exception ex) {
-        MessagesController.addInfoMessage("Problem", "Could not update account status.");
-        Logger.getLogger(AdminProfileAdministration.class.getName()).log(Level.SEVERE, null, ex);
+        auditedUserAdministration.changeStatus(editingUser, status, httpServletRequest);
+        editingUser = userFacade.find(editingUser.getUid());
+        MessagesController.addInfoMessage("User " + editingUser.getEmail() + " status updated successfully.");
+      } catch (UserException ex) {
+        MessagesController.addInfoMessage("Problem Could not update account status.", ex.getMessage());
+        LOGGER.log(Level.SEVERE, "Problem Could not update account status.", ex);
       }
     } else {
-      am.registerAccountChange(sessionState.getLoggedInUser(), AccountsAuditActions.CHANGEDSTATUS.name(),
-          UserAuditActions.FAILED.name(), selectedStatus, editingUser, httpServletRequest);
       MessagesController.addErrorMessage("Error", "No selection made!");
-
     }
 
   }
 
   public void addRoleByAdmin() {
-    BbcGroup bbcGroup = bbcGroupFacade.findByGroupName(newGroup);
-
     HttpServletRequest httpServletRequest = (HttpServletRequest) FacesContext.getCurrentInstance().getExternalContext().
         getRequest();
     // Register a new group
     if (!"#!".equals(newGroup)) {
-      usersController.registerGroup(editingUser, bbcGroup.getGid());
-      am.registerRoleChange(sessionState.getLoggedInUser(), RolesAuditAction.ROLE_ADDED.name(),
-          RolesAuditAction.SUCCESS.name(), bbcGroup.getGroupName(), editingUser, httpServletRequest);
-      MessagesController.addInfoMessage("Success", "Role updated successfully.");
-
+      try {
+        auditedUserAdministration.addRole(editingUser, newGroup, httpServletRequest);
+        editingUser = userFacade.find(editingUser.getUid());
+        MessagesController
+          .addInfoMessage("Added role:" + newGroup + " to user " + editingUser.getEmail() + " activated successfully");
+      } catch (UserException ue) {
+        MessagesController.addSecurityErrorMessage(ue.getMessage());
+      }
     } else {
-      am.registerRoleChange(sessionState.getLoggedInUser(), RolesAuditAction.ROLE_ADDED.name(), RolesAuditAction.FAILED.
-          name(), bbcGroup.getGroupName(), editingUser, httpServletRequest);
       MessagesController.addErrorMessage("Error", "No selection made!!");
     }
 
   }
 
   public void removeRoleByAdmin() {
-    BbcGroup bbcGroup = bbcGroupFacade.findByGroupName(selectedGroup);
-
     HttpServletRequest httpServletRequest = (HttpServletRequest) FacesContext.getCurrentInstance().getExternalContext().
         getRequest();
-
     // Remove a group
     if (!"#!".equals(selectedGroup)) {
-      userFacade.removeGroup(editingUser.getEmail(), bbcGroup.getGid());
-
-      am.registerRoleChange(sessionState.getLoggedInUser(),
-          RolesAuditAction.ROLE_REMOVED.name(), RolesAuditAction.SUCCESS.
-          name(), bbcGroup.getGroupName(), editingUser, httpServletRequest);
-      MessagesController.addInfoMessage("Success", "User updated successfully.");
+      try {
+        auditedUserAdministration.removeRole(editingUser, selectedGroup, httpServletRequest);
+        editingUser = userFacade.find(editingUser.getUid());
+        MessagesController.addInfoMessage("Removed role:" + selectedGroup + " from user " + editingUser.getEmail() + " "
+          + "successfully");
+      } catch (UserException ue) {
+        MessagesController.addSecurityErrorMessage(ue.getMessage());
+      }
     }
-
     if ("#!".equals(selectedGroup)) {
-
-      if (("#!".equals(selectedStatus))
-          || "#!".equals(newGroup)) {
-        am.registerRoleChange(sessionState.getLoggedInUser(),
-            RolesAuditAction.ROLE_REMOVED.name(), RolesAuditAction.FAILED.
-            name(), bbcGroup.getGroupName(), editingUser, httpServletRequest);
+      if (("#!".equals(selectedStatus)) || "#!".equals(newGroup)) {
         MessagesController.addErrorMessage("Error", "No selection made!");
       }
     }
@@ -394,9 +381,46 @@ public class AdminProfileAdministration implements Serializable {
 
   public void setMaxNumProjs(String maxNumProjs) {
     int num = Integer.parseInt(maxNumProjs);
-    if (num > -1) {
-      usersController.updateMaxNumProjs(editingUser, num);
+    int current = userFacade.findByEmail(editingUser.getEmail()).getMaxNumProjects();
+    if (num > -1 && current != num) {
+      HttpServletRequest httpServletRequest =
+        (HttpServletRequest) FacesContext.getCurrentInstance().getExternalContext().getRequest();
+      auditedUserAdministration.setMaxProject(editingUser, num, httpServletRequest);
+      MessagesController.addInfoMessage("Updated max projects to  " + num);
     }
   }
-
+  
+  public void resetPassword() {
+    HttpServletRequest httpServletRequest = (HttpServletRequest) FacesContext.getCurrentInstance().getExternalContext().
+      getRequest();
+    try {
+      updateEditingUser();
+      newPassword = auditedUserAdministration.resetPassword(editingUser, httpServletRequest);
+      MessagesController.addInfoMessage("Password reset", "Password reset for: " + editingUser.getEmail());
+      LOGGER.log(Level.INFO, "User: {0} reset password for user: {1}",
+        new Object[]{httpServletRequest.getRemoteUser(), editingUser.getEmail()});
+      showDialog();
+    } catch (UserException e) {
+      MessagesController.addErrorMessage("Error resetting password ", e.getMessage());
+      LOGGER.log(Level.WARNING, "Error resetting password. User: {0} trying to reset password for user: {1} ",
+        new Object[]{httpServletRequest.getRemoteUser(), editingUser.getEmail()});
+    } catch (MessagingException e) {
+      MessagesController.addErrorMessage("Password reset. Error sending email ", e.getMessage());
+      LOGGER.log(Level.WARNING, "Error sending email after user: {0} reset password for user: {1} ",
+        new Object[]{httpServletRequest.getRemoteUser(), editingUser.getEmail()});
+    }
+  }
+  
+  public void successListener(final ClipboardSuccessEvent successEvent) {
+    MessagesController.addInfoMessage("Success", " Copied to clipboard text: " + successEvent.getText());
+  }
+  
+  public void errorListener(final ClipboardErrorEvent errorEvent) {
+    MessagesController.addErrorMessage("Error ", errorEvent.getAction());
+  }
+  
+  public void showDialog() {
+    RequestContext context = RequestContext.getCurrentInstance();
+    context.execute("PF('dlg1').show();");
+  }
 }

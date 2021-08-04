@@ -129,7 +129,6 @@ angular.module('hopsWorksApp')
                 $cookies.remove("projectID");
                 $cookies.remove("SESSION");
                 sessionStorage.removeItem("isAdmin");
-                localStorage.removeItem("giotto-showtourtips");
               }
             };
             return service;

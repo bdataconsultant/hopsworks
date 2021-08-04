@@ -19,11 +19,11 @@ import com.google.common.base.Strings;
 import io.hops.hopsworks.api.user.UsersBuilder;
 import io.hops.hopsworks.common.api.ResourceRequest;
 import io.hops.hopsworks.common.dao.AbstractFacade;
-import io.hops.hopsworks.common.dao.jobhistory.Execution;
 import io.hops.hopsworks.common.dao.jobhistory.ExecutionFacade;
-import io.hops.hopsworks.common.dao.jobs.description.Jobs;
-import io.hops.hopsworks.common.jobs.configuration.JobType;
 import io.hops.hopsworks.common.jobs.flink.FlinkMasterAddrCache;
+import io.hops.hopsworks.persistence.entity.jobs.history.Execution;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.JobType;
+import io.hops.hopsworks.persistence.entity.jobs.description.Jobs;
 
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
@@ -48,9 +48,9 @@ public class ExecutionsBuilder {
   
   
   /**
-   * @param dto
-   * @param uriInfo
-   * @param execution
+   * @param dto dto
+   * @param uriInfo uriInfo
+   * @param execution execution
    * @return uri to single execution
    */
   public ExecutionDTO uri(ExecutionDTO dto, UriInfo uriInfo, Execution execution) {
@@ -66,9 +66,9 @@ public class ExecutionsBuilder {
   }
   
   /**
-   * @param dto
-   * @param uriInfo
-   * @param job
+   * @param dto dto
+   * @param uriInfo uriInfo
+   * @param job job
    * @return uri to all the executions of a job
    */
   public ExecutionDTO uri(ExecutionDTO dto, UriInfo uriInfo, Jobs job) {
@@ -101,13 +101,14 @@ public class ExecutionsBuilder {
       dto.setStderrPath(execution.getStderrPath());
       dto.setAppId(execution.getAppId());
       dto.setHdfsUser(execution.getHdfsUser());
+      dto.setArgs(execution.getArgs());
       dto.setFinalStatus(execution.getFinalStatus());
       dto.setProgress(execution.getProgress());
       dto.setUser(usersBuilder.build(uriInfo, resourceRequest, execution.getUser()));
       dto.setFilesToRemove(execution.getFilesToRemove());
       dto.setDuration(execution.getExecutionDuration());
       // Get Flink Master URL if current execution hasn't finished
-      if ((execution.getJob().getJobType() == JobType.FLINK || execution.getJob().getJobType() == JobType.BEAM_FLINK) &&
+      if (execution.getJob().getJobType() == JobType.FLINK &&
         !execution.getState().isFinalState() &&
         !Strings.isNullOrEmpty(execution.getAppId())) {
         String addr = flinkMasterAddrCache.get(execution.getAppId());

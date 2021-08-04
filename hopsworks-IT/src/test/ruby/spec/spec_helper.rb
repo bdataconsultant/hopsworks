@@ -71,6 +71,7 @@ Dir[File.join(File.dirname(__FILE__), 'factories', '**', '*.rb')].each { |f| req
 Dir[File.join(File.dirname(__FILE__), 'helpers', '**', '*.rb')].each { |f| require f }
 
 RSpec.configure do |config|
+  config.include Helper
   config.include SessionHelper
   config.include ProjectHelper
   config.include FactoryHelper
@@ -80,8 +81,9 @@ RSpec.configure do |config|
   config.include CaHelper
   config.include HostsHelper
   config.include KafkaHelper
+  config.include KafkaAclHelper
   config.include ServingHelper
-  config.include HopsFSHelper
+  config.include HopsHelper
   config.include JobHelper
   config.include ExecutionHelper
   config.include FeaturestoreHelper
@@ -91,6 +93,20 @@ RSpec.configure do |config|
   config.include JupyterHelper
   config.include UsersHelper
   config.include ApiKeyHelper
+  config.include AdminHelper
+  config.include SchemaHelper
+  config.include ProvStateHelper
+  config.include ExperimentHelper
+  config.include ModelHelper
+  config.include ElasticHelper
+  config.include AuditHelper
+  config.include SearchHelper
+  config.include XAttrHelper
+  config.include EpipeHelper
+  config.include ProvHelper
+  config.include FeatureStoreStatisticsHelper
+  config.include StorageConnectorHelper
+  config.include ProvAppHelper
   # uncomment next line if you need to clean hdfs and hopsworks db before test.
   # config.before(:suite) { clean_test_data }
   config.after(:suite) {
@@ -106,6 +122,8 @@ RSpec.configure do |config|
   if ENV['SKIP_VM_TEST'] == "true" # Skip tests tagged with vm: true
     config.filter_run_excluding vm: true
   end
+  config.filter_run focus: true
+  config.run_all_when_everything_filtered = true
 end
 
 Airborne.configure do |config|

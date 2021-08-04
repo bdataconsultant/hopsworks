@@ -24,34 +24,27 @@ import io.hops.hopsworks.api.jobs.executions.ExecutionsResource;
 import io.hops.hopsworks.api.jwt.JWTHelper;
 import io.hops.hopsworks.api.util.Pagination;
 import io.hops.hopsworks.common.api.ResourceRequest;
-import io.hops.hopsworks.common.dao.jobhistory.Execution;
-import io.hops.hopsworks.common.dao.jobhistory.ExecutionFacade;
 import io.hops.hopsworks.common.dao.jobhistory.YarnApplicationAttemptStateFacade;
 import io.hops.hopsworks.common.dao.jobs.description.JobFacade;
-import io.hops.hopsworks.common.dao.jobs.description.Jobs;
 import io.hops.hopsworks.common.dao.jobs.description.YarnAppUrlsDTO;
-import io.hops.hopsworks.common.dao.project.Project;
 import io.hops.hopsworks.common.dao.project.ProjectFacade;
-import io.hops.hopsworks.common.dao.user.Users;
-import io.hops.hopsworks.common.dao.user.security.apiKey.ApiScope;
-import io.hops.hopsworks.common.jobs.AppInfoDTO;
 import io.hops.hopsworks.common.jobs.JobController;
-import io.hops.hopsworks.common.jobs.configuration.JobConfiguration;
-import io.hops.hopsworks.common.jobs.configuration.JobType;
-import io.hops.hopsworks.common.jobs.configuration.ScheduleDTO;
 import io.hops.hopsworks.common.jobs.execution.ExecutionController;
-import io.hops.hopsworks.common.jobs.spark.SparkJobConfiguration;
 import io.hops.hopsworks.common.util.HopsUtils;
 import io.hops.hopsworks.common.util.Settings;
 import io.hops.hopsworks.exceptions.JobException;
 import io.hops.hopsworks.jwt.annotation.JWTRequired;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.JobConfiguration;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.JobType;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.ScheduleDTO;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.spark.SparkJobConfiguration;
+import io.hops.hopsworks.persistence.entity.jobs.description.Jobs;
+import io.hops.hopsworks.persistence.entity.project.Project;
+import io.hops.hopsworks.persistence.entity.user.Users;
+import io.hops.hopsworks.persistence.entity.user.security.apiKey.ApiScope;
 import io.hops.hopsworks.restutils.RESTCodes;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
-import org.influxdb.InfluxDB;
-import org.influxdb.InfluxDBFactory;
-import org.influxdb.dto.Query;
-import org.influxdb.dto.QueryResult;
 
 import javax.ejb.EJB;
 import javax.ejb.TransactionAttribute;
@@ -75,16 +68,9 @@ import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 
 @RequestScoped
 @TransactionAttribute(TransactionAttributeType.NEVER)
@@ -98,21 +84,17 @@ public class JobsResource {
   private ExecutionsResource executions;
   @EJB
   private JobController jobController;
-  @EJB
+  @Inject
   private ExecutionController executionController;
   @EJB
-  private ExecutionFacade executionFacade;
-  @EJB
   private YarnApplicationAttemptStateFacade yarnApplicationAttemptStateFacade;
-  @EJB
-  private Settings settings;
   @EJB
   private ProjectFacade projectFacade;
   @EJB
   private JWTHelper jWTHelper;
   @EJB
   private JobsBuilder jobsBuilder;
-  
+
   private Project project;
   public JobsResource setProject(Integer projectId) {
     this.project = projectFacade.find(projectId);
@@ -128,7 +110,7 @@ public class JobsResource {
   public Response getAll(
     @BeanParam Pagination pagination,
     @BeanParam JobsBeanParam jobsBeanParam,
-    @Context UriInfo uriInfo) {
+    @Context UriInfo uriInfo, @Context SecurityContext sc) {
     ResourceRequest resourceRequest = new ResourceRequest(ResourceRequest.Name.JOBS);
     resourceRequest.setOffset(pagination.getOffset());
     resourceRequest.setLimit(pagination.getLimit());
@@ -149,7 +131,7 @@ public class JobsResource {
   @ApiKeyRequired( acceptedScopes = {ApiScope.JOB}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
   public Response getJob(@PathParam("name") String name,
     @BeanParam JobsBeanParam jobsBeanParam,
-    @Context UriInfo uriInfo) throws JobException {
+    @Context UriInfo uriInfo, @Context SecurityContext sc) throws JobException {
     Jobs job = jobController.getJob(project, name);
     ResourceRequest resourceRequest = new ResourceRequest(ResourceRequest.Name.JOBS);
     resourceRequest.setExpansions(jobsBeanParam.getExpansions().getResources());
@@ -166,7 +148,7 @@ public class JobsResource {
   @JWTRequired(acceptedTokens={Audience.API, Audience.JOB}, allowedUserRoles={"HOPS_ADMIN", "HOPS_USER"})
   @ApiKeyRequired( acceptedScopes = {ApiScope.JOB}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
   public Response put (
-    JobConfiguration config,
+    @ApiParam(value = "Job configuration parameters", required = true) JobConfiguration config,
     @ApiParam(value = "name", required = true) @PathParam("name") String name,
     @Context SecurityContext sc,
     @Context UriInfo uriInfo) throws JobException {
@@ -218,7 +200,6 @@ public class JobsResource {
       case SPARK:
       case PYSPARK:
       case FLINK:
-      case BEAM_FLINK:
         jobController.deleteJob(job, user);
         break;
       default:
@@ -277,17 +258,17 @@ public class JobsResource {
     return Response.noContent().build();
   }
   
-  @ApiOperation(value = "Inspect Spark user program and return SparkJobConfiguration",
+  @ApiOperation(value = "Inspect user program and return a JobConfiguration",
     response = SparkJobConfiguration.class)
   @GET
-  @Path("{jobtype : spark|pyspark|flink}/inspection")
+  @Path("{jobtype : python|docker|spark|pyspark|flink}/inspection")
   @Produces(MediaType.APPLICATION_JSON)
   @Consumes(MediaType.APPLICATION_JSON)
   @AllowedProjectRoles({AllowedProjectRoles.DATA_OWNER, AllowedProjectRoles.DATA_SCIENTIST})
   @JWTRequired(acceptedTokens={Audience.API, Audience.JOB}, allowedUserRoles={"HOPS_ADMIN", "HOPS_USER"})
   @ApiKeyRequired( acceptedScopes = {ApiScope.JOB}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
   public Response inspect (
-    @ApiParam (value = "spark job type", example = "spark") @PathParam("jobtype") JobType jobtype,
+    @ApiParam (value = "job type", example = "spark") @PathParam("jobtype") JobType jobtype,
     @ApiParam(value = "path", example = "/Projects/demo_spark_admin000/Resources/spark-examples.jar",
       required = true)  @QueryParam("path") String path,
     @Context SecurityContext sc) throws JobException {
@@ -327,7 +308,8 @@ public class JobsResource {
   @Produces(MediaType.APPLICATION_JSON)
   @AllowedProjectRoles({AllowedProjectRoles.DATA_OWNER, AllowedProjectRoles.DATA_SCIENTIST})
   @JWTRequired(acceptedTokens={Audience.API}, allowedUserRoles={"HOPS_ADMIN", "HOPS_USER"})
-  public Response getJobUI(@PathParam("appId") String appId, @PathParam("isLivy") String isLivy) throws JobException {
+  public Response getJobUI(@PathParam("appId") String appId, @PathParam("isLivy") String isLivy,
+    @Context SecurityContext sc) throws JobException {
     executionController.checkAccessRight(appId, project);
     List<YarnAppUrlsDTO> urls = new ArrayList<>();
     
@@ -338,7 +320,7 @@ public class JobsResource {
         urls.add(new YarnAppUrlsDTO("spark", trackingUrl));
       }
     } catch (Exception e) {
-      LOGGER.log(Level.SEVERE, "exception while geting job ui " + e.getLocalizedMessage(), e);
+      LOGGER.log(Level.SEVERE, "Exception while getting job ui " + e.getLocalizedMessage(), e);
     }
     
     GenericEntity<List<YarnAppUrlsDTO>> listUrls = new GenericEntity<List<YarnAppUrlsDTO>>(urls) { };
@@ -367,151 +349,11 @@ public class JobsResource {
     try {
       urls.addAll(executionController.getTensorBoardUrls(user, appId, project));
     } catch (Exception e) {
-      LOGGER.log(Level.SEVERE, "Exception while getting TensorBoard endpoints" + e.getLocalizedMessage(), e);
+      LOGGER.log(Level.SEVERE, "Exception while getting TensorBoard endpoints " + e.getLocalizedMessage(), e);
     }
     
     GenericEntity<List<YarnAppUrlsDTO>> listUrls = new GenericEntity<List<YarnAppUrlsDTO>>(urls) { };
     
     return Response.ok().entity(listUrls).build();
   }
-  
-  /**
-   * Get the Yarn UI url for the specified job
-   * <p>
-   * @param appId
-   * @return url
-   */
-  @GET
-  @Path("/{appId}/yarnui")
-  @Produces(MediaType.TEXT_PLAIN)
-  @AllowedProjectRoles({AllowedProjectRoles.DATA_OWNER, AllowedProjectRoles.DATA_SCIENTIST})
-  @JWTRequired(acceptedTokens={Audience.API}, allowedUserRoles={"HOPS_ADMIN", "HOPS_USER"})
-  public Response getYarnUI(@PathParam("appId") String appId) throws JobException {
-    executionController.checkAccessRight(appId, project);
-    
-    try {
-      String yarnUrl = "/giotto-api/api/project/" + project.getId() + "/jobs/"
-        + appId + "/prox/" + settings.getYarnWebUIAddress()
-        + "/cluster/app/"
-        + appId;
-      
-      return Response.ok().entity(yarnUrl).build();
-      
-    } catch (Exception e) {
-      LOGGER.log(Level.SEVERE, "exception while geting job ui " + e.getLocalizedMessage(), e);
-    }
-    return Response.ok().build();
-  }
-  
-  /**
-   * Get application run info for the specified job
-   * <p>
-   * @param appId
-   * @return url
-   */
-  @GET
-  @Path("/{appId}/appinfo")
-  @Produces(MediaType.APPLICATION_JSON)
-  @AllowedProjectRoles({AllowedProjectRoles.DATA_OWNER, AllowedProjectRoles.DATA_SCIENTIST})
-  @JWTRequired(acceptedTokens={Audience.API}, allowedUserRoles={"HOPS_ADMIN", "HOPS_USER"})
-  public Response getAppInfo(@PathParam("appId") String appId) throws JobException {
-    executionController.checkAccessRight(appId, project);
-    Execution execution = executionFacade.findByAppId(appId);
-    try {
-      long startTime = System.currentTimeMillis() - 60000;
-      long endTime = System.currentTimeMillis();
-      boolean running = true;
-      if (execution != null) {
-        startTime = execution.getSubmissionTime().getTime();
-        endTime = startTime + execution.getExecutionDuration();
-        running = false;
-        if (!execution.getState().isFinalState()) {
-          running = true;
-        }
-      }
-    
-      InfluxDB influxDB = InfluxDBFactory.connect(settings.
-        getInfluxDBAddress(), settings.getInfluxDBUser(), settings.
-        getInfluxDBPW());
-    
-      // Transform application_1493112123688_0001 to 1493112123688_0001
-      // application_ = 12 chars
-      String timestamp_attempt = appId.substring(12);
-    
-      Query query = new Query("show tag values from nodemanager with key=\"source\" " + "where source =~ /^.*"
-        + timestamp_attempt + ".*$/", "graphite");
-      QueryResult queryResult = influxDB.query(query, TimeUnit.MILLISECONDS);
-    
-      int nbExecutors = 0;
-      HashMap<Integer, List<String>> executorInfo = new HashMap<>();
-      int index = 0;
-      if (queryResult != null && queryResult.getResults() != null) {
-        for (QueryResult.Result res : queryResult.getResults()) {
-          if (res.getSeries() != null) {
-            for (QueryResult.Series series : res.getSeries()) {
-              List<List<Object>> values = series.getValues();
-              if (values != null) {
-                nbExecutors += values.size();
-                for (List<Object> l : values) {
-                  executorInfo.put(index, Stream.of(Objects.toString(l.get(1))).collect(Collectors.toList()));
-                  index++;
-                }
-              }
-            }
-          }
-        }
-      }
-    
-      /*
-       * At this point executor info contains the keys and a list with a single value, the YARN container id
-       */
-      String vCoreTemp = null;
-      HashMap<String, String> hostnameVCoreCache = new HashMap<>();
-    
-      for (Map.Entry<Integer, List<String>> entry : executorInfo.entrySet()) {
-        query = new Query("select MilliVcoreUsageAvgMilliVcores, hostname from nodemanager where source = \'" + entry.
-          getValue().get(0) + "\' limit 1", "graphite");
-        queryResult = influxDB.query(query, TimeUnit.MILLISECONDS);
-      
-        if (queryResult != null && queryResult.getResults() != null
-          && queryResult.getResults().get(0) != null && queryResult.
-          getResults().get(0).getSeries() != null) {
-          List<List<Object>> values = queryResult.getResults().get(0).getSeries().get(0).getValues();
-          String hostname = Objects.toString(values.get(0).get(2)).split("=")[1];
-          entry.getValue().add(hostname);
-        
-          if (!hostnameVCoreCache.containsKey(hostname)) {
-            // Not in cache, get the vcores of the host machine
-            query = new Query("select AllocatedVCores+AvailableVCores from nodemanager " + "where hostname =~ /.*"
-              + hostname + ".*/ limit 1", "graphite");
-            queryResult = influxDB.query(query, TimeUnit.MILLISECONDS);
-          
-            if (queryResult != null && queryResult.getResults() != null
-              && queryResult.getResults().get(0) != null && queryResult.
-              getResults().get(0).getSeries() != null) {
-              values = queryResult.getResults().get(0).getSeries().get(0).getValues();
-              vCoreTemp = Objects.toString(values.get(0).get(1));
-              entry.getValue().add(vCoreTemp);
-              hostnameVCoreCache.put(hostname, vCoreTemp); // cache it
-            }
-          } else {
-            // It's a hit, skip the database query
-            entry.getValue().add(hostnameVCoreCache.get(hostname));
-          }
-        }
-      }
-    
-      influxDB.close();
-    
-      AppInfoDTO appInfo = new AppInfoDTO(appId, startTime,
-        running, endTime, nbExecutors, executorInfo);
-    
-      return Response.ok().entity(appInfo).build();
-    
-    } catch (Exception e) {
-      LOGGER.log(Level.SEVERE, "exception while geting job ui " + e.getLocalizedMessage(), e);
-    }
-    return Response.ok().status(Response.Status.NOT_FOUND).build();
-  }
-  
 }

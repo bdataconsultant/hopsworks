@@ -22,11 +22,11 @@ import io.hops.hopsworks.api.python.command.CommandBuilder;
 import io.hops.hopsworks.api.python.command.CommandDTO;
 import io.hops.hopsworks.api.util.Pagination;
 import io.hops.hopsworks.common.api.ResourceRequest;
-import io.hops.hopsworks.common.dao.project.Project;
 import io.hops.hopsworks.common.python.commands.CommandsController;
 import io.hops.hopsworks.common.python.environment.EnvironmentController;
 import io.hops.hopsworks.exceptions.PythonException;
 import io.hops.hopsworks.jwt.annotation.JWTRequired;
+import io.hops.hopsworks.persistence.entity.project.Project;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 
@@ -37,12 +37,14 @@ import javax.enterprise.context.RequestScoped;
 import javax.ws.rs.BeanParam;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
 @Api(value = "Python Environment Commands Resource")
@@ -59,13 +61,11 @@ public class EnvironmentCommandsResource {
   
   private Project project;
   private String pythonVersion;
-  
   public EnvironmentCommandsResource setProject(Project project, String pythonVersion) {
     this.project = project;
     this.pythonVersion = pythonVersion;
     return this;
   }
-
   public Project getProject() {
     return project;
   }
@@ -75,10 +75,9 @@ public class EnvironmentCommandsResource {
   @Produces(MediaType.APPLICATION_JSON)
   @AllowedProjectRoles({AllowedProjectRoles.DATA_OWNER, AllowedProjectRoles.DATA_SCIENTIST})
   @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
-  public Response get(@BeanParam Pagination pagination,
-      @BeanParam CommandBeanParam environmentsCommandBeanParam,
-      @Context UriInfo uriInfo) throws PythonException {
-    environmentController.checkCondaEnabled(project, pythonVersion);
+  public Response get(@BeanParam Pagination pagination, @BeanParam CommandBeanParam environmentsCommandBeanParam,
+    @Context UriInfo uriInfo, @Context SecurityContext sc) throws PythonException {
+    environmentController.checkCondaEnabled(project, pythonVersion, false);
     ResourceRequest resourceRequest = new ResourceRequest(ResourceRequest.Name.COMMANDS);
     resourceRequest.setOffset(pagination.getOffset());
     resourceRequest.setLimit(pagination.getLimit());
@@ -94,9 +93,9 @@ public class EnvironmentCommandsResource {
   @Produces(MediaType.APPLICATION_JSON)
   @AllowedProjectRoles({AllowedProjectRoles.DATA_OWNER, AllowedProjectRoles.DATA_SCIENTIST})
   @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
-  public Response getByName(@PathParam("commandId") Integer commandId,
-    @Context UriInfo uriInfo) throws PythonException {
-    environmentController.checkCondaEnabled(project, pythonVersion);
+  public Response getByName(@PathParam("commandId") Integer commandId, @Context UriInfo uriInfo,
+    @Context SecurityContext sc) throws PythonException {
+    environmentController.checkCondaEnabled(project, pythonVersion, false);
     ResourceRequest resourceRequest = new ResourceRequest(ResourceRequest.Name.COMMANDS);
     CommandDTO dto = commandBuilder.build(uriInfo, resourceRequest, project, commandId);
     return Response.ok().entity(dto).build();
@@ -106,9 +105,20 @@ public class EnvironmentCommandsResource {
   @DELETE
   @AllowedProjectRoles({AllowedProjectRoles.DATA_OWNER, AllowedProjectRoles.DATA_SCIENTIST})
   @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
-  public Response delete() throws PythonException {
-    environmentController.checkCondaEnabled(project, pythonVersion);
+  public Response delete(@Context SecurityContext sc) throws PythonException {
+    environmentController.checkCondaEnabled(project, pythonVersion, false);
     commandsController.deleteCommands(project);
+    return Response.noContent().build();
+  }
+  
+  @ApiOperation(value = "Update commands for this environment")
+  @PUT
+  @AllowedProjectRoles({AllowedProjectRoles.DATA_OWNER, AllowedProjectRoles.DATA_SCIENTIST})
+  @JWTRequired(acceptedTokens={Audience.API}, allowedUserRoles={"HOPS_ADMIN", "HOPS_USER"})
+  public Response update(@PathParam("library") String library, @Context UriInfo uriInfo, @Context SecurityContext sc)
+    throws PythonException {
+    environmentController.checkCondaEnabled(project, pythonVersion, false);
+    commandsController.retryFailedCondaEnvOps(project);
     return Response.noContent().build();
   }
 }

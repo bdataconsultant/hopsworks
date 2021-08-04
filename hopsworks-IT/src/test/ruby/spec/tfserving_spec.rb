@@ -40,17 +40,11 @@
 require 'json'
 
 describe "On #{ENV['OS']}" do
+  after (:all) do
+    clean_all_test_projects(spec: "tfserving")
+    purge_all_tf_serving_instances
+  end
   describe 'tfserving' do
-    before (:all) do
-      if ENV['OS'] == "centos"
-        skip "These tests do not run on centos"
-      end
-    end
-
-    after (:all) do
-      clean_projects
-      purge_all_tf_serving_instances
-    end
 
     describe "#create" do
 
@@ -66,7 +60,10 @@ describe "On #{ENV['OS']}" do
                artifactPath: "/Projects/#{@project[:projectname]}/Models/mnist/",
                modelVersion: 1,
                batchingEnabled: false,
-               servingType: "TENSORFLOW"
+               modelServer: "TENSORFLOW_SERVING",
+               servingTool: "DEFAULT",
+               availableInstances: 1,
+               requestedInstances: 1
               }
           expect_json(errorCode: 200003)
           expect_status(401)
@@ -87,7 +84,10 @@ describe "On #{ENV['OS']}" do
                artifactPath: "/Projects/#{@project[:projectname]}/Models/mnist/",
                modelVersion: 1,
                batchingEnabled: false,
-               servingType: "TENSORFLOW"
+               modelServer: "TENSORFLOW_SERVING",
+               servingTool: "DEFAULT",
+               availableInstances: 1,
+               requestedInstances: 1
               }
           expect_status(201)
 
@@ -102,7 +102,10 @@ describe "On #{ENV['OS']}" do
                artifactPath: "/Projects/#{@project[:projectname]}/Models/mnist/",
                modelVersion: 1,
                batchingEnabled: true,
-               servingType: "TENSORFLOW"
+               modelServer: "TENSORFLOW_SERVING",
+               servingTool: "DEFAULT",
+               availableInstances: 1,
+               requestedInstances: 1
               }
           expect_status(201)
         end
@@ -118,7 +121,10 @@ describe "On #{ENV['OS']}" do
                    numOfPartitions: 1,
                    numOfReplicas: 1
                },
-               servingType: "TENSORFLOW"
+               modelServer: "TENSORFLOW_SERVING",
+               servingTool: "DEFAULT",
+               availableInstances: 1,
+               requestedInstances: 1
               }
           expect_status(201)
 
@@ -130,7 +136,7 @@ describe "On #{ENV['OS']}" do
           kafka_topic_list = get "#{ENV['HOPSWORKS_API']}/project/#{@project[:id]}/kafka/topics"
 
           kafka_topic_name = JSON.parse(serving_list).select { |serving| serving['name'] == "testModel1"}[0]['kafkaTopicDTO']['name']
-          kafka_topic = JSON.parse(kafka_topic_list).select { |topic| topic['name'] == kafka_topic_name}
+          kafka_topic = JSON.parse(kafka_topic_list)['items'].select { |topic| topic['name'] == kafka_topic_name}
           expect(kafka_topic.size).to eq 1
           expect(kafka_topic[0]['schemaName']).to eql INFERENCE_SCHEMA_NAME
         end
@@ -148,7 +154,10 @@ describe "On #{ENV['OS']}" do
                kafkaTopicDTO: {
                    name: topic_name
                },
-               servingType: "TENSORFLOW"
+               modelServer: "TENSORFLOW_SERVING",
+               servingTool: "DEFAULT",
+               availableInstances: 1,
+               requestedInstances: 1
               }
           expect_status(201)
 
@@ -174,7 +183,10 @@ describe "On #{ENV['OS']}" do
                kafkaTopicDTO: {
                    name: topic_name
                },
-               servingType: "TENSORFLOW"
+               modelServer: "TENSORFLOW_SERVING",
+               servingTool: "DEFAULT",
+               availableInstances: 1,
+               requestedInstances: 1
               }
           expect_status(201)
 
@@ -204,7 +216,10 @@ describe "On #{ENV['OS']}" do
                kafkaTopicDTO: {
                    name: topic_name
                },
-               servingType: "TENSORFLOW"
+               modelServer: "TENSORFLOW_SERVING",
+               servingTool: "DEFAULT",
+               availableInstances: 1,
+               requestedInstances: 1
               }
           expect_status(400)
         end
@@ -220,7 +235,10 @@ describe "On #{ENV['OS']}" do
                    numOfPartitions: 1,
                    numOfReplicas: 1
                },
-               servingType: "TENSORFLOW"
+               modelServer: "TENSORFLOW_SERVING",
+               servingTool: "DEFAULT",
+               availableInstances: 1,
+               requestedInstances: 1
               }
           expect_json(errorMsg: "An entry with the same name already exists in this project")
           expect_status(400)
@@ -232,10 +250,73 @@ describe "On #{ENV['OS']}" do
                artifactPath: "/Projects/#{@project[:projectname]}/DOESNTEXISTS",
                batchingEnabled: false,
                modelVersion: 1,
-               servingType: "TENSORFLOW"
+               modelServer: "TENSORFLOW_SERVING",
+               servingTool: "DEFAULT"
               }
           expect_json(usrMsg: "The model path provided does not exists")
           expect_status(422)
+        end
+
+        it "should fail to create a serving without serving tool" do
+          put "#{ENV['HOPSWORKS_API']}/project/#{@project[:id]}/serving/",
+              {name: "invalidName",
+               artifactPath: "/Projects/#{@project[:projectname]}/Models/mnist/",
+               modelVersion: 1,
+               batchingEnabled: false,
+               kafkaTopicDTO: {
+                   name: "NONE"
+               },
+               modelServer: "TENSORFLOW_SERVING",
+               availableInstances: 1,
+               requestedInstances: 1
+              }
+          expect_json(usrMsg: "Serving tool not provided or unsupported")
+          expect_status(422)
+        end
+
+        it "should fail to create a serving with KFSERVING tool when Kubernetes is not installed" do
+          if kubernetes_installed
+            skip "This test does not run on Kubernetes"
+          end
+          put "#{ENV['HOPSWORKS_API']}/project/#{@project[:id]}/serving/",
+              {name: "invalidName",
+               artifactPath: "/Projects/#{@project[:projectname]}/Models/mnist/",
+               modelVersion: 1,
+               batchingEnabled: false,
+               kafkaTopicDTO: {
+                   name: "NONE"
+               },
+               modelServer: "TENSORFLOW_SERVING",
+               servingTool: "KFSERVING",
+               availableInstances: 1,
+               requestedInstances: 1
+              }
+          expect_json(errorMsg: "Kubernetes is not installed, which is required for serving models with KFServing")
+          expect_status(400)
+        end
+
+        it "should fail to create a serving with KFSERVING tool when KFServing is not installed" do
+          if !kubernetes_installed
+            skip "This test only run on Kubernetes"
+          end
+          if kfserving_installed
+            skip "This test does not run with KFServing installed"
+          end
+          put "#{ENV['HOPSWORKS_API']}/project/#{@project[:id]}/serving/",
+              {name: "invalidName",
+               artifactPath: "/Projects/#{@project[:projectname]}/Models/mnist/",
+               modelVersion: 1,
+               batchingEnabled: false,
+               kafkaTopicDTO: {
+                   name: "NONE"
+               },
+               modelServer: "TENSORFLOW_SERVING",
+               servingTool: "KFSERVING",
+               availableInstances: 1,
+               requestedInstances: 1
+              }
+          expect_json(errorMsg: "KFServing is not installed or disabled")
+          expect_status(400)
         end
 
         it "should fail to create a serving with a non-standard path" do
@@ -246,7 +327,10 @@ describe "On #{ENV['OS']}" do
                artifactPath: "/Projects/#{@project[:projectname]}/Models/mnist/",
                batchingEnabled: false,
                modelVersion: 1,
-               servingType: "TENSORFLOW"
+               modelServer: "TENSORFLOW_SERVING",
+               servingTool: "DEFAULT",
+               availableInstances: 1,
+               requestedInstances: 1
               }
           expect_json(usrMsg: "The model path does not respect the TensorFlow standard")
           expect_status(422)
@@ -263,6 +347,7 @@ describe "On #{ENV['OS']}" do
 
       after :all do
         purge_all_tf_serving_instances
+        delete_all_sklearn_serving_instances(@project)
       end
 
       it "should be able to start a serving instance" do
@@ -270,34 +355,24 @@ describe "On #{ENV['OS']}" do
         expect_status(200)
 
         # Check if the process is running on the host
-        wait_for do
-          system "pgrep -f #{@serving[:name]} -a"
-          $?.exitstatus == 0
-        end
+        wait_for_type(@serving[:name])
 
         # Sleep a bit to make sure that logs are propagated correctly to the index
         sleep(30)
 
         # Check that the logs are written in the elastic index.
-        Airborne.configure do |config|
-          config.base_url = ''
+        elastic_rest do
+          response = elastic_get "#{@project[:projectname].downcase}_serving*/_search?q=serving_name:#{@serving[:name]}"
+          index = response.body
+          parsed_index = JSON.parse(index)
+          expect(parsed_index['hits']['total']['value']).to be > 0
         end
-
-        index = get "#{ENV['ELASTIC_API']}/#{@project[:projectname].downcase}_serving*/_search?q=modelname:#{@serving[:name]}"
-
-        Airborne.configure do |config|
-          config.base_url = "https://#{ENV['WEB_HOST']}:#{ENV['WEB_PORT']}"
-        end
-
-        parsed_index = JSON.parse(index)
-        expect(parsed_index['hits']['total']).to be > 0
       end
 
       it "should fail to start a running instance" do
         post "#{ENV['HOPSWORKS_API']}/project/#{@project[:id]}/serving/#{@serving[:id]}?action=start"
         expect_status(400)
         expect_json(errorCode: 240003)
-        expect_json(usrMsg: "Instance is already started")
       end
     end
 
@@ -309,22 +384,17 @@ describe "On #{ENV['OS']}" do
         post "#{ENV['HOPSWORKS_API']}/project/#{@project[:id]}/serving/#{@serving[:id]}?action=start"
         expect_status(200)
 
-        wait_for do
-          system "pgrep -f #{@serving[:name]} -a"
-          $?.exitstatus == 0
-        end
+        wait_for_type(@serving[:name])
       end
 
       after :all do
         purge_all_tf_serving_instances
+        delete_all_sklearn_serving_instances(@project)
       end
 
       after :each do
         # Check if the process is
-        wait_for do
-          system "pgrep -f testModelChanged -a"
-          $?.exitstatus == 0
-        end
+        wait_for_type("testModelChanged")
       end
 
       it "should be able to update the name" do
@@ -337,7 +407,10 @@ describe "On #{ENV['OS']}" do
              kafkaTopicDTO: {
                  name: @topic[:topic_name]
              },
-             servingType: "TENSORFLOW"
+             modelServer: "TENSORFLOW_SERVING",
+             servingTool: "DEFAULT",
+             availableInstances: 1,
+             requestedInstances: 1
             }
         expect_status(201)
       end
@@ -352,7 +425,10 @@ describe "On #{ENV['OS']}" do
              kafkaTopicDTO: {
                  name: @topic[:topic_name]
              },
-             servingType: "TENSORFLOW"
+             modelServer: "TENSORFLOW_SERVING",
+             servingTool: "DEFAULT",
+             availableInstances: 1,
+             requestedInstances: 1
             }
         expect_status(201)
       end
@@ -367,7 +443,8 @@ describe "On #{ENV['OS']}" do
              kafkaTopicDTO: {
                  name: @topic[:topic_name]
              },
-             servingType: "TENSORFLOW"
+             modelServer: "TENSORFLOW_SERVING",
+             servingTool: "DEFAULT"
             }
         expect_status(201)
       end
@@ -389,12 +466,15 @@ describe "On #{ENV['OS']}" do
              kafkaTopicDTO: {
                  name: @topic[:topic_name]
              },
-             servingType: "TENSORFLOW"
+             modelServer: "TENSORFLOW_SERVING",
+             servingTool: "DEFAULT",
+             availableInstances: 1,
+             requestedInstances: 1
             }
         expect_status(201)
       end
 
-      it "should not be able to update the serving type" do
+      it "should not be able to update the model server" do
 
         put "#{ENV['HOPSWORKS_API']}/project/#{@project[:id]}/serving/",
             {id: @serving[:id],
@@ -405,7 +485,10 @@ describe "On #{ENV['OS']}" do
              kafkaTopicDTO: {
                  name: @topic[:topic_name]
              },
-             servingType: "SKLEARN"
+             modelServer: "FLASK",
+             servingTool: "DEFAULT",
+             availableInstances: 1,
+             requestedInstances: 1
             }
         expect_status(422)
       end
@@ -422,7 +505,8 @@ describe "On #{ENV['OS']}" do
              kafkaTopicDTO: {
                  name: topic_name
              },
-             servingType: "TENSORFLOW"
+             modelServer: "TENSORFLOW_SERVING",
+             servingTool: "DEFAULT"
             }
         expect_status(201)
 
@@ -441,7 +525,10 @@ describe "On #{ENV['OS']}" do
              kafkaTopicDTO: {
                  name: "NONE"
              },
-             servingType: "TENSORFLOW"
+             modelServer: "TENSORFLOW_SERVING",
+             servingTool: "DEFAULT",
+             availableInstances: 1,
+             requestedInstances: 1
             }
         expect_status(201)
 
@@ -467,11 +554,7 @@ describe "On #{ENV['OS']}" do
 
         sleep(5)
 
-        # check if the process is running on the host
-        system "pgrep -f tensorflow_model_server"
-        if $?.exitstatus != 1
-          raise "the process is still running"
-        end
+        check_process_running("tensorflow_model_server")
       end
 
       it "should fail to kill a non running instance" do
@@ -480,19 +563,17 @@ describe "On #{ENV['OS']}" do
 
         sleep(5)
 
-        # check if the process is running on the host
-        system "pgrep -f tensorflow_model_server"
-        if $?.exitstatus != 1
-          raise "the process is still running"
-        end
+        check_process_running("tensorflow_model_server")
 
         post "#{ENV['HOPSWORKS_API']}/project/#{@project[:id]}/serving/#{@serving[:id]}?action=stop"
         expect_status(400)
         expect_json(errorCode: 240003)
-        expect_json(usrMsg: "Instance is already stopped")
       end
 
       it "should mark the serving as not running if the process dies" do
+        if kubernetes_installed
+          skip "This test does not run on Kubernetes"
+        end
         # Simulate the process dying by its own
         system "pgrep -f tensorflow_model_server | xargs kill -9"
 
@@ -532,21 +613,14 @@ describe "On #{ENV['OS']}" do
         expect_status(200)
 
         # Wait until the service instance is running
-        wait_for do
-          system "pgrep -f tensorflow_model_server"
-          $?.exitstatus == 0
-        end
+        wait_for_type(@serving[:name])
 
         delete "#{ENV['HOPSWORKS_API']}/project/#{@project[:id]}/serving/#{@serving[:id]}"
         expect_status(200)
 
         sleep(5)
 
-        # Check that the process has been killed
-        wait_for do
-          system "pgrep -f tensorflow_model_server"
-          $?.exitstatus == 1
-        end
+        check_process_running("tensorflow_model_server")
       end
     end
   end

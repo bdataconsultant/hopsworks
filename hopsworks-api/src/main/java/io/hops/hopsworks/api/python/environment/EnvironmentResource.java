@@ -16,23 +16,26 @@
 package io.hops.hopsworks.api.python.environment;
 
 import com.google.common.base.Strings;
+import com.logicalclocks.servicediscoverclient.exceptions.ServiceDiscoveryException;
 import io.hops.hopsworks.api.filter.AllowedProjectRoles;
 import io.hops.hopsworks.api.filter.Audience;
 import io.hops.hopsworks.api.jwt.JWTHelper;
 import io.hops.hopsworks.api.project.util.DsPath;
 import io.hops.hopsworks.api.project.util.PathValidator;
+import io.hops.hopsworks.api.python.conflicts.EnvironmentConflictsResource;
 import io.hops.hopsworks.api.python.environment.command.EnvironmentCommandsResource;
 import io.hops.hopsworks.api.python.library.LibraryResource;
 import io.hops.hopsworks.common.api.ResourceRequest;
-import io.hops.hopsworks.common.dao.hdfs.inode.InodeFacade;
-import io.hops.hopsworks.common.dao.project.Project;
-import io.hops.hopsworks.common.dao.user.Users;
+import io.hops.hopsworks.common.hdfs.inode.InodeController;
 import io.hops.hopsworks.common.python.environment.EnvironmentController;
+import io.hops.hopsworks.common.util.Settings;
 import io.hops.hopsworks.exceptions.DatasetException;
 import io.hops.hopsworks.exceptions.ProjectException;
 import io.hops.hopsworks.exceptions.PythonException;
 import io.hops.hopsworks.exceptions.ServiceException;
 import io.hops.hopsworks.jwt.annotation.JWTRequired;
+import io.hops.hopsworks.persistence.entity.project.Project;
+import io.hops.hopsworks.persistence.entity.user.Users;
 import io.hops.hopsworks.restutils.RESTCodes;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -56,6 +59,8 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.logging.Level;
 
 @Api(value = "Python Environments Resource")
@@ -68,13 +73,15 @@ public class EnvironmentResource {
   @EJB
   private PathValidator pathValidator;
   @EJB
-  private InodeFacade inodes;
+  private InodeController inodeController;
   @EJB
   private JWTHelper jWTHelper;
   @Inject
   private LibraryResource libraryResource;
   @Inject
   private EnvironmentCommandsResource environmentCommandsResource;
+  @Inject
+  private EnvironmentConflictsResource environmentConflictsResource;
   @EJB
   private EnvironmentBuilder environmentBuilder;
   
@@ -84,13 +91,13 @@ public class EnvironmentResource {
     this.project = project;
     return this;
   }
-
+  
   public Project getProject() {
     return project;
   }
   
   private ResourceRequest getResourceRequest(EnvironmentExpansionBeanParam expansions) throws PythonException {
-    if (!project.getConda()) {
+    if (project.getPythonEnvironment() == null) {
       throw new PythonException(RESTCodes.PythonErrorCode.ANACONDA_ENVIRONMENT_NOT_FOUND, Level.FINE);
     }
     ResourceRequest resourceRequest = new ResourceRequest(ResourceRequest.Name.ENVIRONMENTS);
@@ -101,7 +108,7 @@ public class EnvironmentResource {
   }
   
   private EnvironmentDTO buildEnvDTO(UriInfo uriInfo, EnvironmentExpansionBeanParam expansions, String version)
-    throws PythonException {
+      throws PythonException, IOException, ServiceDiscoveryException {
     ResourceRequest resourceRequest = getResourceRequest(expansions);
     return environmentBuilder.build(uriInfo, resourceRequest, project, version);
   }
@@ -111,8 +118,8 @@ public class EnvironmentResource {
   @Produces(MediaType.APPLICATION_JSON)
   @AllowedProjectRoles({AllowedProjectRoles.DATA_SCIENTIST, AllowedProjectRoles.DATA_OWNER})
   @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
-  public Response getAll(@BeanParam EnvironmentExpansionBeanParam expansions, @Context UriInfo uriInfo)
-    throws PythonException {
+  public Response getAll(@BeanParam EnvironmentExpansionBeanParam expansions, @Context UriInfo uriInfo,
+    @Context SecurityContext sc) throws PythonException, IOException, ServiceDiscoveryException {
     ResourceRequest resourceRequest = getResourceRequest(expansions);
     EnvironmentDTO dto = environmentBuilder.buildItems(uriInfo, resourceRequest, project);
     return Response.ok().entity(dto).build();
@@ -125,8 +132,9 @@ public class EnvironmentResource {
   @AllowedProjectRoles({AllowedProjectRoles.DATA_SCIENTIST, AllowedProjectRoles.DATA_OWNER})
   @JWTRequired(acceptedTokens={Audience.API}, allowedUserRoles={"HOPS_ADMIN", "HOPS_USER"})
   public Response get(@PathParam("version") String version, @BeanParam EnvironmentExpansionBeanParam expansions,
-      @Context UriInfo uriInfo) throws PythonException {
-    if (!version.equals(this.project.getPythonVersion())) {
+    @Context UriInfo uriInfo, @Context SecurityContext sc) throws PythonException, IOException,
+      ServiceDiscoveryException {
+    if (!version.equals(this.project.getPythonEnvironment().getPythonVersion())) {
       throw new PythonException(RESTCodes.PythonErrorCode.ANACONDA_ENVIRONMENT_NOT_FOUND, Level.FINE);
     } 
     EnvironmentDTO dto = buildEnvDTO(uriInfo, expansions, version);
@@ -143,16 +151,16 @@ public class EnvironmentResource {
   public Response post(@PathParam("version") String version,
       @QueryParam("action") EnvironmentDTO.Operation action,
       @Context UriInfo uriInfo,
-      @Context SecurityContext sc) throws PythonException, ServiceException {
-    Users user = jWTHelper.getUserPrincipal(sc);
+      @Context SecurityContext sc) throws PythonException, ServiceException, IOException, ServiceDiscoveryException {
     EnvironmentDTO dto;
+    Users user = jWTHelper.getUserPrincipal(sc);
     switch ((action != null) ? action : EnvironmentDTO.Operation.CREATE) {
       case EXPORT:
-        environmentController.exportEnv(user, project);
+        environmentController.exportEnv(project, user, Settings.PROJECT_STAGING_DIR);
         dto = buildEnvDTO(uriInfo, null, version);
         return Response.ok().entity(dto).build();
       case CREATE:
-        environmentController.createEnv(version, project);
+        environmentController.createEnv(project, user);
         dto = buildEnvDTO(uriInfo,null, version);
         return Response.created(dto.getHref()).entity(dto).build();
       default:
@@ -160,46 +168,47 @@ public class EnvironmentResource {
             Response.Status.NOT_FOUND);
     }
   }
-
-  @ApiOperation(value = "Create an environment from yaml file", response = EnvironmentDTO.class)
+  
+  @ApiOperation(value = "Create an environment from a import file", response = EnvironmentDTO.class)
   @POST
   @Produces(MediaType.APPLICATION_JSON)
   @AllowedProjectRoles({AllowedProjectRoles.DATA_SCIENTIST, AllowedProjectRoles.DATA_OWNER})
   @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
-  public Response postYml(EnvironmentYmlDTO environmentYmlDTO, @Context UriInfo uriInfo, @Context SecurityContext sc)
-    throws PythonException, ServiceException, DatasetException, ProjectException {
+  public Response postImport(EnvironmentImportDTO environmentImportDTO,
+    @Context UriInfo uriInfo,
+    @Context SecurityContext sc)
+      throws PythonException, ServiceException, DatasetException, IOException, ProjectException,
+      ServiceDiscoveryException {
     Users user = jWTHelper.getUserPrincipal(sc);
-    String allYmlPath = getYmlPath(environmentYmlDTO.getAllYmlPath());
-    String cpuYmlPath = getYmlPath(environmentYmlDTO.getCpuYmlPath());
-    String gpuYmlPath = getYmlPath(environmentYmlDTO.getGpuYmlPath());
-    String version = environmentController.createEnvironmentFromYml(allYmlPath, cpuYmlPath, gpuYmlPath,
-      environmentYmlDTO.getInstallJupyter(), user, project);
-    EnvironmentDTO dto = buildEnvDTO(uriInfo, null, version);
+    String version = environmentController.createProjectDockerImageFromImport(
+        getYmlPath(environmentImportDTO.getPath()),
+        environmentImportDTO.getInstallJupyter(), user, project);
+    EnvironmentDTO dto = buildEnvDTO(uriInfo,null, version);
     return Response.created(dto.getHref()).entity(dto).build();
   }
 
-  @ApiOperation(value = "Remove the python environment with the specified version" + " for this project",
+  @ApiOperation(value = "Remove the python environment with the specified version for this project",
       response = EnvironmentDTO.class)
   @DELETE
   @Path("{version}")
   @Produces(MediaType.APPLICATION_JSON)
   @AllowedProjectRoles({AllowedProjectRoles.DATA_OWNER, AllowedProjectRoles.DATA_SCIENTIST})
   @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
-  public Response delete(@PathParam("version") String version) throws ServiceException {
+  public Response delete(@PathParam("version") String version, @Context SecurityContext sc) {
     environmentController.removeEnvironment(project);
     return Response.noContent().build();
   }
 
-  private String getYmlPath(String path) throws DatasetException, ProjectException {
+  private String getYmlPath(String path) throws DatasetException, ProjectException, UnsupportedEncodingException {
     if(Strings.isNullOrEmpty(path)) {
       return null;
     }
     DsPath ymlPath = pathValidator.validatePath(this.project, path);
-    ymlPath.validatePathExists(inodes, false);
+    ymlPath.validatePathExists(inodeController, false);
     org.apache.hadoop.fs.Path fullPath = ymlPath.getFullPath();
     return fullPath.toString();
   }
-
+  
   @ApiOperation(value = "Python library sub-resource", tags = {"PythonLibraryResource"})
   @Path("{version}/libraries")
   @AllowedProjectRoles({AllowedProjectRoles.DATA_OWNER, AllowedProjectRoles.DATA_SCIENTIST})
@@ -210,8 +219,15 @@ public class EnvironmentResource {
   @ApiOperation(value = "Python opStatus sub-resource", tags = {"EnvironmentCommandsResource"})
   @Path("{version}/commands")
   @AllowedProjectRoles({AllowedProjectRoles.DATA_OWNER, AllowedProjectRoles.DATA_SCIENTIST})
-  public EnvironmentCommandsResource opStatus(@PathParam("version") String version) {
+  public EnvironmentCommandsResource commands(@PathParam("version") String version) {
     return this.environmentCommandsResource.setProject(project, version);
+  }
+
+  @ApiOperation(value = "Python conflicts sub-resource", tags = {"EnvironmentConflictsResource"})
+  @Path("{version}/conflicts")
+  @AllowedProjectRoles({AllowedProjectRoles.DATA_OWNER, AllowedProjectRoles.DATA_SCIENTIST})
+  public EnvironmentConflictsResource conflicts(@PathParam("version") String version) {
+    return this.environmentConflictsResource.setProject(project, version);
   }
   
 }

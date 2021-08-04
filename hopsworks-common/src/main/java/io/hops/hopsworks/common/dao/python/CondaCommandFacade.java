@@ -16,8 +16,12 @@
 package io.hops.hopsworks.common.dao.python;
 
 import io.hops.hopsworks.common.dao.AbstractFacade;
-import io.hops.hopsworks.common.dao.host.Hosts;
-import io.hops.hopsworks.common.dao.project.Project;
+import io.hops.hopsworks.persistence.entity.project.Project;
+import io.hops.hopsworks.persistence.entity.python.CondaCommands;
+import io.hops.hopsworks.persistence.entity.python.CondaInstallType;
+import io.hops.hopsworks.persistence.entity.python.CondaOp;
+import io.hops.hopsworks.persistence.entity.python.CondaStatus;
+
 import javax.ejb.Stateless;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -45,44 +49,6 @@ public class CondaCommandFacade extends AbstractFacade<CondaCommands> {
     super(CondaCommands.class);
   }
 
-  public enum CondaOp {
-    CLONE,
-    CREATE,
-    BACKUP,
-    REMOVE,
-    LIST,
-    INSTALL,
-    UNINSTALL,
-    UPGRADE,
-    CLEAN,
-    YML;
-
-    public boolean isEnvOp() {
-      return CondaOp.isEnvOp(this);
-    }
-  
-    public static boolean isEnvOp(CondaOp arg) {
-      if (arg.compareTo(CondaOp.CLONE) == 0 || arg.compareTo(CondaOp.CREATE) == 0 || arg.compareTo(CondaOp.YML) == 0 ||
-        arg.compareTo(CondaOp.REMOVE) == 0 || arg.compareTo(CondaOp.BACKUP) == 0 || arg.compareTo(CondaOp.CLEAN) == 0) {
-        return true;
-      }
-      return false;
-    }
-  }
-
-  public enum CondaInstallType {
-    ENVIRONMENT,
-    CONDA,
-    PIP
-  }
-
-  public enum CondaStatus {
-    NEW,
-    SUCCESS,
-    ONGOING,
-    FAILED
-  }
-
   public int deleteAllCommandsByStatus(CondaStatus status) {
     TypedQuery<CondaCommands> query = em.createNamedQuery("CondaCommands.deleteAllFailedCommands",
         CondaCommands.class);
@@ -100,6 +66,15 @@ public class CondaCommandFacade extends AbstractFacade<CondaCommands> {
     TypedQuery<CondaCommands> query =
       em.createNamedQuery("CondaCommands.findByProjectAndStatus", CondaCommands.class);
     query.setParameter("projectId", proj);
+    query.setParameter("status", CondaStatus.FAILED);
+    return query.getResultList();
+  }
+  
+  public List<CondaCommands> getFailedEnvCommandsForProject(Project proj) {
+    TypedQuery<CondaCommands> query =
+      em.createNamedQuery("CondaCommands.findByProjectAndTypeAndStatus", CondaCommands.class);
+    query.setParameter("projectId", proj);
+    query.setParameter("installType", CondaInstallType.ENVIRONMENT);
     query.setParameter("status", CondaStatus.FAILED);
     return query.getResultList();
   }
@@ -127,7 +102,7 @@ public class CondaCommandFacade extends AbstractFacade<CondaCommands> {
     List<CondaCommands> commands = getCommandsForProject(proj);
     for (CondaCommands cc : commands) {
       // delete the conda library command if it has the same name as the input library name
-      if (cc.getOp().equals(CondaOp.CREATE) || cc.getOp().equals(CondaOp.YML)) {
+      if (cc.getOp().equals(CondaOp.CREATE) || cc.getOp().equals(CondaOp.EXPORT)) {
         em.remove(cc);
       }
     }
@@ -143,22 +118,25 @@ public class CondaCommandFacade extends AbstractFacade<CondaCommands> {
     }
   }
   
-  public List<CondaCommands> findUnfinishedByHost(Hosts host) {
-    TypedQuery<CondaCommands> query = em.createNamedQuery("CondaCommands.findNotFinishedByHost",
-      CondaCommands.class);
-    query.setParameter("host", host);
-    return query.getResultList();
-  }
-  
-  public List<CondaCommands> findByHost(Hosts host) {
-    TypedQuery<CondaCommands> query = em.createNamedQuery("CondaCommands.findByHost", CondaCommands.class);
-    query.setParameter("host", host);
-    return query.getResultList();
-  }
-  
-  public List<CondaCommands> findByStatus(CondaCommandFacade.CondaStatus status) {
+  public List<CondaCommands> findByStatus(CondaStatus status) {
     TypedQuery<CondaCommands> query = em.createNamedQuery("CondaCommands.findByStatus", CondaCommands.class);
     query.setParameter("status", status);
+    return query.getResultList();
+  }
+  
+  public List<CondaCommands> findByStatusAndCondaOp(CondaStatus status, CondaOp op) {
+    TypedQuery<CondaCommands> query = em.createNamedQuery("CondaCommands.findByStatusAndCondaOp", CondaCommands.class);
+    query.setParameter("status", status);
+    query.setParameter("op", op);
+    return query.getResultList();
+  }
+  
+  public List<CondaCommands> findByStatusAndCondaOpAndProject(List<CondaStatus> statuses, CondaOp op, Project project) {
+    TypedQuery<CondaCommands> query =
+      em.createNamedQuery("CondaCommands.findByStatusListAndCondaOpAndProject", CondaCommands.class);
+    query.setParameter("statuses", statuses);
+    query.setParameter("op", op);
+    query.setParameter("project", project);
     return query.getResultList();
   }
 
@@ -173,9 +151,9 @@ public class CondaCommandFacade extends AbstractFacade<CondaCommands> {
     String queryCountStr = buildQuery("SELECT COUNT(c.id) FROM CondaCommands c ", filter, sort,
         "c.installType = :installType AND c.projectId = :project ");
     Query query = em.createQuery(queryStr, CondaCommands.class)
-        .setParameter("installType", CondaCommandFacade.CondaInstallType.ENVIRONMENT).setParameter("project", project);
+        .setParameter("installType", CondaInstallType.ENVIRONMENT).setParameter("project", project);
     Query queryCount = em.createQuery(queryCountStr, CondaCommands.class)
-        .setParameter("installType", CondaCommandFacade.CondaInstallType.ENVIRONMENT).setParameter("project", project);
+        .setParameter("installType", CondaInstallType.ENVIRONMENT).setParameter("project", project);
     return findAll(offset, limit, filter, query, queryCount);
   }
 
@@ -187,9 +165,9 @@ public class CondaCommandFacade extends AbstractFacade<CondaCommands> {
     String queryCountStr = buildQuery("SELECT COUNT(c.id) FROM CondaCommands c ", filter, sort,
         "c.lib = :lib AND c.installType <> :installType AND c.projectId = :project ");
     Query query = em.createQuery(queryStr, CondaCommands.class).setParameter("lib", libName)
-        .setParameter("installType", CondaCommandFacade.CondaInstallType.ENVIRONMENT).setParameter("project", project);
+        .setParameter("installType", CondaInstallType.ENVIRONMENT).setParameter("project", project);
     Query queryCount = em.createQuery(queryCountStr, CondaCommands.class).setParameter("lib", libName)
-        .setParameter("installType", CondaCommandFacade.CondaInstallType.ENVIRONMENT).setParameter("project", project);
+        .setParameter("installType", CondaInstallType.ENVIRONMENT).setParameter("project", project);
     return findAll(offset, limit, filter, query, queryCount);
   }
 
@@ -220,10 +198,6 @@ public class CondaCommandFacade extends AbstractFacade<CondaCommands> {
       case STATUS_NEQ:
         setStatus(filterBy, q);
         break;
-      case MACHINE_TYPE:
-      case MACHINE_TYPE_NEQ:
-        setMachineType(filterBy, q);
-        break;
       case HOST_IN:
       case HOST_NIN:
         setHosts(filterBy, q);
@@ -238,18 +212,13 @@ public class CondaCommandFacade extends AbstractFacade<CondaCommands> {
   }
   
   private void setCondaOp(AbstractFacade.FilterBy filterBy, Query q) {
-    List<CondaCommandFacade.CondaOp> ops = getEnumValues(filterBy, CondaCommandFacade.CondaOp.class);
+    List<CondaOp> ops = getEnumValues(filterBy, CondaOp.class);
     q.setParameter(filterBy.getField(), ops);
   }
 
   private void setStatus(AbstractFacade.FilterBy filterBy, Query q) {
-    List<CondaCommandFacade.CondaStatus> status = getEnumValues(filterBy, CondaCommandFacade.CondaStatus.class);
+    List<CondaStatus> status = getEnumValues(filterBy, CondaStatus.class);
     q.setParameter(filterBy.getField(), status);
-  }
-
-  private void setMachineType(AbstractFacade.FilterBy filterBy, Query q) {
-    List<LibraryFacade.MachineType> machineTypes = getEnumValues(filterBy, LibraryFacade.MachineType.class);
-    q.setParameter(filterBy.getField(), machineTypes);
   }
 
   private void setHosts(AbstractFacade.FilterBy filterBy, Query q) {//set name
@@ -306,8 +275,6 @@ public class CondaCommandFacade extends AbstractFacade<CondaCommands> {
     OP_NEQ("OP_NEQ", "c.op NOT IN :op_neq ", "op_neq", "CREATE"),
     STATUS("STATUS", "c.status IN :status ", "status", "NEW"),
     STATUS_NEQ("STATUS_NEQ", "c.status NOT IN :status_neq ", "status_neq", "NEW"),
-    MACHINE_TYPE("MACHINE_TYPE", "c.machineType IN :machineType ", "machineType", "ALL"),
-    MACHINE_TYPE_NEQ("MACHINE_TYPE_NEQ", "c.machineType NOT IN :machineType_neq ", "machineType_neq", "CPU"),
     HOST_IN("HOST_IN", "c.hostId IN :hostId_in ", "hostId_in", "1"),
     HOST_NIN("HOST_NIN", "c.hostId NOT IN :hostId_nin ", "hostId_nin", "1"),
     HOST_LT("HOST_LT", "c.hostId < :hostId_lt ", "hostId_lt", "2"),

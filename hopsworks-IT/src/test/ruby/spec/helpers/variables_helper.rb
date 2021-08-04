@@ -41,6 +41,7 @@ module VariablesHelper
   def refresh_variables
     with_admin_session
     post "#{ENV['HOPSWORKS_API']}/admin/variables/refresh"
+    reset_session
   end
   
   def set_two_factor(value)
@@ -81,6 +82,14 @@ module VariablesHelper
     variables.save
     refresh_variables
     variables
+  end
+
+  def kubernetes_installed
+    getVar("kubernetes_installed").value.eql? "true"
+  end
+
+  def kfserving_installed
+    getVar("kube_kfserving_installed").value.eql? "true"
   end
 
 end

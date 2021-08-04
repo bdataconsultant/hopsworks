@@ -20,14 +20,14 @@ import com.auth0.jwt.exceptions.JWTDecodeException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import io.hops.hopsworks.common.dao.airflow.AirflowDag;
 import io.hops.hopsworks.common.dao.airflow.AirflowDagFacade;
-import io.hops.hopsworks.common.dao.airflow.MaterializedJWT;
+import io.hops.hopsworks.persistence.entity.airflow.MaterializedJWT;
 import io.hops.hopsworks.common.dao.airflow.MaterializedJWTFacade;
-import io.hops.hopsworks.common.dao.airflow.MaterializedJWTID;
-import io.hops.hopsworks.common.dao.project.Project;
+import io.hops.hopsworks.persistence.entity.airflow.MaterializedJWTID;
+import io.hops.hopsworks.persistence.entity.project.Project;
 import io.hops.hopsworks.common.dao.project.ProjectFacade;
-import io.hops.hopsworks.common.dao.user.BbcGroup;
+import io.hops.hopsworks.persistence.entity.user.BbcGroup;
 import io.hops.hopsworks.common.dao.user.UserFacade;
-import io.hops.hopsworks.common.dao.user.Users;
+import io.hops.hopsworks.persistence.entity.user.Users;
 import io.hops.hopsworks.common.hdfs.HdfsUsersController;
 import io.hops.hopsworks.common.security.CertificateMaterializer;
 import io.hops.hopsworks.common.util.DateUtils;
@@ -68,6 +68,7 @@ import java.nio.file.attribute.GroupPrincipal;
 import java.nio.file.attribute.PosixFileAttributeView;
 import java.nio.file.attribute.PosixFilePermission;
 import java.security.GeneralSecurityException;
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -139,26 +140,31 @@ public class AirflowManager {
   private TimerService timerService;
   
   private GroupPrincipal airflowGroup;
+  private volatile boolean initialized = false;
   
   @PostConstruct
   @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
-  public void init() throws RuntimeException {
-    try {
-      Path airflowPath = Paths.get(settings.getAirflowDir());
-      airflowGroup = Files.getFileAttributeView(airflowPath, PosixFileAttributeView.class,
-          LinkOption.NOFOLLOW_LINKS).readAttributes().group();
-    } catch (Exception ex) {
-      throw new RuntimeException(ex);
+  public void init() {
+    Path airflowPath = Paths.get(settings.getAirflowDir());
+    if (airflowPath.toFile().isDirectory()) {
+      try {
+        airflowGroup = Files.getFileAttributeView(airflowPath, PosixFileAttributeView.class,
+            LinkOption.NOFOLLOW_LINKS).readAttributes().group();
+        try {
+          recover();
+        } catch (Exception ex) {
+          LOG.log(Level.WARNING, "AirflowManager failed to recover, some already running workloads might be " +
+              "disrupted");
+        }
+        // This is a dummy query to initialize airflowPool metrics for Prometheus
+        airflowDagFacade.getAllWithLimit(1);
+        long interval = Math.max(1000L, settings.getJWTExpLeewaySec() * 1000 / 2);
+        timerService.createIntervalTimer(10L, interval, new TimerConfig("Airflow JWT renewal", false));
+        initialized = true;
+      } catch (IOException | SQLException ex) {
+        LOG.log(Level.SEVERE, "Failed to initialize AirflowManager", ex);
+      }
     }
-    
-    try {
-      recover();
-    } catch (Exception ex) {
-      LOG.log(Level.WARNING, "Failed to recover material for Airflow sessions", ex);
-    }
-    
-    long interval = Math.max(1000L, settings.getJWTExpLeewaySec() * 1000 / 2);
-    timerService.createIntervalTimer(10L, interval, new TimerConfig("Airflow JWT renewal", false));
   }
   
   /**
@@ -287,17 +293,28 @@ public class AirflowManager {
     return roles;
   }
   
+  private void isInitialized() throws AirflowException {
+    if (!initialized) {
+      throw new AirflowException(RESTCodes.AirflowErrorCode.AIRFLOW_MANAGER_UNINITIALIZED, Level.WARNING,
+          "AirflowManager is not initialized",
+          "AirflowManager failed to initialize or Airflow is not deployed");
+    }
+  }
+  
   @Lock(LockType.WRITE)
   @AccessTimeout(value = 5, unit = TimeUnit.SECONDS)
   public void onProjectRemoval(Project project) throws IOException {
-    FileUtils.deleteDirectory(getProjectDagDirectory(project.getId()).toFile());
-    // Airflow material will be deleted from the database by the foreign key constraint
-    // Monitor will reap all material that do not exist in the database
+    if (initialized) {
+      FileUtils.deleteDirectory(getProjectDagDirectory(project.getId()).toFile());
+      // Airflow material will be deleted from the database by the foreign key constraint
+      // Monitor will reap all material that do not exist in the database
+    }
   }
   
   @Lock(LockType.READ)
   @AccessTimeout(value = 1, unit = TimeUnit.SECONDS)
   public void prepareSecurityMaterial(Users user, Project project, String[] audience) throws AirflowException {
+    isInitialized();
     MaterializedJWTID materialID = new MaterializedJWTID(project.getId(), user.getUid(),
         MaterializedJWTID.USAGE.AIRFLOW);
     if (!materializedJWTFacade.exists(materialID)) {
@@ -361,56 +378,60 @@ public class AirflowManager {
   @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
   @Timeout
   public void monitorSecurityMaterial(Timer timer) {
-    LocalDateTime now = DateUtils.getNow();
-    // Clean unused token files and X.509 certificates
-    cleanStaleSecurityMaterial();
-  
-    // Renew them
-    Set<AirflowJWT> newTokens2Add = new HashSet<>();
-    Iterator<AirflowJWT> airflowJWTIt = airflowJWTs.iterator();
-    while (airflowJWTIt.hasNext()) {
-      AirflowJWT airflowJWT = airflowJWTIt.next();
-      // Set is sorted by expiration date
-      // If first does not need to be renewed, neither do the rest
-      if (airflowJWT.maybeRenew(now)) {
-        try {
-          LocalDateTime expirationDateTime = now.plus(settings.getJWTLifetimeMs(), ChronoUnit.MILLIS);
-          Date expirationDate = DateUtils.localDateTime2Date(expirationDateTime);
-          String token = jwtController.renewToken(airflowJWT.token, expirationDate,
-              DateUtils.localDateTime2Date(DateUtils.getNow()), true, new HashMap<>(3));
-          
-          AirflowJWT renewedJWT = new AirflowJWT(airflowJWT.username, airflowJWT.projectId, airflowJWT.projectName,
-              expirationDateTime, airflowJWT.uid);
-          renewedJWT.tokenFile = airflowJWT.tokenFile;
-          renewedJWT.token = token;
-          
-          airflowJWTIt.remove();
-          writeTokenToFile(renewedJWT);
-          newTokens2Add.add(renewedJWT);
-        } catch (JWTException ex) {
-          LOG.log(Level.WARNING, "Could not renew Airflow JWT for " + airflowJWT, ex);
-        } catch (IOException ex) {
-          LOG.log(Level.WARNING, "Could not write renewed Airflow JWT for " + airflowJWT, ex);
+    try {
+      LocalDateTime now = DateUtils.getNow();
+      // Clean unused token files and X.509 certificates
+      cleanStaleSecurityMaterial();
+
+      // Renew them
+      Set<AirflowJWT> newTokens2Add = new HashSet<>();
+      Iterator<AirflowJWT> airflowJWTIt = airflowJWTs.iterator();
+      while (airflowJWTIt.hasNext()) {
+        AirflowJWT airflowJWT = airflowJWTIt.next();
+        // Set is sorted by expiration date
+        // If first does not need to be renewed, neither do the rest
+        if (airflowJWT.maybeRenew(now)) {
           try {
-            jwtController.invalidate(airflowJWT.token);
-          } catch (InvalidationException iex) {
-            LOG.log(Level.FINE, "Could not invalidate Airflow JWT. SKipping...");
+            LocalDateTime expirationDateTime = now.plus(settings.getJWTLifetimeMs(), ChronoUnit.MILLIS);
+            Date expirationDate = DateUtils.localDateTime2Date(expirationDateTime);
+            String token = jwtController.renewToken(airflowJWT.token, expirationDate,
+                DateUtils.localDateTime2Date(DateUtils.getNow()), true, new HashMap<>(3));
+
+            AirflowJWT renewedJWT = new AirflowJWT(airflowJWT.username, airflowJWT.projectId, airflowJWT.projectName,
+                expirationDateTime, airflowJWT.uid);
+            renewedJWT.tokenFile = airflowJWT.tokenFile;
+            renewedJWT.token = token;
+
+            airflowJWTIt.remove();
+            writeTokenToFile(renewedJWT);
+            newTokens2Add.add(renewedJWT);
+          } catch (JWTException ex) {
+            LOG.log(Level.WARNING, "Could not renew Airflow JWT for " + airflowJWT, ex);
+          } catch (IOException ex) {
+            LOG.log(Level.WARNING, "Could not write renewed Airflow JWT for " + airflowJWT, ex);
+            try {
+              jwtController.invalidate(airflowJWT.token);
+            } catch (InvalidationException iex) {
+              LOG.log(Level.FINE, "Could not invalidate Airflow JWT. SKipping...");
+            }
+          } catch (Exception ex) {
+            LOG.log(Level.SEVERE, "Generic error while renewing Airflow JWTs", ex);
           }
-        } catch (Exception ex) {
-          LOG.log(Level.SEVERE, "Generic error while renewing Airflow JWTs", ex);
+        } else {
+          break;
         }
-      } else {
-        break;
       }
+      airflowJWTs.addAll(newTokens2Add);
+    } catch (Exception e) {
+      LOG.log(Level.SEVERE, "Got an exception while renewing/invalidating airflow jwt token", e);
     }
-    airflowJWTs.addAll(newTokens2Add);
   }
   
   public Path getProjectDagDirectory(Integer projectID) {
     return Paths.get(settings.getAirflowDir(), "dags", generateProjectSecret(projectID));
   }
   
-  public Path getProjectSecretsDirectory(String username) {
+  private Path getProjectSecretsDirectory(String username) {
     return Paths.get(settings.getAirflowDir(), "secrets", generateOwnerSecret(username));
   }
   

@@ -63,6 +63,21 @@ angular.module('hopsWorksApp')
               },
               getCondaDefaultRepo: function () {
                 return $http.get('/api/variables/conda');
+              },
+              getCloudProvider: function() {
+                return $http.get('/api/variables/cloud');
+              },
+              isEnterprise: function () {
+                return $http.get('/api/variables/hopsworks_enterprise');
+              },
+              isKubernetes: function () {
+                return $http.get('/api/variables/kubernetes_installed');
+              },
+              isKFServing: function () {
+                return $http.get('/api/variables/kube_kfserving_installed');
+              },
+              getFilenameRegex: function (type) {
+                return $http.get('/api/variables/filename-regex?type=' + type);
               }
             };
             return service;

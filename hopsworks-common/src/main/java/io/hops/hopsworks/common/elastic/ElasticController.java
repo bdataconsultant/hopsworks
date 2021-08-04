@@ -39,68 +39,44 @@
 
 package io.hops.hopsworks.common.elastic;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Strings;
-import io.hops.hopsworks.common.dao.dataset.Dataset;
-import io.hops.hopsworks.common.dao.dataset.DatasetFacade;
-import io.hops.hopsworks.common.dao.project.Project;
+import io.hops.hopsworks.common.featurestore.xattr.dto.FeaturestoreXAttrsConstants;
+import io.hops.hopsworks.persistence.entity.dataset.Dataset;
+import io.hops.hopsworks.persistence.entity.dataset.DatasetSharedWith;
+import io.hops.hopsworks.persistence.entity.project.Project;
 import io.hops.hopsworks.common.dao.project.ProjectFacade;
+import io.hops.hopsworks.persistence.entity.user.Users;
 import io.hops.hopsworks.common.dataset.DatasetController;
+import io.hops.hopsworks.exceptions.ElasticException;
 import io.hops.hopsworks.exceptions.ProjectException;
 import io.hops.hopsworks.restutils.RESTCodes;
 import io.hops.hopsworks.exceptions.ServiceException;
-import io.hops.hopsworks.common.util.HopsUtils;
-import io.hops.hopsworks.common.util.Ip;
 import io.hops.hopsworks.common.util.Settings;
 import org.apache.lucene.search.join.ScoreMode;
-import org.elasticsearch.action.ActionFuture;
-import org.elasticsearch.action.DocWriteResponse.Result;
-import org.elasticsearch.action.admin.indices.cache.clear.ClearIndicesCacheRequest;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
-import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequestBuilder;
-import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsResponse;
-import org.elasticsearch.action.admin.indices.exists.types.TypesExistsRequest;
-import org.elasticsearch.action.admin.indices.exists.types.TypesExistsResponse;
-import org.elasticsearch.action.admin.indices.open.OpenIndexRequest;
-import org.elasticsearch.action.index.IndexResponse;
-import org.elasticsearch.action.search.SearchRequestBuilder;
+import org.elasticsearch.action.search.MultiSearchRequest;
+import org.elasticsearch.action.search.MultiSearchResponse;
+import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.AdminClient;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.client.IndicesAdminClient;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.index.query.QueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
-import org.elasticsearch.transport.client.PreBuiltTransportClient;
-import org.json.JSONArray;
+import org.javatuples.Pair;
 import org.json.JSONObject;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.Entity;
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
+import javax.ejb.TransactionAttribute;
+import javax.ejb.TransactionAttributeType;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import static org.elasticsearch.index.query.QueryBuilders.boolQuery;
 import static org.elasticsearch.index.query.QueryBuilders.fuzzyQuery;
@@ -118,6 +94,7 @@ import static org.elasticsearch.index.query.QueryBuilders.wildcardQuery;
  * <p>
  */
 @Stateless
+@TransactionAttribute(TransactionAttributeType.NEVER)
 public class ElasticController {
 
   @EJB
@@ -125,174 +102,69 @@ public class ElasticController {
   @EJB
   private ProjectFacade projectFacade;
   @EJB
-  private DatasetFacade datasetFacade;
-  @EJB
   private DatasetController datasetController;
-
-  private static final Logger LOG = Logger.getLogger(ElasticController.class.getName());
-
-  private Client elasticClient = null;
-
-  @PostConstruct
-  private void initClient() {
-    try {
-      getClient();
-    } catch (ServiceException ex) {
-      LOG.log(Level.SEVERE, null, ex);
+  @EJB
+  private KibanaClient kibanaClient;
+  @EJB
+  private ElasticClientController elasticClientCtrl;
   
-    }
-  }
+  private static final Logger LOG = Logger.getLogger(ElasticController.class.getName());
+  
 
-  @PreDestroy
-  private void closeClient(){
-    shutdownClient();
-  }
-
-  public List<ElasticHit> globalSearch(String searchTerm) throws ServiceException {
-    //some necessary client settings
-    Client client = getClient();
-
+  public SearchHit[] globalSearchHighLevel(String searchTerm) throws ServiceException, ElasticException {
     //check if the index are up and running
-    if (!this.indexExists(client, Settings.META_INDEX)) {
+    if (!elasticClientCtrl.mngIndexExists(Settings.META_INDEX)) {
       throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_INDEX_NOT_FOUND,
         Level.SEVERE, "index: " + Settings.META_INDEX);
     }
-
-    LOG.log(Level.INFO, "Found elastic index, now executing the query.");
-
-    //hit the indices - execute the queries
-    SearchRequestBuilder srb = client.prepareSearch(Settings.META_INDEX);
-    srb = srb.setTypes(Settings.META_DEFAULT_TYPE);
-    srb = srb.setQuery(this.globalSearchQuery(searchTerm.toLowerCase()));
-    srb = srb.highlighter(new HighlightBuilder().field("name"));
-    LOG.log(Level.INFO, "Global search Elastic query is: {0}", srb);
-    ActionFuture<SearchResponse> futureResponse = srb.execute();
-    SearchResponse response = futureResponse.actionGet();
+  
+    LOG.log(Level.FINE, "Found elastic index, now executing the query.");
+  
+    SearchResponse response = executeSearchQuery(globalSearchQuery(searchTerm.toLowerCase()));
 
     if (response.status().getStatus() == 200) {
-      //construct the response
-      List<ElasticHit> elasticHits = new LinkedList<>();
       if (response.getHits().getHits().length > 0) {
-        SearchHit[] hits = response.getHits().getHits();
-
-        for (SearchHit hit : hits) {
-          ElasticHit eHit = new ElasticHit(hit);
-          eHit.setLocalDataset(true);
-          int inode_id = Integer.parseInt(hit.getId());
-          List<Dataset> dsl = datasetFacade.findByInodeId(inode_id);
-          if (!dsl.isEmpty() && dsl.get(0).isPublicDs()) {
-            Dataset ds = dsl.get(0);
-            eHit.setPublicId(ds.getPublicDsId());
-          }
-          elasticHits.add(eHit);
-        }
+        return response.getHits().getHits();
       }
-
-      return elasticHits;
-    } else {
-      //something went wrong so throw an exception
-      shutdownClient();
-      throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_SERVER_NOT_FOUND, Level.WARNING, "Elasticsearch " +
-        "error code: " + response.status().getStatus());
+      return new SearchHit[0];
     }
+    //we need to further check the status if it is a problem with
+    // elasticsearch rather than a bad query
+    throw new ElasticException(RESTCodes.ElasticErrorCode.ELASTIC_QUERY_ERROR,
+      Level.INFO,"Error while executing query, code: "+  response.status().getStatus());
   }
-
-  public String findExperiment(String index, String app_id) throws ServiceException {
-
-    Client client = getClient();
-
-    SearchResponse searchResponse = client.prepareSearch(index)
-        .setQuery(QueryBuilders.matchQuery("app_id", app_id))
-        .get();
-
-    int status = searchResponse.status().getStatus();
-    if(status != 200) {
-      LOG.log(Level.SEVERE, "Unexpected response code " + searchResponse.status().getStatus() +
-          " when updating experiment in Elastic. " + searchResponse.toString());
-    }
-
-    return searchResponse.toString();
-  }
-
-  public void updateExperiment(String index, String id, JSONObject source) throws IOException, ServiceException {
-
-    Client client = getClient();
-
-    Map<String, Object> map;
-
-    ObjectMapper mapper = new ObjectMapper();
-    map = mapper.readValue(source.toString(),
-        new TypeReference<HashMap<String, Object>>() {
-        });
-
-    IndexResponse indexResponse = client.prepareIndex(index, "experiments", id)
-        .setSource(map)
-        .get();
-
-    int status = indexResponse.status().getStatus();
-    if(status != 200) {
-      LOG.log(Level.SEVERE, "Unexpected response code " + indexResponse.status().getStatus() +
-              " when updating experiment in Elastic. " + indexResponse.toString());
-    }
-
-  }
-
-  public List<ElasticHit> projectSearch(Integer projectId, String searchTerm) throws ServiceException {
-    Client client = getClient();
+  
+  public SearchHit[] projectSearchHighLevel(Integer projectId, String searchTerm) throws ServiceException,
+    ElasticException {
     //check if the index are up and running
-    if (!this.indexExists(client, Settings.META_INDEX)) {
+    if (!elasticClientCtrl.mngIndexExists(Settings.META_INDEX)) {
       throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_INDEX_NOT_FOUND,
         Level.SEVERE, "index: " + Settings.META_INDEX);
-    } else if (!this.typeExists(client, Settings.META_INDEX,
-        Settings.META_DEFAULT_TYPE)) {
-      throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_INDEX_TYPE_NOT_FOUND, Level.SEVERE,
-        "type: " + Settings.META_DEFAULT_TYPE);
     }
-
-    SearchRequestBuilder srb = client.prepareSearch(Settings.META_INDEX);
-    srb = srb.setTypes(Settings.META_DEFAULT_TYPE);
-    srb = srb.setQuery(projectSearchQuery(projectId, searchTerm.toLowerCase()));
-    srb = srb.highlighter(new HighlightBuilder().field("name"));
-
-    LOG.log(Level.INFO, "Project Elastic query is: {0} {1}", new String[]{
-      String.valueOf(projectId), srb.toString()});
-    ActionFuture<SearchResponse> futureResponse = srb.execute();
-    SearchResponse response = futureResponse.actionGet();
-
+    
+    SearchResponse response = executeSearchQuery(projectSearchQuery(projectId, searchTerm.toLowerCase()));
     if (response.status().getStatus() == 200) {
-      //construct the response
-      List<ElasticHit> elasticHits = new LinkedList<>();
+      SearchHit[] hits = new SearchHit[0];
       if (response.getHits().getHits().length > 0) {
-        SearchHit[] hits = response.getHits().getHits();
-        ElasticHit eHit;
-        for (SearchHit hit : hits) {
-          eHit = new ElasticHit(hit);
-          eHit.setLocalDataset(true);
-          elasticHits.add(eHit);
-        }
+        hits = response.getHits().getHits();
       }
-
-      projectSearchInSharedDatasets(client, projectId, searchTerm, elasticHits);
-      return elasticHits;
+      projectSearchInSharedDatasets(projectId, searchTerm, hits);
+      return hits;
     }
-
-    shutdownClient();
-    throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_SERVER_NOT_FOUND, Level.SEVERE);
+    //we need to further check the status if it is a probelm with
+    // elasticsearch rather than a bad query
+    throw new ElasticException(RESTCodes.ElasticErrorCode.ELASTIC_QUERY_ERROR,
+      Level.INFO,"Error while executing query, code: "+  response.status().getStatus());
   }
-
-  public List<ElasticHit> datasetSearch(Integer projectId, String datasetName, String searchTerm)
-    throws ServiceException {
-    Client client = getClient();
+  
+  public SearchHit[] datasetSearchHighLevel(Integer projectId, String datasetName, String searchTerm)
+    throws ServiceException, ElasticException {
     //check if the indices are up and running
-    if (!this.indexExists(client, Settings.META_INDEX)) {
+    if (!elasticClientCtrl.mngIndexExists(Settings.META_INDEX)) {
       throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_INDEX_NOT_FOUND,
         Level.SEVERE, "index: " + Settings.META_INDEX);
-    } else if (!this.typeExists(client, Settings.META_INDEX,
-        Settings.META_DEFAULT_TYPE)) {
-      throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_INDEX_TYPE_NOT_FOUND, Level.SEVERE,
-        "type: " + Settings.META_DEFAULT_TYPE);
     }
-
+    
     String dsName = datasetName;
     Project project;
     if (datasetName.contains(Settings.SHARED_FILE_SEPARATOR)) {
@@ -302,220 +174,272 @@ public class ElasticController {
     } else {
       project = projectFacade.find(projectId);
     }
-
+    
     Dataset dataset = datasetController.getByProjectAndDsName(project,null, dsName);
     final long datasetId = dataset.getInodeId();
-
-    //hit the indices - execute the queries
-    SearchRequestBuilder srb = client.prepareSearch(Settings.META_INDEX);
-    srb = srb.setTypes(Settings.META_DEFAULT_TYPE);
-    srb = srb.setQuery(this.datasetSearchQuery(datasetId, searchTerm.toLowerCase()));
-
-    LOG.log(Level.INFO, "Dataset Elastic query is: {0}", srb.toString());
-    ActionFuture<SearchResponse> futureResponse = srb.execute();
-    SearchResponse response = futureResponse.actionGet();
-
+    SearchResponse response = executeSearchQuery(datasetSearchQuery(datasetId, searchTerm.toLowerCase()));
     if (response.status().getStatus() == 200) {
-      //construct the response
-      List<ElasticHit> elasticHits = new LinkedList<>();
       if (response.getHits().getHits().length > 0) {
-        SearchHit[] hits = response.getHits().getHits();
-        ElasticHit eHit;
-        for (SearchHit hit : hits) {
-          eHit = new ElasticHit(hit);
-          eHit.setLocalDataset(true);
-          elasticHits.add(eHit);
-        }
+        return response.getHits().getHits();
       }
-      return elasticHits;
+      return new SearchHit[0];
     }
-
-    shutdownClient();
-    throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_SERVER_NOT_FOUND, Level.SEVERE);
+    //we need to further check the status if it is a problem with
+    // elasticsearch rather than a bad query
+    throw new ElasticException(RESTCodes.ElasticErrorCode.ELASTIC_QUERY_ERROR,
+      Level.INFO,"Error while executing query, code: "+  response.status().getStatus());
   }
-
-  public boolean deleteIndex(String index) throws ServiceException {
-    boolean acked = getClient().admin().indices().delete(new DeleteIndexRequest(index)).actionGet().isAcknowledged();
-    if (acked) {
-      LOG.log(Level.INFO, "Acknowledged deletion of elastic index:{0}", index);
-    } else {
-      LOG.log(Level.SEVERE, "Elastic index:{0} deletion could not be acknowledged", index);
+  
+  /**
+   *
+   * @param docType
+   * @param searchTerm
+   * @param from
+   * @param size
+   * @return even if you passed as type ALL, expect result to contain FEATUREGROUP, TRAININGDATASET, FEATURE
+   * @throws ElasticException
+   * @throws ServiceException
+   */
+  public Map<FeaturestoreDocType, SearchResponse> featurestoreSearch(FeaturestoreDocType docType,
+    String searchTerm, int from, int size)
+    throws ElasticException, ServiceException {
+    //check if the indices are up and running
+    if (!elasticClientCtrl.mngIndexExists(Settings.FEATURESTORE_INDEX)) {
+      throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_INDEX_NOT_FOUND,
+        Level.SEVERE, "index: " + Settings.FEATURESTORE_INDEX);
     }
-    return acked;
-  }
-
-  public boolean indexExists(String index) throws ServiceException {
-
-    boolean exists = getClient().admin().indices().exists(new IndicesExistsRequest(index)).actionGet().isExists();
-    if (exists) {
-      LOG.log(Level.FINE, "Elastic index found:{0}", index);
-    } else {
-      LOG.log(Level.FINE, "Elastic index:{0} could not be found", index);
+    
+    Map<FeaturestoreDocType, SearchResponse> result = new HashMap<>();
+    switch(docType) {
+      case FEATUREGROUP: {
+        QueryBuilder fgQB = featuregroupQueryB(searchTerm);
+        SearchResponse response = executeSearchQuery(fgQB, featuregroupHighlighter(), from, size);
+        checkResponse(fgQB, response);
+        result.put(FeaturestoreDocType.FEATUREGROUP, response);
+      } break;
+      case TRAININGDATASET: {
+        QueryBuilder tdQB = trainingdatasetQueryB(searchTerm);
+        SearchResponse response = executeSearchQuery(tdQB, trainingDatasetHighlighter(), from, size);
+        checkResponse(tdQB, response);
+        result.put(FeaturestoreDocType.TRAININGDATASET, response);
+      } break;
+      case FEATURE: {
+        QueryBuilder fQB = featureQueryB(searchTerm);
+        //TODO Alex - v2 use actual from size of features
+        SearchResponse response = executeSearchQuery(fQB, featureHighlighter(), 0, 10000);
+        checkResponse(fQB, response);
+        result.put(FeaturestoreDocType.FEATURE, response);
+      } break;
+      case ALL: {
+        List<Pair<QueryBuilder, HighlightBuilder>> qbs = new LinkedList<>();
+        QueryBuilder fgQB = featuregroupQueryB(searchTerm);
+        qbs.add(Pair.with(fgQB, featuregroupHighlighter()));
+        QueryBuilder tdQB = trainingdatasetQueryB(searchTerm);
+        qbs.add(Pair.with(tdQB, trainingDatasetHighlighter()));
+        QueryBuilder fQB = featureQueryB(searchTerm);
+        qbs.add(Pair.with(fQB, featureHighlighter()));
+        
+        MultiSearchResponse response = executeSearchQuery(qbs, from, size);
+        
+        checkResponse(fgQB, response.getResponses()[0].getResponse());
+        result.put(FeaturestoreDocType.FEATUREGROUP, response.getResponses()[0].getResponse());
+        checkResponse(fgQB, response.getResponses()[1].getResponse());
+        result.put(FeaturestoreDocType.TRAININGDATASET, response.getResponses()[1].getResponse());
+        checkResponse(fgQB, response.getResponses()[2].getResponse());
+        result.put(FeaturestoreDocType.FEATURE, response.getResponses()[2].getResponse());
+      } break;
     }
-    return exists;
+    return result;
   }
-
-  public void createIndex(String index) throws ServiceException {
-
-    boolean acked = getClient().admin().indices().create(new CreateIndexRequest(index)).actionGet().isAcknowledged();
-    if (!acked) {
-      throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_INDEX_CREATION_ERROR,  Level.SEVERE,
-        "Elastic index:{0} creation could not be acknowledged. index: " + index);
+  
+  /**
+   *
+   * @param searchTerm
+   * @param docProjectIds - pe specific FEATUREGROUP, TRAININGDATASET, FEATURE. No ALL allowed
+   * @param from
+   * @param size
+   * @return
+   * @throws ElasticException
+   * @throws ServiceException
+   */
+  public Map<FeaturestoreDocType, SearchResponse> featurestoreSearch(String searchTerm,
+    Map<FeaturestoreDocType, Set<Integer>> docProjectIds, int from, int size)
+    throws ElasticException, ServiceException {
+    //check if the indices are up and running
+    if (!elasticClientCtrl.mngIndexExists(Settings.FEATURESTORE_INDEX)) {
+      throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_INDEX_NOT_FOUND,
+        Level.SEVERE, "index: " + Settings.FEATURESTORE_INDEX);
+    }
+  
+    QueryBuilder fgQB = null;
+    QueryBuilder tdQB = null;
+    QueryBuilder fQB = null;
+    List<Pair<QueryBuilder, HighlightBuilder>> qbs = new LinkedList<>();
+    if(docProjectIds.containsKey(FeaturestoreDocType.FEATUREGROUP)) {
+      fgQB = addProjectToQuery(featuregroupQueryB(searchTerm),
+        docProjectIds.get(FeaturestoreDocType.FEATUREGROUP));
+      qbs.add(Pair.with(fgQB, featuregroupHighlighter()));
+    }
+    if(docProjectIds.containsKey(FeaturestoreDocType.TRAININGDATASET)) {
+      tdQB = addProjectToQuery(trainingdatasetQueryB(searchTerm),
+        docProjectIds.get(FeaturestoreDocType.TRAININGDATASET));
+      qbs.add(Pair.with(tdQB, trainingDatasetHighlighter()));
+    }
+    if(docProjectIds.containsKey(FeaturestoreDocType.FEATURE)) {
+      fQB = addProjectToQuery(featureQueryB(searchTerm),
+        docProjectIds.get(FeaturestoreDocType.FEATURE));
+      qbs.add(Pair.with(fQB, featureHighlighter()));
+    }
+    
+    MultiSearchResponse response = executeSearchQuery(qbs, from, size);
+    
+    Map<FeaturestoreDocType, SearchResponse> result = new HashMap<>();
+    int idx = 0;
+    if(docProjectIds.containsKey(FeaturestoreDocType.FEATUREGROUP)) {
+      checkResponse(fgQB, response.getResponses()[idx].getResponse());
+      result.put(FeaturestoreDocType.FEATUREGROUP, response.getResponses()[idx].getResponse());
+      idx++;
+    }
+    if(docProjectIds.containsKey(FeaturestoreDocType.TRAININGDATASET)) {
+      checkResponse(tdQB, response.getResponses()[idx].getResponse());
+      result.put(FeaturestoreDocType.TRAININGDATASET, response.getResponses()[idx].getResponse());
+      idx++;
+    }
+    if(docProjectIds.containsKey(FeaturestoreDocType.FEATURE)) {
+      checkResponse(fQB, response.getResponses()[idx].getResponse());
+      result.put(FeaturestoreDocType.FEATURE, response.getResponses()[idx].getResponse());
+      idx++;
+    }
+    return result;
+  }
+  
+  private QueryBuilder addProjectToQuery(QueryBuilder qb, Set<Integer> projectIds) {
+    return boolQuery()
+      .must(termsQuery(Settings.FEATURESTORE_PROJECT_ID_FIELD, projectIds))
+      .must(qb);
+  }
+  
+  private void checkResponse(QueryBuilder qb,SearchResponse response) throws ElasticException {
+    if (response == null || response.status().getStatus() != 200) {
+      //we need to further check the status if it is a problem with
+      // elasticsearch rather than a bad query
+      LOG.log(Level.FINE,"error while executing query:{0} response is:{1}",
+        new Object[]{qb, (response == null ? null : response.status().getStatus())});
+      throw new ElasticException(RESTCodes.ElasticErrorCode.ELASTIC_QUERY_ERROR,
+        Level.WARNING, "Error while executing elastic query");
     }
   }
-
-  public void createIndexPattern(Project project, String pattern) throws ProjectException {
-    Map<String, String> params = new HashMap<>();
-    params.put("op", "POST");
-    params.put("data", "{\"attributes\": {\"title\": \"" + pattern + "\"}}");
-
-    JSONObject resp = sendKibanaReq(params, "index-pattern", pattern);
-
+    
+  public void createIndexPattern(Project project, Users user, String pattern)
+      throws ProjectException, ElasticException {
+    JSONObject resp = kibanaClient.createIndexPattern(user, project,
+        KibanaClient.KibanaType.IndexPattern, pattern);
+    
     if (!(resp.has("updated_at") || (resp.has("statusCode") && resp.get("statusCode").toString().equals("409")))) {
       throw new ProjectException(RESTCodes.ProjectErrorCode.PROJECT_KIBANA_CREATE_INDEX_ERROR, Level.SEVERE, null,
-        "project: " + project.getName() + ", resp: " + resp.toString(2), null);
+          "project: " + project.getName() + ", resp: " + resp.toString(2), null);
     }
-
   }
-
-  public void deleteProjectIndices(Project project) throws ServiceException {
+  
+  public void deleteProjectIndices(Project project) throws ElasticException {
     //Get all project indices
-    Map<String, IndexMetaData> indices = getIndices(project.getName() +
+    String[] indices = elasticClientCtrl.mngIndicesGet(project.getName() +
       "_(((logs|serving|" + Settings.ELASTIC_BEAMSDKWORKER_INDEX_PATTERN + "|" +
-      Settings.ELASTIC_BEAMJOBSERVER_INDEX_PATTERN + ")-\\d{4}.\\d{2}.\\d{2})|(" + Settings.ELASTIC_EXPERIMENTS_INDEX +
-      ")| (" + Settings.ELASTIC_KAGENT_INDEX_PATTERN + "))");
-    for (String index : indices.keySet()) {
-      if (!deleteIndex(index)) {
+      Settings.ELASTIC_BEAMJOBSERVER_INDEX_PATTERN + ")-\\d{4}.\\d{2}.\\d{2}))");
+    for (String index : indices) {
+      try {
+        elasticClientCtrl.mngIndexDelete(index);
+      } catch(ElasticException e) {
         LOG.log(Level.SEVERE, "Could not delete project index:{0}", index);
       }
     }
   }
 
   /**
-   * Deletes visualizations, saved searches and dashboards for a project.
+   * Deletes index patterns, visualizations, saved searches and dashboards for a project.
    *
-   * @param projects
+   * @param project
    */
-  public void deleteProjectSavedObjects(List<String> projects) {
-    //Loop through all objects and
-
-    Map<String, String> params = new HashMap<>();
-    params.put("op", "GET");
-    JSONArray allObjects = sendKibanaReq(params).getJSONArray("saved_objects");
-    Map<String, String> objectsToDelete= new HashMap<>();
-
-    for(int i = 0; i< allObjects.length(); i++){
-      String index = getIndexFromKibana(allObjects.getJSONObject(i));
-      LOG.log(Level.FINE, "deleteProjectSavedObjects-index:{0}", index);
-      if (!Strings.isNullOrEmpty(index) && index.contains("_logs-*")) {
-        String projectName = index.split("_logs-*")[0];
-        if (projects.contains(projectName)) {
-          objectsToDelete.
-              put(allObjects.getJSONObject(i).getString("id"), allObjects.getJSONObject(i).getString("type"));
-        }
-      }
+  public void deleteProjectSavedObjects(String project)
+      throws ElasticException {
+    if(!settings.isKibanaMultiTenancyEnabled()){
+      throw new UnsupportedOperationException("Only multitenant kibana setup " +
+          "supported.");
     }
-    params.put("op", "DELETE");
-    for (String id : objectsToDelete.keySet()) {
-      LOG.log(Level.FINE, "deleteProjectSavedObjects-deleting id:{0}, of type:{1}", new Object[]{id,
-        objectsToDelete.get(id)});
-      sendKibanaReq(params, objectsToDelete.get(id), id);
-    }
-
+    
+    elasticClientCtrl.mngIndexDelete(ElasticUtils.getAllKibanaTenantIndex(project.toLowerCase()));
   }
-
-  public Result deleteDocument(String index, String type, String id) throws ServiceException {
-    return getClient().prepareDelete(index, type, id).get().getResult();
-  }
-
-  public Map<String,IndexMetaData> getIndices() throws ServiceException {
-    return getIndices(null);
-  }
-
-  /**
-   * Get all indices. If pattern parameter is provided, only indices matching the pattern will be returned.
-   * @param regex
-   * @return
-   */
-  public Map<String, IndexMetaData> getIndices(String regex) throws ServiceException {
-    ImmutableOpenMap<String, IndexMetaData> indices = getClient().admin().cluster().prepareState().get().getState()
-        .getMetaData().getIndices();
-
-    Map<String, IndexMetaData> indicesMap = null;
-
-    if (indices != null && !indices.isEmpty()) {
-      indicesMap = new HashMap<>();
-      Pattern pattern = null;
-      if (regex != null) {
-        pattern = Pattern.compile(regex);
-      }
-      for (Iterator<String> iter = indices.keysIt(); iter.hasNext();) {
-        String index = iter.next();
-        if (pattern == null || pattern.matcher(index).matches()) {
-          indicesMap.put(index, indices.get(index));
-        }
-      }
-    }
-    return indicesMap;
-  }
-
-  private Client getClient() throws ServiceException {
-    if (elasticClient == null) {
-      final org.elasticsearch.common.settings.Settings settings
-          = org.elasticsearch.common.settings.Settings.builder()
-              .put("client.transport.sniff", true) //being able to retrieve other nodes
-              .put("cluster.name", "hops").build();
-
-      elasticClient = new PreBuiltTransportClient(settings)
-          .addTransportAddress(new TransportAddress(
-              new InetSocketAddress(getElasticIpAsString(),
-                  this.settings.getElasticPort())));
-    }
-    return elasticClient;
-  }
-
-  private void projectSearchInSharedDatasets(Client client, Integer projectId,
-      String searchTerm, List<ElasticHit> elasticHits) {
+  
+  private SearchHit[] projectSearchInSharedDatasets(Integer projectId, String searchTerm,
+    SearchHit[] elasticHits) throws ElasticException {
     Project project = projectFacade.find(projectId);
-    Collection<Dataset> datasets = project.getDatasetCollection();
-    for (Dataset ds : datasets) {
-      if (ds.isShared()) {
-        List<Dataset> dss = datasetFacade.findByInode(ds.getInode());
-        for (Dataset sh : dss) {
-          if (!sh.isShared()) {
-            long datasetId = ds.getInodeId();
-            executeProjectSearchQuery(client, searchSpecificDataset(datasetId,
-                searchTerm), elasticHits);
-
-            executeProjectSearchQuery(client, datasetSearchQuery(datasetId,
-                searchTerm), elasticHits);
-
-          }
-        }
-      }
+    Collection<DatasetSharedWith> datasetSharedWithCollection = project.getDatasetSharedWithCollection();
+    for (DatasetSharedWith ds : datasetSharedWithCollection) {
+      long datasetId = ds.getDataset().getInode().getId();
+      elasticHits = executeProjectSearchQuery(searchSpecificDataset(datasetId, searchTerm), elasticHits);
+      elasticHits = executeProjectSearchQuery(datasetSearchQuery(datasetId, searchTerm), elasticHits);
     }
+    return elasticHits;
   }
-
-  private void executeProjectSearchQuery(Client client, QueryBuilder query, List<ElasticHit> elasticHits) {
-    SearchRequestBuilder srb = client.prepareSearch(Settings.META_INDEX);
-    srb = srb.setTypes(Settings.META_DEFAULT_TYPE);
-    srb = srb.setQuery(query);
-    srb = srb.highlighter(new HighlightBuilder().field("name"));
-
-    LOG.log(Level.INFO, "Project Elastic query in Shared Dataset : {0}", srb.toString());
-    ActionFuture<SearchResponse> futureResponse = srb.execute();
-    SearchResponse response = futureResponse.actionGet();
-
+  
+  private SearchHit[] executeProjectSearchQuery(QueryBuilder query, SearchHit[] elasticHits)
+    throws ElasticException {
+    SearchResponse response = executeSearchQuery(query);
     if (response.status().getStatus() == 200) {
       if (response.getHits().getHits().length > 0) {
         SearchHit[] hits = response.getHits().getHits();
-        for (SearchHit hit : hits) {
-          elasticHits.add(new ElasticHit(hit));
-        }
+        elasticHits = Stream.concat(Arrays.stream(elasticHits), Arrays.stream(hits)).toArray(SearchHit[]::new);
       }
     }
+    return elasticHits;
   }
-
+  
+  private SearchResponse executeSearchQuery(QueryBuilder query)
+    throws ElasticException {
+    return executeSearchQuery(Settings.META_INDEX, query);
+  }
+  
+  private SearchResponse executeSearchQuery(String index, QueryBuilder query)
+    throws ElasticException {
+    //hit the indices - execute the queries
+    SearchRequest searchRequest = new SearchRequest(index);
+    SearchSourceBuilder sb = new SearchSourceBuilder();
+    sb.query(query);
+    searchRequest.source(sb);
+    return elasticClientCtrl.baseSearch(searchRequest);
+  }
+  
+  private SearchResponse executeSearchQuery(QueryBuilder query, HighlightBuilder highlighter, int from, int size)
+    throws ElasticException {
+    //hit the indices - execute the queries
+    SearchRequest searchRequest = new SearchRequest(Settings.FEATURESTORE_INDEX);
+    SearchSourceBuilder sb = new SearchSourceBuilder()
+      .query(query)
+      .highlighter(highlighter)
+      .from(from)
+      .size(size);
+    searchRequest.source(sb);
+    return elasticClientCtrl.baseSearch(searchRequest);
+  }
+  
+  private MultiSearchResponse executeSearchQuery(List<Pair<QueryBuilder, HighlightBuilder>> searchQB,
+                                                 int from, int size)
+    throws ElasticException {
+    //hit the indices - execute the queries
+    MultiSearchRequest multiSearchRequest = new MultiSearchRequest();
+    for(Pair<QueryBuilder, HighlightBuilder> qb : searchQB) {
+      SearchRequest searchRequest = new SearchRequest(Settings.FEATURESTORE_INDEX);
+      SearchSourceBuilder sb = new SearchSourceBuilder()
+        .query(qb.getValue0())
+        .highlighter(qb.getValue1())
+        .from(from)
+        .size(size);
+      searchRequest.source(sb);
+      multiSearchRequest.add(searchRequest);
+    }
+    return elasticClientCtrl.multiSearch(multiSearchRequest);
+  }
+  
   private QueryBuilder searchSpecificDataset(Long datasetId, String searchTerm) {
     QueryBuilder dataset = matchQuery(Settings.META_ID, datasetId);
     QueryBuilder nameDescQuery = getNameDescriptionMetadataQuery(searchTerm);
@@ -579,7 +503,64 @@ public class ElasticController {
         .must(query);
     return cq;
   }
-
+  
+  private QueryBuilder featuregroupQueryB(String searchTerm) {
+    QueryBuilder termQuery = boolQuery()
+      .should(getNameQuery(searchTerm))
+      .should(getDescriptionQuery(searchTerm))
+      .should(getMetadataQuery(searchTerm));
+    
+    QueryBuilder query = boolQuery()
+      .must(termQuery("doc_type", FeaturestoreDocType.FEATUREGROUP.toString().toLowerCase()))
+      .must(termQuery);
+    return query;
+  }
+  
+  private QueryBuilder trainingdatasetQueryB(String searchTerm) {
+    QueryBuilder termQuery = boolQuery()
+      .should(getNameQuery(searchTerm))
+      .should(getDescriptionQuery(searchTerm))
+      .should(getMetadataQuery(searchTerm));
+    
+    QueryBuilder query = boolQuery()
+      .must(termQuery("doc_type", FeaturestoreDocType.TRAININGDATASET.toString().toLowerCase()))
+      .must(termQuery);
+    return query;
+  }
+  
+  private QueryBuilder featureQueryB(String searchTerm) {
+    String key1 = FeaturestoreXAttrsConstants.getFeaturestoreElasticKey(FeaturestoreXAttrsConstants.FG_FEATURES) + ".*";
+    QueryBuilder query = boolQuery()
+      .must(termQuery("doc_type", FeaturestoreDocType.FEATUREGROUP.toString().toLowerCase()))
+      .must(getXAttrQuery(key1, searchTerm));
+    return query;
+  }
+  
+  private HighlightBuilder featuregroupHighlighter() {
+    HighlightBuilder hb = new HighlightBuilder();
+    hb.field(new HighlightBuilder.Field(FeaturestoreXAttrsConstants.NAME));
+    hb.field(new HighlightBuilder.Field(
+      FeaturestoreXAttrsConstants.getFeaturestoreElasticKey(FeaturestoreXAttrsConstants.DESCRIPTION)));
+    hb.field(new HighlightBuilder.Field(FeaturestoreXAttrsConstants.ELASTIC_XATTR + ".*"));
+    return hb;
+  }
+  
+  private HighlightBuilder trainingDatasetHighlighter() {
+    HighlightBuilder hb = new HighlightBuilder();
+    hb.field(new HighlightBuilder.Field(FeaturestoreXAttrsConstants.NAME));
+    hb.field(new HighlightBuilder.Field(
+      FeaturestoreXAttrsConstants.getFeaturestoreElasticKey(FeaturestoreXAttrsConstants.DESCRIPTION)));
+    hb.field(new HighlightBuilder.Field(FeaturestoreXAttrsConstants.ELASTIC_XATTR + ".*"));
+    return hb;
+  }
+  
+  private HighlightBuilder featureHighlighter() {
+    HighlightBuilder hb = new HighlightBuilder();
+    hb.field(new HighlightBuilder.Field(
+      FeaturestoreXAttrsConstants.getFeaturestoreElasticKey(FeaturestoreXAttrsConstants.FG_FEATURES) + ".*"));
+    return hb;
+  }
+  
   /**
    * Creates the main query condition. Applies filters on the texts describing a
    * document i.e. on the description
@@ -678,318 +659,16 @@ public class ElasticController {
    * @return
    */
   private QueryBuilder getMetadataQuery(String searchTerm) {
-
-    QueryBuilder metadataQuery = queryStringQuery(String.format("*%s*",
-        searchTerm))
-        .lenient(Boolean.TRUE)
-        .field(Settings.META_DATA_FIELDS);
-    QueryBuilder nestedQuery = nestedQuery(Settings.META_DATA_NESTED_FIELD,
-        metadataQuery, ScoreMode.Avg);
-
+    return getXAttrQuery(Settings.META_DATA_FIELDS, searchTerm);
+  }
+  
+  private QueryBuilder getXAttrQuery(String key, String searchTerm) {
+    QueryBuilder metadataQuery = queryStringQuery(String.format("*%s*", searchTerm))
+      .lenient(Boolean.TRUE)
+      .field(key);
+    QueryBuilder nestedQuery = nestedQuery(Settings.META_DATA_NESTED_FIELD, metadataQuery, ScoreMode.Avg);
+  
     return nestedQuery;
-  }
-
-  /**
-   * Checks if a given index exists in elastic
-   * <p/>
-   * @param client
-   * @param indexName
-   * @return
-   */
-  private boolean indexExists(Client client, String indexName) {
-    AdminClient admin = client.admin();
-    IndicesAdminClient indices = admin.indices();
-
-    IndicesExistsRequestBuilder indicesExistsRequestBuilder = indices.
-        prepareExists(indexName);
-
-    IndicesExistsResponse response = indicesExistsRequestBuilder
-        .execute()
-        .actionGet();
-
-    return response.isExists();
-  }
-
-  /**
-   * Checks if a given data type exists. It is a given that the index exists
-   * <p/>
-   * @param client
-   * @param typeName
-   * @return
-   */
-  private boolean typeExists(Client client, String indexName, String typeName) {
-    AdminClient admin = client.admin();
-    IndicesAdminClient indices = admin.indices();
-
-    ActionFuture<TypesExistsResponse> action = indices.typesExists(
-        new TypesExistsRequest(
-            new String[]{indexName}, typeName));
-
-    TypesExistsResponse response = action.actionGet();
-
-    return response.isExists();
-  }
-
-  /**
-   * Shuts down the client and clears the cache
-   * <p/>
-   */
-  private void shutdownClient() {
-    if (elasticClient != null) {
-      elasticClient.admin().indices().clearCache(new ClearIndicesCacheRequest(
-          Settings.META_INDEX));
-      elasticClient.close();
-      elasticClient = null;
-    }
-  }
-
-  /**
-   * Boots up a previously closed index
-   */
-  private void bootIndices(Client client) {
-
-    client.admin().indices().open(new OpenIndexRequest(
-        Settings.META_INDEX));
-  }
-
-  private String getElasticIpAsString() throws ServiceException {
-    String addr = settings.getElasticIp();
-
-    // Validate the ip address pulled from the variables
-    if (!Ip.validIp(addr)) {
-      try {
-        InetAddress.getByName(addr);
-      } catch (UnknownHostException ex) {
-        throw new ServiceException(RESTCodes.ServiceErrorCode.ELASTIC_SERVER_NOT_AVAILABLE, Level.SEVERE, null,
-          ex.getMessage(),
-          ex);
-
-      }
-    }
-
-    return addr;
-  }
-
-  private JSONObject sendKibanaReq(String templateUrl, Map<String, String> params, boolean async) {
-    if (async) {
-      ClientBuilder.newClient()
-          .target(templateUrl)
-          .request()
-          .async()
-          .method(params.get("op"));
-      return null;
-    } else {
-      if (params.containsKey("data")) {
-        return new JSONObject(ClientBuilder.newClient()
-            .target(templateUrl)
-            .request()
-            .header("kbn-xsrf", "required")
-            .header("Content-Type", "application/json")
-            .method(params.get("op"), Entity.json(params.get("data"))).readEntity(String.class));
-      } else {
-        return new JSONObject(ClientBuilder.newClient()
-            .target(templateUrl)
-            .request()
-            .header("kbn-xsrf", "required")
-            .method(params.get("op")).readEntity(String.class));
-      }
-    }
-  }
-
-  public JSONObject sendKibanaReq(Map<String, String> params) {
-    String templateUrl = settings.getKibanaUri() + "/api/saved_objects";
-    LOG.log(Level.INFO, templateUrl);
-    return sendKibanaReq(templateUrl, params, false);
-  }
-
-  public JSONObject sendKibanaReq(Map<String, String> params, String kibanaType) {
-    String templateUrl = settings.getKibanaUri() + "/api/saved_objects/" + kibanaType;
-    LOG.log(Level.INFO, templateUrl);
-    return sendKibanaReq(templateUrl, params, false);
-  }
-
-  public JSONObject sendKibanaReq(Map<String, String> params, String kibanaType, String id) {
-    String templateUrl = settings.getKibanaUri() + "/api/saved_objects/" + kibanaType + "/" + id;
-    LOG.log(Level.INFO, templateUrl);
-    return sendKibanaReq(templateUrl, params, false);
-  }
-
-  public JSONObject sendKibanaReq(Map<String, String> params, String kibanaType, String id, boolean overwrite) {
-    String templateUrl;
-    if(overwrite) {
-      templateUrl = settings.getKibanaUri() + "/api/saved_objects/" + kibanaType + "/" + id + "?overwrite=true";
-    } else {
-      templateUrl = settings.getKibanaUri() + "/api/saved_objects/" + kibanaType + "/" + id;
-    }
-    LOG.log(Level.INFO, templateUrl);
-    return sendKibanaReq(templateUrl, params, false);
-  }
-
-  public String getIndexFromKibana(JSONObject json){
-    String index = null;
-
-    if (json.has("type")) {
-      switch (json.getString("type")) {
-        case Settings.ELASTIC_INDEX_PATTERN:
-          index = json.getString("id");
-          break;
-        case Settings.ELASTIC_SAVED_SEARCH:
-          index = new JSONObject(json
-            .getJSONObject("attributes")
-            .getJSONObject("kibanaSavedObjectMeta")
-            .getString("searchSourceJSON")).getString("index");
-          break;
-        case Settings.ELASTIC_VISUALIZATION:
-          if (json.has("attributes")) {
-            if (json.getJSONObject("attributes").has("savedSearchId")) {
-              //We get the searchId first and then the index
-              String searchId = json.getJSONObject("attributes").getString("savedSearchId");
-              //Then get search object and call function again
-              Map<String, String> params = new HashMap<>();
-              params.put("op", "GET");
-              JSONObject savedSearch = sendKibanaReq(params, Settings.ELASTIC_SAVED_SEARCH, searchId);
-              LOG.log(Level.FINE, "visualization-parent:{0}", savedSearch);
-              index = getIndexFromKibana(savedSearch);
-            } else if (HopsUtils.jsonKeyExists(json, "kibanaSavedObjectMeta")) {
-              JSONObject objectMetaJson = new JSONObject(json
-                .getJSONObject("attributes")
-                .getJSONObject("kibanaSavedObjectMeta")
-                .getString("searchSourceJSON"));
-              if(objectMetaJson.has("index")){
-                index = objectMetaJson.getString("index");
-              }
-            }
-          }
-          break;
-        case Settings.ELASTIC_DASHBOARD:
-          if(HopsUtils.jsonKeyExists(json, "panelsJSON")){
-            String id = (String) new JSONArray((String) json.getJSONObject("attributes").get("panelsJSON"))
-                .getJSONObject(0).get("id");
-            LOG.log(Level.FINE, "dashboard-id:{0}", id);
-            String type = (String) new JSONArray((String) json.getJSONObject("attributes").get("panelsJSON"))
-                .getJSONObject(0).get("type");
-            LOG.log(Level.FINE, "dashboard-type:{0}", type);
-
-            //Get index from visualization/"saved search"
-            //Get and parse all objects
-            Map<String, String> params = new HashMap<>();
-            params.put("op", "GET");
-            JSONObject parent = sendKibanaReq(params, type, id);
-            LOG.log(Level.FINE, "dashboard-parent:{0}", parent.toString());
-            index = getIndexFromKibana(parent);
-          }
-          break;
-        default:
-          break;
-      }
-    }
-    LOG.log(Level.FINE, "getIndexFromKibana-index:{0}", index);
-    return index;
-  }
-
-  public String getIndex(JSONObject json) {
-    String objectId = null;
-    if (json.getJSONObject("attributes").has("savedSearchId")) {
-      LOG.log(Level.FINE, "savedSearchId-1:{0}", objectId);
-      String searchId = json.getJSONObject("attributes").getString("savedSearchId");
-      LOG.log(Level.FINE, "savedSearchId-2:{0}", searchId);
-      //Find the index from the savedsearchId
-      Map<String, String> params = new HashMap<>();
-      params.put("op", "GET");
-      JSONObject savedSearch = sendKibanaReq(params, Settings.ELASTIC_SAVED_SEARCH,searchId);
-      objectId = new JSONObject(savedSearch
-          .getJSONObject("attributes")
-          .getJSONObject("kibanaSavedObjectMeta")
-          .getString("searchSourceJSON")).getString("index");
-    } else if (HopsUtils.jsonKeyExists(json, "kibanaSavedObjectMeta")
-        && new JSONObject(json
-            .getJSONObject("attributes")
-            .getJSONObject("kibanaSavedObjectMeta")
-            .getString("searchSourceJSON")).has("index")) {
-      objectId = new JSONObject(json
-          .getJSONObject("attributes")
-          .getJSONObject("kibanaSavedObjectMeta")
-          .getString("searchSourceJSON")).getString("index");
-    } else if (json.getString("type").equals("dashboard")
-        && HopsUtils.jsonKeyExists(json, "panelsJSON")) {
-      //We need to get the index name from the visualization or saved search this dashboard is
-      //created from
-      String id = (String) new JSONArray((String) json.getJSONObject("attributes")
-          .get("panelsJSON")).getJSONObject(0).get("id");
-      LOG.log(Level.FINE, "dashboard-id:{0}", id);
-      String type = (String) new JSONArray((String) json.getJSONObject("attributes")
-          .get("panelsJSON")).getJSONObject(0).get("type");
-      LOG.log(Level.FINE, "dashboard-type:{0}", type);
-
-      //Get index from visualization/"saved search"
-      //Get and parse all objects
-      Map<String, String> params = new HashMap<>();
-      params.put("op", "GET");
-      JSONObject allObjects = sendKibanaReq(params, type);
-      JSONArray allObjectsArray = allObjects.getJSONArray("saved_objects");
-      for (int j = 0; j < allObjectsArray.length(); j++) {
-        LOG.log(Level.FINE, "Checking id:{0}", allObjectsArray.getJSONObject(j).getString("id"));
-        if (allObjectsArray.getJSONObject(j).getString("id").equals(id)) {
-
-          if (allObjectsArray.getJSONObject(j).getJSONObject("attributes").has("savedSearchId")) {
-            String searchId = allObjectsArray.getJSONObject(j)
-                .getJSONObject("attributes")
-                .getString("savedSearchId");
-            //Find the index from the savedsearchId
-            params.put("op", "GET");
-            JSONObject savedSearch = sendKibanaReq(params, Settings.ELASTIC_SAVED_SEARCH, searchId);
-            objectId = new JSONObject(savedSearch
-                .getJSONObject("attributes")
-                .getJSONObject("kibanaSavedObjectMeta")
-                .getString("searchSourceJSON")).getString("index");
-          } else if (HopsUtils.
-              jsonKeyExists(allObjectsArray.getJSONObject(j), "kibanaSavedObjectMeta")
-              && new JSONObject(allObjectsArray.getJSONObject(j)
-                  .getJSONObject("attributes")
-                  .getJSONObject("kibanaSavedObjectMeta")
-                  .getString("searchSourceJSON")).has("index")) {
-            JSONObject newjson = new JSONObject(allObjectsArray.getJSONObject(j)
-                .getJSONObject("attributes")
-                .getJSONObject("kibanaSavedObjectMeta")
-                .getString("searchSourceJSON"));
-            objectId = newjson.getString("index");
-
-            LOG.log(Level.FINE, "objectId to remove:{0}", objectId);
-            break;
-          }
-        }
-      }
-    }
-    return objectId;
-  }
-
-  public String getLogdirFromElastic(Project project, String elasticId) throws ProjectException {
-    Map<String, String> params = new HashMap<>();
-    params.put("op", "GET");
-    String projectName = project.getName().toLowerCase();
-
-    String experimentsIndex = projectName + "_experiments";
-
-    String templateUrl = "http://"+settings.getElasticRESTEndpoint() + "/" +
-        experimentsIndex + "/experiments/" + elasticId;
-
-    boolean foundEntry = false;
-    JSONObject resp = null;
-    try {
-      resp = sendKibanaReq(templateUrl, params, false);
-      foundEntry = (boolean) resp.get("found");
-    } catch (Exception ex) {
-      throw new ProjectException(RESTCodes.ProjectErrorCode.TENSORBOARD_ELASTIC_INDEX_NOT_FOUND, Level.SEVERE,
-        "project:" + project.getName()+ ", index: " + elasticId, ex.getMessage(), ex);
-    }
-
-    if(!foundEntry) {
-      throw new ProjectException(RESTCodes.ProjectErrorCode.TENSORBOARD_ELASTIC_INDEX_NOT_FOUND, Level.WARNING,
-        "project:" + project.getName()+ ", index: " + elasticId);
-    }
-
-    JSONObject source = resp.getJSONObject("_source");
-    return (String)source.get("logdir");
   }
 }
 

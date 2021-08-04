@@ -39,11 +39,14 @@
 
 package io.hops.hopsworks.common.dao.kafka;
 
+import io.hops.hopsworks.common.api.RestDTO;
+
 import java.io.Serializable;
+import javax.ws.rs.core.UriInfo;
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
-public class TopicDTO implements Serializable {
+public class TopicDTO extends RestDTO<TopicDTO> implements Serializable {
 
   private String name;
 
@@ -53,13 +56,36 @@ public class TopicDTO implements Serializable {
 
   private String schemaName;
 
-  private int schemaVersion;
+  private Integer schemaVersion;
+  
+  private String schemaContent;
+  
+  private Integer ownerProjectId;
+  
+  private Boolean isShared;
+  
+  private Boolean accepted;
 
   public TopicDTO() {
+  }
+  
+  public TopicDTO(UriInfo uriInfo) {
+    this.setHref(uriInfo.getAbsolutePathBuilder().build());
   }
 
   public TopicDTO(String name) {
     this.name = name;
+  }
+  
+  public TopicDTO(String name, Integer ownerProjectId, String schemaName, Integer schemaVersion, String
+    schemaContent, Boolean isShared, Boolean accepted) {
+    this.name = name;
+    this.ownerProjectId = ownerProjectId;
+    this.schemaName = schemaName;
+    this.schemaVersion = schemaVersion;
+    this.schemaContent = schemaContent;
+    this.isShared = isShared;
+    this.accepted = accepted;
   }
 
   public TopicDTO(String name, Integer numOfReplicas, Integer numOfPartitions) {
@@ -68,21 +94,40 @@ public class TopicDTO implements Serializable {
     this.numOfPartitions = numOfPartitions;
   }
 
-  public TopicDTO(String name, String schemaName, int schemaVersion) {
+  public TopicDTO(String name, String schemaName, Integer schemaVersion, Boolean isShared) {
     this.name = name;
     this.schemaName = schemaName;
     this.schemaVersion = schemaVersion;
+    this.isShared = isShared;
   }
 
   public TopicDTO(String name, Integer numOfReplicas, Integer numOfPartitions,
-          String schemaName, int schemaVersion) {
+          String schemaName, Integer schemaVersion) {
     this.name = name;
     this.numOfReplicas = numOfReplicas;
     this.numOfPartitions = numOfPartitions;
     this.schemaName = schemaName;
     this.schemaVersion = schemaVersion;
   }
-
+  
+  public TopicDTO(String name, Integer numOfReplicas, Integer numOfPartitions,
+    String schemaName, Integer schemaVersion, Integer ownerProjectId, Boolean isShared) {
+    this.name = name;
+    this.numOfReplicas = numOfReplicas;
+    this.numOfPartitions = numOfPartitions;
+    this.schemaName = schemaName;
+    this.schemaVersion = schemaVersion;
+    this.isShared = isShared;
+    this.ownerProjectId = ownerProjectId;
+  }
+  
+  public TopicDTO(String topicName, String subject, Integer subjectVersion, String schema) {
+    this.name = topicName;
+    this.schemaName = subject;
+    this.schemaVersion = subjectVersion;
+    this.schemaContent = schema;
+  }
+  
   public String getName() {
     return name;
   }
@@ -111,7 +156,7 @@ public class TopicDTO implements Serializable {
     return schemaName;
   }
 
-  public int getSchemaVersion() {
+  public Integer getSchemaVersion() {
     return schemaVersion;
   }
 
@@ -119,7 +164,43 @@ public class TopicDTO implements Serializable {
     this.schemaName = schemaName;
   }
 
-  public void setSchemaVersion(int schemaVersion) {
+  public void setSchemaVersion(Integer schemaVersion) {
     this.schemaVersion = schemaVersion;
+  }
+  
+  public Boolean isShared() {
+    return isShared;
+  }
+  
+  public void setShared(Boolean shared) {
+    isShared = shared;
+  }
+  
+  public Integer getOwnerProjectId() {
+    return ownerProjectId;
+  }
+  
+  public void setOwnerProjectId(Integer ownerProjectId) {
+    this.ownerProjectId = ownerProjectId;
+  }
+  
+  public String getSchemaContent() {
+    return schemaContent;
+  }
+  
+  public void setSchemaContent(String schemaContent) {
+    this.schemaContent = schemaContent;
+  }
+  
+  public Boolean getShared() {
+    return isShared;
+  }
+  
+  public Boolean getAccepted() {
+    return accepted;
+  }
+  
+  public void setAccepted(Boolean accepted) {
+    this.accepted = accepted;
   }
 }

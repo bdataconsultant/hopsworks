@@ -41,12 +41,13 @@
   <div ng-include="'nav.html'"></div>
   <div ng-if="mainCtrl.showSearchPage" class="row">
     <div id="projectSearchResults">
-      <div ng-include="'views/search.html'"></div>
+      <div ng-include="'views/search/search.html'"></div>
     </div>
   </div>
 
   <div class="container content-wrapper" ng-if="!mainCtrl.showSearchPage" ng-controller="HomeCtrl as homeCtrl"
        ng-cloak="">
+    <div style="background: #FFFFFF; border: 1px solid #21B182; box-sizing: border-box; width: 100%; padding: 20px 12px; margin-bottom: 20px;">A new Hopsworks is available in beta version! <a href="/" style="background: #21B182; padding: 10px 16px; color: white; font-weight: bold; text-decoration: none; margin-left: 20px;">Try out the new Hopsworks</a></div>
     <div class="alert alert-warning alert-dismissable" ng-if="mainCtrl.userNotification !== ''">
       <a class="close" data-dismiss="alert" aria-label="close">&times;</a>
       <p align="center"><i class="fa fa-bullhorn"></i> <strong>Notification!</strong> {{mainCtrl.userNotification}}
@@ -59,10 +60,8 @@
       <img ng-src="{{footerImage}}" />
     </div>
   </div>
-
-  <!-- <tour class="ng-scope" step="homeCtrl.tourService.currentStep_TourOne" post-tour="closeTour()" ng-if="homeCtrl.loadedView">
+  <tour step="homeCtrl.tourService.currentStep_TourOne" post-tour="closeTour()" ng-if="homeCtrl.loadedView">
     <virtual-step
-      class="ng-scope"
       tourtip="Begin the tour by clicking Next, OR when {{homeCtrl.tourService.alive_TourOne}} seconds passed, click on the project"
       tourtip-step="0"
       tourtip-element="#true.list-group-item"
@@ -70,24 +69,8 @@
       tourtip-next-label="Next"
       on-proceed="homeCtrl.EnterExampleProject(homeCtrl.exampleProjectID)"
       tourtip-offset-vertical="-17"
-      tourtip-offset-horizontal="13"
-      ></virtual-step>
+      tourtip-offset-horizontal="13">
+    </virtual-step>
   </tour>
 
-  <tour class="ng-scope" step="homeCtrl.tourService.toursInfoStep"
-        post-tour="closeTour()"
-        ng-if="homeCtrl.loadedView
-          && (homeCtrl.tourService.informAndTips
-            || homeCtrl.tourService.informOnly)">
-    <virtual-step
-            class="ng-scope"
-            tourtip="Follow our guided tours"
-            tourtip-step="0"
-            tourtip-element="#toursBox"
-            tourtip-placement="right"
-            tourtip-next-label="Got it!"
-            on-proceed="homeCtrl.disableInformBalloon()"
-            tourtip-offset-horizontal="50"
-    ></virtual-step>
-  </tour> -->
 </div>

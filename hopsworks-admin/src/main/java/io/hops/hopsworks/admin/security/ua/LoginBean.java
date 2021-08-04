@@ -40,9 +40,9 @@
 package io.hops.hopsworks.admin.security.ua;
 
 import io.hops.hopsworks.common.dao.user.UserFacade;
-import io.hops.hopsworks.common.dao.user.Users;
-import io.hops.hopsworks.exceptions.UserException;
 import io.hops.hopsworks.common.user.AuthController;
+import io.hops.hopsworks.exceptions.UserException;
+import io.hops.hopsworks.persistence.entity.user.Users;
 
 import javax.annotation.PostConstruct;
 import javax.ejb.EJB;
@@ -67,6 +67,8 @@ public class LoginBean implements Serializable {
   private static final Logger LOGGER = Logger.getLogger(LoginBean.class.getName());
   @EJB
   private UserFacade userFacade;
+  @EJB
+  private AuditedUserAuth auditedUserAuth;
   @EJB
   private AuthController authController;
   @Inject
@@ -112,10 +114,8 @@ public class LoginBean implements Serializable {
       context.addMessage(null, new FacesMessage("Login failed. User" + this.credentials.getUsername()));
       return "";
     }
-    String passwordWithSaltPlusOtp;
     try {
-      passwordWithSaltPlusOtp = authController.preCustomRealmLoginCheck(user, this.credentials.getPassword(),
-          this.credentials.getOtp(), request);
+      auditedUserAuth.login(user, this.credentials.getPassword(), this.credentials.getOtp(), request);
     } catch (UserException ex) {
       LOGGER.log(Level.SEVERE, null, ex);
       context.addMessage(null, new FacesMessage("Login failed."));
@@ -127,12 +127,8 @@ public class LoginBean implements Serializable {
       }
       context.addMessage(null, new FacesMessage(msg));
       return "/login.xhtml";
-    }
-    try {
-      request.login(this.credentials.getUsername(), passwordWithSaltPlusOtp);
-      authController.registerLogin(user, request);
     } catch (ServletException e) {
-      authController.registerAuthenticationFailure(user, request);
+      authController.registerAuthenticationFailure(user);
       context.addMessage(null, new FacesMessage("Login failed."));
       return "";
     }
@@ -152,7 +148,7 @@ public class LoginBean implements Serializable {
   }
 
   public void gotoSupport() throws IOException {
-    String link = "https://groups.google.com/forum/#!forum/hopshadoop";
+    String link = "https://community.hopsworks.ai";
     ExternalContext externalContext = FacesContext.getCurrentInstance().getExternalContext();
     externalContext.redirect(link.trim());
   }

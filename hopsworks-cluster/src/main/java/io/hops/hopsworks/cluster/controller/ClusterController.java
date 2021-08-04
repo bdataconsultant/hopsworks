@@ -40,25 +40,24 @@ package io.hops.hopsworks.cluster.controller;
 
 import io.hops.hopsworks.cluster.ClusterDTO;
 import io.hops.hopsworks.cluster.ClusterYmlDTO;
-import io.hops.hopsworks.common.dao.user.BbcGroup;
 import io.hops.hopsworks.common.dao.user.BbcGroupFacade;
 import io.hops.hopsworks.common.dao.user.UserFacade;
-import io.hops.hopsworks.common.dao.user.Users;
-import io.hops.hopsworks.common.dao.user.cluster.ClusterCert;
 import io.hops.hopsworks.common.dao.user.cluster.ClusterCertFacade;
-import io.hops.hopsworks.common.dao.user.cluster.RegistrationStatusEnum;
-import io.hops.hopsworks.common.dao.user.security.audit.AccountsAuditActions;
-import io.hops.hopsworks.common.dao.user.security.ua.UserAccountStatus;
 import io.hops.hopsworks.common.dao.user.security.ua.UserAccountsEmailMessages;
 import io.hops.hopsworks.common.security.CertificatesController;
 import io.hops.hopsworks.common.security.utils.SecurityUtils;
-import io.hops.hopsworks.exceptions.GenericException;
-import io.hops.hopsworks.exceptions.HopsSecurityException;
-import io.hops.hopsworks.exceptions.UserException;
 import io.hops.hopsworks.common.user.AuthController;
 import io.hops.hopsworks.common.user.UsersController;
 import io.hops.hopsworks.common.util.EmailBean;
-import io.hops.hopsworks.common.util.FormatUtils;
+import io.hops.hopsworks.exceptions.GenericException;
+import io.hops.hopsworks.exceptions.HopsSecurityException;
+import io.hops.hopsworks.exceptions.UserException;
+import io.hops.hopsworks.persistence.entity.user.BbcGroup;
+import io.hops.hopsworks.persistence.entity.user.Users;
+import io.hops.hopsworks.persistence.entity.user.cluster.ClusterCert;
+import io.hops.hopsworks.persistence.entity.user.cluster.RegistrationStatusEnum;
+import io.hops.hopsworks.persistence.entity.user.security.ua.UserAccountStatus;
+import io.hops.hopsworks.persistence.entity.util.FormatUtils;
 
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
@@ -119,7 +118,7 @@ public class ClusterController {
       autoActivateCluster(clusterCert);
     } else {
       sendEmail(cluster, req, clusterCert.getId() + clusterCert.getValidationKey(), clusterAgent,
-        AccountsAuditActions.REGISTRATION.name());
+        "REGISTRATION");
     }
     LOGGER.log(Level.INFO, "New cluster added with email: {0}, and username: {1}", new Object[]{clusterAgent.getEmail(),
       clusterAgent.getUsername()});
@@ -137,7 +136,7 @@ public class ClusterController {
       autoActivateCluster(clusterCert);
     } else {
       sendEmail(cluster, req, clusterCert.getId() + clusterCert.getValidationKey(), clusterAgent.get(),
-        AccountsAuditActions.REGISTRATION.name());
+        "REGISTRATION");
     }
     LOGGER.log(Level.INFO, "New cluster added with email: {0}, and username: {1}", 
       new Object[]{clusterAgent.get().getEmail(), clusterAgent.get().getUsername()});
@@ -242,7 +241,7 @@ public class ClusterController {
     clusterCert.setValidationKeyDate(new Date());
     clusterCertFacade.update(clusterCert);
     sendEmail(cluster, req, clusterCert.getId() + clusterCert.getValidationKey(), clusterAgent,
-      AccountsAuditActions.UNREGISTRATION.name());
+      "UNREGISTRATION");
     LOGGER.log(Level.INFO, "Unregistering cluster with email: {0}", clusterAgent.getEmail());
   }
 
@@ -373,7 +372,7 @@ public class ClusterController {
 
   private void checkUserPasswordAndStatus(ClusterDTO cluster, Users clusterAgent, HttpServletRequest req)
     throws UserException {
-    authController.checkPasswordAndStatus(clusterAgent, cluster.getChosenPassword(), req);
+    authController.checkPasswordAndStatus(clusterAgent, cluster.getChosenPassword());
     BbcGroup group = groupFacade.findByGroupName(CLUSTER_GROUP);
     if (!clusterAgent.getBbcGroupCollection().contains(group)) {
       throw new SecurityException("User not allowed to register clusters.");
@@ -452,7 +451,7 @@ public class ClusterController {
       throw new IllegalArgumentException("No type set.");
     }
     try {
-      if (type.equals(AccountsAuditActions.REGISTRATION.name())) {
+      if (type.equals("REGISTRATION")) {
         emailBean.sendEmail(cluster.getEmail(), Message.RecipientType.TO,
           UserAccountsEmailMessages.CLUSTER_REQUEST_SUBJECT, UserAccountsEmailMessages.
           buildClusterRegisterRequestMessage(FormatUtils.getUserURL(req), validationKey));

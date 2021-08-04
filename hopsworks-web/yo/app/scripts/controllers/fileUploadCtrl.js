@@ -43,40 +43,26 @@
 'use strict';
 
 angular.module('hopsWorksApp')
-        .controller('FileUploadCtrl', ['$uibModalInstance', '$scope', 'projectId', 'path', 'templateId', 'growl', 'flowFactory', 'DataSetService', 'AuthService',
-          function ($uibModalInstance, $scope, projectId, path, templateId, growl, flowFactory, DataSetService, AuthService) {
+        .controller('FileUploadCtrl', ['$uibModalInstance', '$scope', 'growl', 'flowFactory', 'DataSetService', 'AuthService', 'projectId', 'path', 'datasetType',
+          function ($uibModalInstance, $scope, growl, flowFactory, DataSetService, AuthService, projectId, path, datasetType) {
 
             var self = this;
-            self.model = {};
             self.projectId = projectId;
             self.path = path;
-            self.templateId = templateId;
+            self.datasetType = datasetType;
             self.errorMsg;
             self.files = {};
             
-            self.datasets = [];
-            self.selectedTemplate = {};
-            self.temps = [{'temp': "temp"}];
-
             self.target = getApiPath() + '/project/' + self.projectId + '/dataset/upload/' + self.path;
             var dataSetService = DataSetService(self.projectId); //The datasetservice for the current project.
             self.size = function (fileSizeInBytes) {
               return convertSize (fileSizeInBytes);
             };
-                     
 
             self.existingFlowObject = flowFactory.create({
               target: self.target,
-              query: {templateId: self.templateId}
+              query: {}
             });
-
-            self.update = function () {
-              console.log("NEW TEMPLATE SELECTED " + JSON.stringify(self.selectedTemplate));
-            };
-
-            self.target = function (FlowFile, FlowChunk, isTest) {
-              return getApiPath() + '/project/' + self.projectId + '/dataset/upload/' + self.path + '/' + self.selectedTemplate.id;
-            };
 
             self.existingFlowObject.on('fileProgress', function (file, chunk) {
               var token = chunk.xhr.getResponseHeader('Authorization');
@@ -95,9 +81,9 @@ angular.module('hopsWorksApp')
             self.errorHandler = function (file, message, flow) {
               var msg = JSON.parse(message);
                 if (typeof msg.usrMsg !== 'undefined') {
-                    growl.error(msg.usrMsg, {title: msg.errorMsg, ttl: 8000});
+                    growl.error(msg.usrMsg, {title: "Error uploading", ttl: 8000});
                 } else {
-                    growl.error("", {title: msg.errorMsg, ttl: 8000});
+                    growl.error(msg.errorMsg, {title: "Error uploading", ttl: 8000});
                 }
             };
 
@@ -126,9 +112,8 @@ angular.module('hopsWorksApp')
               } else {
                 //Check if files were uploaded successfully and delete wrong ones
                 for (var file in self.files) {
-                  var remPath = 'corrupted/' + self.path + "/" + file;
-                  dataSetService.removeDataSetDir(remPath).then(
-                          function (success) {
+                  var remPath = self.path + "/" + file;
+                  dataSetService.deleteCorrupted(remPath).then(function (success) {
                           }, function (error) {
                   });
                 }

@@ -40,6 +40,9 @@ import javax.xml.bind.annotation.XmlRootElement;
  * 18. Activities error codes start with "26".
  * 19. Featurestore error codes start with "27".
  * 20. Python error codes start with "28".
+ *
+ * Schema Registry error codes are violating the convention. Following the confluent docs, they return a 5 digits
+ * codes starting with the http status code and then a number. e.g. 50001 for Internal Server Error
  */
 
 @XmlRootElement
@@ -55,7 +58,6 @@ public class RESTCodes {
     String getMessage();
 
     int getRange();
-
   }
   public enum ProjectErrorCode implements RESTErrorCode {
 
@@ -182,8 +184,11 @@ public class RESTCodes {
     RESERVED_PROJECT_NAME(73, "Not allowed - reserved project name, pick another project name.",
         Response.Status.BAD_REQUEST),
     PROJECT_ANACONDA_ENABLE_ERROR(74, "Failed to enable conda.", Response.Status.INTERNAL_SERVER_ERROR),
-    PROJECT_NAME_TOO_LONG(75, "Project name is too long - cannot be longer than 29 characters.",
-        Response.Status.BAD_REQUEST);
+    PROJECT_NAME_TOO_LONG(75, "Project name is too long - cannot be longer than 25 characters.",
+        Response.Status.BAD_REQUEST),
+    PROJECT_DOCKER_VERSION_EXTRACT_ERROR(76,
+        "Failed to extract the hopsworks version of the docker image for this project.",
+        Response.Status.INTERNAL_SERVER_ERROR);
 
 
 
@@ -234,14 +239,14 @@ public class RESTCodes {
     FILE_CORRUPTED_REMOVED_FROM_HDFS(6, "Corrupted file removed from hdfs.",
         Response.Status.BAD_REQUEST),
     INODE_DELETION_ERROR(7, "File/Dir could not be deleted.", Response.Status.INTERNAL_SERVER_ERROR),
-    INODE_NOT_FOUND(8, "Inode was not found.", Response.Status.NOT_FOUND),
+    INODE_NOT_FOUND(8, "File not found.", Response.Status.NOT_FOUND),
     DATASET_REMOVED_FROM_HDFS(9, "DataSet removed from hdfs.", Response.Status.BAD_REQUEST),
     SHARED_DATASET_REMOVED(10, "The shared dataset has been removed from this project.",
         Response.Status.BAD_REQUEST),
     DATASET_NOT_FOUND(11, "DataSet not found.", Response.Status.BAD_REQUEST),
     DESTINATION_EXISTS(12, "Destination already exists.", Response.Status.BAD_REQUEST),
-    DATASET_ALREADY_PUBLIC(13, "Dataset is already in project.", Response.Status.CONFLICT),
-    DATASET_ALREADY_IN_PROJECT(14, "Dataset is already public.", Response.Status.BAD_REQUEST),
+    DATASET_ALREADY_PUBLIC(13, "Dataset is already public.", Response.Status.CONFLICT),
+    DATASET_ALREADY_IN_PROJECT(14, "Dataset is already in project.", Response.Status.BAD_REQUEST),
     DATASET_NOT_PUBLIC(15, "DataSet is not public.", Response.Status.BAD_REQUEST),
     DATASET_NOT_EDITABLE(16, "DataSet is not editable.", Response.Status.BAD_REQUEST),
     DATASET_PENDING(17, "DataSet is not yet accessible. Accept the share request to access it.",
@@ -268,6 +273,7 @@ public class RESTCodes {
     DATASET_PARAMETERS_INVALID(31, "Invalid parameters for requested dataset operation",
         Response.Status.BAD_REQUEST),
     EMPTY_PATH(32, "Empty path requested", Response.Status.BAD_REQUEST),
+    ONGOING_PERMISSION_OPERATION(33, "There is an ongoing permission operation", Response.Status.CONFLICT),
     UPLOAD_PATH_NOT_SPECIFIED(35, "The path to upload the template was not specified",
         Response.Status.BAD_REQUEST),
     README_NOT_ACCESSIBLE(36, "Readme not accessible.", Response.Status.UNAUTHORIZED),
@@ -295,7 +301,10 @@ public class RESTCodes {
     DOWNLOAD_NOT_ALLOWED(48, "Downloading files is not allowed. Please contact the system administrator for further " +
       "information.", Response.Status.FORBIDDEN),
     DATASET_REQUEST_ERROR(49, "Could not send dataset request", Response.Status.INTERNAL_SERVER_ERROR),
-    DATASET_ACCESS_PERMISSION_DENIED(50, "Permission denied.", Response.Status.FORBIDDEN);
+    DATASET_ACCESS_PERMISSION_DENIED(50, "Permission denied.", Response.Status.FORBIDDEN),
+    PATH_ENCODING_NOT_SUPPORTED(51, "Unsupported encoding.", Response.Status.BAD_REQUEST),
+    ATTACH_XATTR_ERROR(52, "Failed to attach Xattr.", Response.Status.INTERNAL_SERVER_ERROR),
+    TARGET_PROJECT_NOT_FOUND(53, "Target project not found.", Response.Status.INTERNAL_SERVER_ERROR);
 
 
     private Integer code;
@@ -339,14 +348,13 @@ public class RESTCodes {
     DATASET_TEMPLATE_INFO_MISSING(3, "Template info is missing. Please provide InodeDTO path and templateId.",
         Response.Status.BAD_REQUEST),
     NO_METADATA_EXISTS(4, "No metadata found", Response.Status.BAD_REQUEST),
-    METADATA_MAX_SIZE_EXCEEDED(5, "Metadata is too long. The maximum " +
-        "size for metadata and name is 13500 and 255 characters.",
+    METADATA_MAX_SIZE_EXCEEDED(5, "Metadata is too large",
         Response.Status.BAD_REQUEST),
-    METADATA_MISSING_FIELD(6, "Metadata missing field. Required fields are " +
-        "path, name, and metadata.",
+    METADATA_MISSING_FIELD(6, "Metadata missing attributed name.",
         Response.Status.BAD_REQUEST),
     METADATA_ERROR(7, "Error while processing the extended metadata.",
-        Response.Status.INTERNAL_SERVER_ERROR);
+        Response.Status.INTERNAL_SERVER_ERROR),
+    METADATA_ILLEGAL_NAME(8, "Metadata name is illegal.", Response.Status.BAD_REQUEST);
 
     private Integer code;
     private String message;
@@ -383,7 +391,8 @@ public class RESTCodes {
   public enum JobErrorCode implements RESTErrorCode {
 
     // JOBS Error Messages
-    JOB_START_FAILED(0, "An error occurred while trying to start this job.", Response.Status.BAD_REQUEST),
+    JOB_START_FAILED(0, "An error occurred while trying to start this job. Check the job logs for details",
+            Response.Status.BAD_REQUEST),
     JOB_STOP_FAILED(1, "An error occurred while trying to stop this job.", Response.Status.BAD_REQUEST),
     JOB_TYPE_UNSUPPORTED(2, "Unsupported job type.", Response.Status.BAD_REQUEST),
     JOB_ACTION_UNSUPPORTED(3, "Unsupported action type.", Response.Status.BAD_REQUEST),
@@ -415,7 +424,17 @@ public class RESTCodes {
     JOB_DELETION_FORBIDDEN(25, "Your role does not allow to delete this job.",  Response.Status.FORBIDDEN),
     UNAUTHORIZED_EXECUTION_ACCESS(26, "This execution does not belong to a job of this project. ",
       Response.Status.FORBIDDEN),
-    APPID_NOT_FOUND(27, "AppId not found.", Response.Status.NOT_FOUND);
+    APPID_NOT_FOUND(27, "AppId not found.", Response.Status.NOT_FOUND),
+    JOB_PROGRAM_VERSIONING_FAILED(28, "Failed to version application program", Response.Status.INTERNAL_SERVER_ERROR),
+    INSUFFICIENT_EXECUTOR_MEMORY(29, "Insufficient executor memory provided.", Response.Status.BAD_REQUEST),
+    NODEMANAGERS_OFFLINE(30, "Nodemanagers are offline", Response.Status.SERVICE_UNAVAILABLE),
+    DOCKER_MOUNT_NOT_ALLOWED(31, "It is not allowed to mount volumes.", Response.Status.BAD_REQUEST),
+    DOCKER_MOUNT_DIR_NOT_ALLOWED(32, "It is not allowed to mount this directory.", Response.Status.BAD_REQUEST),
+    DOCKER_UID_GID_STRICT(33, "Docker jobs run in uid/gid strict mode." +
+            " It it now allowed to set uid/gid. If you remove the uid/gid, the job will run with a default user." +
+            " Please ask an administrator to update the setting if necessary.",
+            Response.Status.BAD_REQUEST);
+
     private Integer code;
     private String message;
     private Response.StatusType respStatus;
@@ -526,7 +545,8 @@ public class RESTCodes {
     JUPYTER_STOP_ERROR(17, "Couldn't stop Jupyter Notebook Server.",
         Response.Status.INTERNAL_SERVER_ERROR),
     INVALID_YML(18, "Invalid .yml file", Response.Status.BAD_REQUEST),
-    INVALID_YML_SIZE(19, ".yml file too large. Maximum size is 10000 bytes",
+    INVALID_YML_SIZE(19, ".yml file too large. Please set a higher value for variable " +
+        "max_env_yml_byte_size",
       Response.Status.INTERNAL_SERVER_ERROR),
     ANACONDA_FROM_YML_ERROR(20, "Failed to create Anaconda environment from .yml file.",
       Response.Status.INTERNAL_SERVER_ERROR),
@@ -568,7 +588,21 @@ public class RESTCodes {
     JUPYTER_SERVER_ALREADY_RUNNING(43, "Jupyter Notebook Server is already running", Response.Status.BAD_REQUEST),
     ERROR_EXECUTING_REMOTE_COMMAND(44, "Error executing command over SSH", Response.Status.INTERNAL_SERVER_ERROR),
     OPERATION_NOT_SUPPORTED(45, "Supplied operation is not supported", Response.Status.BAD_REQUEST),
-    GIT_COMMAND_FAILURE(46, "Git command failed to execute", Response.Status.BAD_REQUEST);
+
+    GIT_COMMAND_FAILURE(46, "Git command failed to execute", Response.Status.BAD_REQUEST),
+    JUPYTER_NOTEBOOK_VERSIONING_FAILED(47, "Failed to version notebook", Response.Status.INTERNAL_SERVER_ERROR),
+    SERVICE_NOT_FOUND(48, "Service not found", Response.Status.NOT_FOUND),
+    ACTION_FORBIDDEN(49, "Action forbidden", Response.Status.BAD_REQUEST),
+    VARIABLE_NOT_FOUND(50, "Requested variable not found", Response.Status.NOT_FOUND),
+    DOCKER_IMAGE_CREATION_ERROR(51, "Error while creating the docker image", Response.Status.INTERNAL_SERVER_ERROR),
+    METASTORE_CONNECTION_ERROR(52, "Error opening connection with the Hive metastore",
+        Response.Status.INTERNAL_SERVER_ERROR),
+    SERVICE_DISCOVERY_ERROR(53, "Service not found", Response.Status.INTERNAL_SERVER_ERROR),
+    WRONG_HDFS_USERNAME_PROVIDED_FOR_ATTACHING_JUPYTER_CONFIGURATION_TO_NOTEBOOK(54, "Failed to attach jupyter " +
+        "configuration to notebook. Wrong hdfs username provided", Response.Status.BAD_REQUEST),
+    ATTACHING_JUPYTER_CONFIG_TO_NOTEBOOK_FAILED(55, "Failed to attach jupyter configuration to notebook",
+        Response.Status.INTERNAL_SERVER_ERROR),
+    RM_METRICS_ERROR(56, "Failed to fetch utilization metrics", Response.Status.INTERNAL_SERVER_ERROR);
 
     private Integer code;
     private String message;
@@ -602,6 +636,54 @@ public class RESTCodes {
     }
 
   }
+  
+  /**
+   * Schema Registry codes are compatible with Confluent Schema Registry v5.3.1
+   * https://docs.confluent.io/5.3.1/schema-registry/develop/api.html
+   */
+  public enum SchemaRegistryErrorCode implements RESTErrorCode {
+    SUBJECT_NOT_FOUND(40401, "Subject not found", Response.Status.NOT_FOUND),
+    VERSION_NOT_FOUND(40402, "Version not found", Response.Status.NOT_FOUND),
+    SCHEMA_NOT_FOUND(40403, "Schema not found", Response.Status.NOT_FOUND),
+    INCOMPATIBLE_AVRO_SCHEMA(40901, "Incompatible Avro schema", Response.Status.CONFLICT),
+    INVALID_AVRO_SCHEMA(42201, "Invalid Avro schema", Status.UNPROCESSABLE_ENTITY),
+    INVALID_VERSION(42202, "Invalid version", Status.UNPROCESSABLE_ENTITY),
+    INVALID_COMPATIBILITY(42203, "Invalid compatibility level", Status.UNPROCESSABLE_ENTITY),
+    INTERNAL_SERVER_ERROR(50001, "Error in the backend datastore", Response.Status.INTERNAL_SERVER_ERROR),
+    OPERATION_TIMED_OUT(50002, "Operation timed out", Response.Status.INTERNAL_SERVER_ERROR),
+    ERROR_FORWARDING_REQUEST(50003, "Error while forwarding the request to the primary",
+      Response.Status.INTERNAL_SERVER_ERROR);
+  
+    private Integer code;
+    private String message;
+    private Response.StatusType respStatus;
+  
+    SchemaRegistryErrorCode(Integer code, String message, Response.StatusType respStatus) {
+      this.code = code;
+      this.message = message;
+      this.respStatus = respStatus;
+    }
+  
+    @Override
+    public Response.StatusType getRespStatus() {
+      return respStatus;
+    }
+  
+    @Override
+    public Integer getCode() {
+      return code;
+    }
+  
+    @Override
+    public String getMessage() {
+      return message;
+    }
+  
+    @Override
+    public int getRange() {
+      return 0;
+    }
+  }
 
   public enum KafkaErrorCode implements RESTErrorCode {
 
@@ -616,7 +698,7 @@ public class RESTCodes {
         "Topic limit reached. Contact your administrator to increase the number of topics " +
             "that can be created for this project.", Response.Status.PRECONDITION_FAILED),
     TOPIC_REPLICATION_ERROR(5, "Maximum topic replication factor exceeded", Response.Status.BAD_REQUEST),
-    SCHEMA_NOT_FOUND(6, "Topic has not schema attached to it.", Response.Status.NOT_FOUND),
+    SCHEMA_NOT_FOUND(6, "Topic has no schema attached to it.", Response.Status.NOT_FOUND),
     KAFKA_GENERIC_ERROR(7, "An error occurred while retrieving information from Kafka service",
         Response.Status.INTERNAL_SERVER_ERROR),
     DESTINATION_PROJECT_IS_TOPIC_OWNER(8, "Destination projet is topic owner",
@@ -628,11 +710,19 @@ public class RESTCodes {
     ACL_NOT_FOR_TOPIC(13, "ACL does not belong to the specified topic", Response.Status.BAD_REQUEST),
     SCHEMA_IN_USE(14, "Schema is currently used by topics. topic", Response.Status.PRECONDITION_FAILED),
     BAD_NUM_PARTITION(15, "Invalid number of partitions", Response.Status.BAD_REQUEST),
-    CREATE_SCHEMA_RESERVED_NAME(16, "The provided schema name is reserved",
+    CREATE_SUBJECT_RESERVED_NAME(16, "The provided subject name is reserved for system calls",
       Response.Status.METHOD_NOT_ALLOWED),
     DELETE_RESERVED_SCHEMA(17, "The schema is reserved and cannot be deleted",
       Response.Status.METHOD_NOT_ALLOWED),
-    SCHEMA_VERSION_NOT_FOUND(18, "Specified version of the schema not found", Response.Status.NOT_FOUND);
+    SCHEMA_VERSION_NOT_FOUND(18, "Specified version of the schema not found", Response.Status.NOT_FOUND),
+    PROJECT_IS_NOT_THE_OWNER_OF_THE_TOPIC(19, "Specified project is not the owner of the topic",
+      Response.Status.BAD_REQUEST),
+    ACL_FOR_ANY_USER(20, "Cannot create an ACL for user with email '*'", Response.Status.BAD_REQUEST),
+    KAFKA_UNAVAILABLE(21, "Kafka is temporarily unavailable. Please try again later",
+      Response.Status.SERVICE_UNAVAILABLE),
+    TOPIC_DELETION_FAILED(22, "Could not delete Kafka topics.", Response.Status.INTERNAL_SERVER_ERROR),
+    TOPIC_FETCH_FAILED(23, "Could not fetch topic details.", Response.Status.INTERNAL_SERVER_ERROR),
+    TOPIC_CREATION_FAILED(24, "Could not create topic.", Response.Status.INTERNAL_SERVER_ERROR);
 
 
     private Integer code;
@@ -683,7 +773,9 @@ public class RESTCodes {
         Response.Status.BAD_REQUEST),
     SECURITY_EXCEPTION(8, "A Java security error occurred.", Response.Status.INTERNAL_SERVER_ERROR),
     ENDPOINT_ANNOTATION_MISSING(9, "The requested endpoint did not have any project role annotation",
-        Response.Status.SERVICE_UNAVAILABLE);
+        Response.Status.SERVICE_UNAVAILABLE),
+    ENTERPRISE_FEATURE(10, "This feature is only available in the enterprise edition", Response.Status.BAD_REQUEST),
+    NOT_AUTHORIZED_TO_ACCESS(11, "Project not accessible to user", Response.Status.BAD_REQUEST);
 
     private Integer code;
     private String message;
@@ -744,7 +836,7 @@ public class RESTCodes {
     CERTIFICATE_NOT_FOUND(17, "Could not find the certificate", Response.Status.BAD_REQUEST),
     CERTIFICATE_REVOKATION_USER_ERR(18, "Error revoking the certificate", Response.Status.BAD_REQUEST),
     CERTIFICATE_SIGN_USER_ERR(19, "Error signing the certificate", Response.Status.BAD_REQUEST);
-
+    
     private Integer code;
     private String message;
     private Response.StatusType respStatus;
@@ -791,10 +883,6 @@ public class RESTCodes {
     AUTHENTICATION_FAILURE(8, "Authentication failed, invalid credentials", Response.Status.UNAUTHORIZED),
     LOGOUT_FAILURE(9, "Logout failed on backend.", Response.Status.BAD_REQUEST),
 
-    SEC_Q_EMPTY(10, "Security Question cannot be empty.", Response.Status.BAD_REQUEST),
-    SEC_A_EMPTY(11, "Security Answer cannot be empty.", Response.Status.BAD_REQUEST),
-    SEC_Q_NOT_IN_LIST(12, "Choose a Security Question from the list.", Response.Status.BAD_REQUEST),
-    SEC_QA_INCORRECT(13, "Security question or answer did not match", Response.Status.BAD_REQUEST),
     PASSWORD_EMPTY(14, "Password cannot be empty.", Response.Status.BAD_REQUEST),
     PASSWORD_TOO_SHORT(15, "Password too short.", Response.Status.BAD_REQUEST),
     PASSWORD_TOO_LONG(16, "Password too long.", Response.Status.BAD_REQUEST),
@@ -817,8 +905,6 @@ public class RESTCodes {
         "Your password could not be reset. Please try again later or contact support.",
         Response.Status.BAD_REQUEST),
     PASSWORD_CHANGED(26, "Your password was successfully changed.", Response.Status.BAD_REQUEST),
-    SEC_QA_CHANGED(27, "Your have successfully changed your security questions and answer.",
-        Response.Status.BAD_REQUEST),
     PROFILE_UPDATED(28, "Your profile was updated successfully.", Response.Status.BAD_REQUEST),
     SSH_KEY_REMOVED(29, "Your ssh key was deleted successfully.", Response.Status.BAD_REQUEST),
     NOTHING_TO_UPDATE(30, "Nothing to update", Response.Status.BAD_REQUEST),
@@ -847,7 +933,12 @@ public class RESTCodes {
     SECRET_EMPTY(48, "Secret is empty", Response.Status.NOT_FOUND),
     SECRET_EXISTS(49, "Same Secret already exists", Response.Status.CONFLICT),
     SECRET_ENCRYPTION_ERROR(50, "Error encrypting/decrypting Secret", Response.Status.INTERNAL_SERVER_ERROR),
-    ACCOUNT_NOT_ACTIVE(51, "This account is not active", Response.Status.BAD_REQUEST);
+    ACCOUNT_NOT_ACTIVE(51, "This account is not active", Response.Status.BAD_REQUEST),
+    ACCOUNT_ACTIVATION_FAILED(52, "Account activation failed", Response.Status.BAD_REQUEST),
+    ROLE_NOT_FOUND(53, "Role not found", Response.Status.BAD_REQUEST),
+    ACCOUNT_DELETION_ERROR(54, "Failed to delete account.", Response.Status.BAD_REQUEST),
+    USER_NAME_NOT_SET(55, "User name not set.", Response.Status.BAD_REQUEST),
+    SECRET_DELETION_FAILED(56, "Failed to delete secret.", Response.Status.BAD_REQUEST);
 
     private Integer code;
     private String message;
@@ -1044,9 +1135,11 @@ public class RESTCodes {
       Response.Status.BAD_REQUEST),
     PYTHON_ENVIRONMENT_NOT_ENABLED(12, "Python environment has not been enabled in this project, " +
       "which is required for serving SkLearn Models", Response.Status.BAD_REQUEST),
-    UPDATE_SERVING_TYPE_ERROR(13, "The serving type of a serving cannot be updated.",
-      Response.Status.BAD_REQUEST);
-
+    UPDATE_SERVING_TYPE_ERROR(13, "The model server of a serving cannot be updated.",
+      Response.Status.BAD_REQUEST),
+    KUBERNETES_NOT_INSTALLED(14, "Kubernetes is not installed, which is required for serving models " +
+      "with KFServing", Response.Status.BAD_REQUEST),
+    KFSERVING_NOT_ENABLED(15, "KFServing is not installed or disabled", Response.Status.BAD_REQUEST);
 
     private Integer code;
     private String message;
@@ -1223,18 +1316,14 @@ public class RESTCodes {
         Response.Status.INTERNAL_SERVER_ERROR),
     COULD_NOT_PREVIEW_FEATUREGROUP(7, "Could not preview the contents of the feature group ",
         Response.Status.INTERNAL_SERVER_ERROR),
-    FEATURESTORE_NOT_FOUND(8, "Featurestore wasn't found.",
+    FEATURESTORE_NOT_FOUND(8, "Featurestore wasn't found.", Response.Status.NOT_FOUND),
+    FEATUREGROUP_NOT_FOUND(9, "Featuregroup wasn't found.", Response.Status.NOT_FOUND),
+    COULD_NOT_FETCH_FEATUREGROUP_SHOW_CREATE_SCHEMA(10,
+        "The query SHOW CREATE SCHEMA for the featuregroup in Hive failed.",
+        Response.Status.INTERNAL_SERVER_ERROR),
+    TRYING_TO_UNSHARE_A_FEATURESTORE_THAT_IS_NOT_SHARED(11, "Trying to un-share a featurestore that is not shared",
         Response.Status.BAD_REQUEST),
-    FEATUREGROUP_NOT_FOUND(9, "Featuregroup wasn't found.",
-        Response.Status.BAD_REQUEST),
-    COULD_NOT_FETCH_FEATUREGROUP_SHOW_CREATE_SCHEMA
-        (10, "The query SHOW CREATE SCHEMA for the featuregroup in Hive failed.",
-            Response.Status.BAD_REQUEST),
-    TRYING_TO_UNSHARE_A_FEATURESTORE_THAT_IS_NOT_SHARED
-        (11, "Trying to un-share a featurestore that is not shared",
-            Response.Status.BAD_REQUEST),
-    TRAINING_DATASET_NOT_FOUND(12, "Training dataset wasn't found.",
-        Response.Status.BAD_REQUEST),
+    TRAINING_DATASET_NOT_FOUND(12, "Training dataset wasn't found.", Response.Status.NOT_FOUND),
     TRAINING_DATASET_ID_NOT_PROVIDED(13, "Training dataset Id was not provided", Response.Status.BAD_REQUEST),
     COULD_NOT_DELETE_TRAINING_DATASET(14, "Could not delete training dataset",
         Response.Status.INTERNAL_SERVER_ERROR),
@@ -1252,8 +1341,6 @@ public class RESTCodes {
         Response.Status.INTERNAL_SERVER_ERROR),
     HIVE_READ_QUERY_ERROR(21, "Hive Read Query failed",
         Response.Status.INTERNAL_SERVER_ERROR),
-    CORRELATION_MATRIX_EXCEED_MAX_SIZE(22,
-      "The size of the provided correlation matrix exceed the maximum size of 50 columns", Response.Status.BAD_REQUEST),
     FEATURESTORE_NAME_NOT_PROVIDED(23, "Featurestore name was not provided", Response.Status.BAD_REQUEST),
     UNAUTHORIZED_FEATURESTORE_OPERATION(24, "Only data owners are allowed to delete or update feature groups/" +
       "training datasets that are not created by themself.", Response.Status.UNAUTHORIZED),
@@ -1261,61 +1348,45 @@ public class RESTCodes {
     CANNOT_FETCH_HIVE_SCHEMA_FOR_ON_DEMAND_FEATUREGROUPS(26, "Fetching Hive Schema of On-demand feature groups is not" +
       " supported", Response.Status.BAD_REQUEST),
     ON_DEMAND_FEATUREGROUP_JDBC_CONNECTOR_NOT_FOUND(27, "The JDBC Connector for the on-demand feature group could not" +
-      " be found", Response.Status.BAD_REQUEST),
+      " be found", Response.Status.NOT_FOUND),
     PREVIEW_NOT_SUPPORTED_FOR_ON_DEMAND_FEATUREGROUPS(28, "Fetching Hive Schema of On-demand feature groups is not" +
       " supported", Response.Status.BAD_REQUEST),
     CLEAR_OPERATION_NOT_SUPPORTED_FOR_ON_DEMAND_FEATUREGROUPS(29, "Clearing Feature Group contents is not supported " +
       "for on-demand feature groups", Response.Status.BAD_REQUEST),
     ILLEGAL_STORAGE_CONNECTOR_NAME(30, "Illegal storage connector name", Response.Status.BAD_REQUEST),
     ILLEGAL_STORAGE_CONNECTOR_DESCRIPTION(31, "Illegal storage connector description",
-      Response.Status.BAD_REQUEST),
-    ILLEGAL_JDBC_CONNECTION_STRING(32, "Illegal JDBC Connection String",
-      Response.Status.BAD_REQUEST),
-    ILLEGAL_JDBC_CONNECTION_ARGUMENTS(33, "Illegal JDBC Connection Arguments",
-      Response.Status.BAD_REQUEST),
-    ILLEGAL_S3_CONNECTOR_BUCKET(34, "Illegal S3 connector bucket",
-      Response.Status.BAD_REQUEST),
-    ILLEGAL_S3_CONNECTOR_ACCESS_KEY(35, "Illegal S3 connector access key",
-      Response.Status.BAD_REQUEST),
-    ILLEGAL_S3_CONNECTOR_SECRET_KEY(36, "Illegal S3 connector secret key",
-      Response.Status.BAD_REQUEST),
-    ILLEGAL_HOPSFS_CONNECTOR_DATASET(37, "Illegal Hopsfs connector dataset",
-      Response.Status.BAD_REQUEST),
-    ILLEGAL_FEATUREGROUP_NAME(38, "Illegal feature group name", Response.Status.BAD_REQUEST),
-    ILLEGAL_FEATUREGROUP_DESCRIPTION(39, "Illegal feature group description",
-      Response.Status.BAD_REQUEST),
-    ILLEGAL_FEATURE_NAME(40, "Illegal feature name",
-      Response.Status.BAD_REQUEST),
-    ILLEGAL_FEATURE_DESCRIPTION(41, "Illegal feature description",
-      Response.Status.BAD_REQUEST),
-    JDBC_CONNECTOR_NOT_FOUND(42, "JDBC Connector not found",
-      Response.Status.BAD_REQUEST),
-    JDBC_CONNECTOR_ID_NOT_PROVIDED(43, "JDBC Connector Id was not provided", Response.Status.BAD_REQUEST),
+        Response.Status.BAD_REQUEST),
+    ILLEGAL_JDBC_CONNECTION_STRING(32, "Illegal JDBC Connection String", Response.Status.BAD_REQUEST),
+    ILLEGAL_JDBC_CONNECTION_ARGUMENTS(33, "Illegal JDBC Connection Arguments", Response.Status.BAD_REQUEST),
+    ILLEGAL_S3_CONNECTOR_BUCKET(34, "Illegal S3 connector bucket", Response.Status.BAD_REQUEST),
+    ILLEGAL_S3_CONNECTOR_ACCESS_KEY(35, "Illegal S3 connector access key", Response.Status.BAD_REQUEST),
+    ILLEGAL_S3_CONNECTOR_SECRET_KEY(36, "Illegal S3 connector secret key", Response.Status.BAD_REQUEST),
+    ILLEGAL_HOPSFS_CONNECTOR_DATASET(37, "Illegal Hopsfs connector dataset", Response.Status.BAD_REQUEST),
+    ILLEGAL_FEATURE_NAME(40, "Illegal feature name", Response.Status.BAD_REQUEST),
+    ILLEGAL_FEATURE_DESCRIPTION(41, "Illegal feature description", Response.Status.BAD_REQUEST),
+    CONNECTOR_NOT_FOUND(42, "Connector not found", Response.Status.NOT_FOUND),
+    CONNECTOR_ID_NOT_PROVIDED(43, "Connector Id was not provided", Response.Status.BAD_REQUEST),
     INVALID_SQL_QUERY(44, "Invalid SQL query", Response.Status.BAD_REQUEST),
-    S3_CONNECTOR_NOT_FOUND(45, "S3 Connector not found", Response.Status.BAD_REQUEST),
-    HOPSFS_CONNECTOR_NOT_FOUND(46, "HopsFs Connector not found", Response.Status.BAD_REQUEST),
+    HOPSFS_CONNECTOR_NOT_FOUND(46, "HopsFs Connector not found", Response.Status.NOT_FOUND),
     STORAGE_CONNECTOR_TYPE_NOT_PROVIDED(47, "Storage Connector Type was not provided", Response.Status.BAD_REQUEST),
     COULD_NOT_CLEAR_FEATUREGROUP(48, "Could not clear contents of feature group",
         Response.Status.INTERNAL_SERVER_ERROR),
     ILLEGAL_FEATUREGROUP_TYPE(49, "The provided feature group type was not recognized",
         Response.Status.BAD_REQUEST),
     ILLEGAL_TRAINING_DATASET_TYPE(50, "The provided training dataset type was not recognized",
-      Response.Status.BAD_REQUEST),
+        Response.Status.BAD_REQUEST),
     CAN_ONLY_GET_INODE_FOR_HOPSFS_TRAINING_DATASETS(51, "Getting the inode id of a non-hopsfs training dataset is not" +
-      " supported", Response.Status.BAD_REQUEST),
+        " supported", Response.Status.BAD_REQUEST),
     TRAINING_DATASET_VERSION_NOT_PROVIDED(52, "Training Dataset version was not provided",
-      Response.Status.BAD_REQUEST),
-    ILLEGAL_TRAINING_DATASET_NAME(53, "Illegal training dataset name", Response.Status.BAD_REQUEST),
+        Response.Status.BAD_REQUEST),
     S3_CONNECTOR_ID_NOT_PROVIDED(54, "S3 Connector Id was not provided", Response.Status.BAD_REQUEST),
     HOPSFS_CONNECTOR_ID_NOT_PROVIDED(55, "HopsFS Connector Id was not provided", Response.Status.BAD_REQUEST),
-    ILLEGAL_TRAINING_DATASET_DESCRIPTION(56, "Illegal training dataset description",
-      Response.Status.BAD_REQUEST),
     ILLEGAL_TRAINING_DATASET_DATA_FORMAT(57, "Illegal training dataset data format",
-      Response.Status.BAD_REQUEST),
+        Response.Status.BAD_REQUEST),
     ILLEGAL_TRAINING_DATASET_VERSION(58, "Illegal training dataset version",
-      Response.Status.BAD_REQUEST),
+        Response.Status.BAD_REQUEST),
     ILLEGAL_FEATUREGROUP_VERSION(59, "Illegal feature group version",
-      Response.Status.BAD_REQUEST),
+        Response.Status.BAD_REQUEST),
     ILLEGAL_STORAGE_CONNECTOR_TYPE(60, "The provided storage connector type was not recognized",
         Response.Status.BAD_REQUEST),
     FEATURESTORE_INITIALIZATION_ERROR(61, "Featurestore Initialization Error", Response.Status.INTERNAL_SERVER_ERROR),
@@ -1325,28 +1396,28 @@ public class RESTCodes {
         Response.Status.INTERNAL_SERVER_ERROR),
     FEATURESTORE_ONLINE_NOT_ENABLED(64, "Online featurestore not enabled", Response.Status.BAD_REQUEST),
     SYNC_TABLE_NOT_FOUND(65, "The Hive Table to Sync with the feature store was not " +
-      "found in the metastore", Response.Status.BAD_REQUEST),
+        "found in the metastore", Response.Status.BAD_REQUEST),
     COULD_NOT_INITIATE_MYSQL_CONNECTION_TO_ONLINE_FEATURESTORE(66, "Could not initiate connecton to " +
-      "MySQL Server", Response.Status.INTERNAL_SERVER_ERROR),
+        "MySQL Server", Response.Status.INTERNAL_SERVER_ERROR),
     MYSQL_JDBC_UPDATE_STATEMENT_ERROR(67, "MySQL JDBC Update Statement failed",
-      Response.Status.INTERNAL_SERVER_ERROR),
+        Response.Status.INTERNAL_SERVER_ERROR),
     MYSQL_JDBC_READ_QUERY_ERROR(68, "MySQL JDBC Read Query failed",
-      Response.Status.INTERNAL_SERVER_ERROR),
+        Response.Status.INTERNAL_SERVER_ERROR),
     ONLINE_FEATURE_SERVING_NOT_SUPPORTED_FOR_ON_DEMAND_FEATUREGROUPS(69, "Online Feature Serving is only" +
-      "supported for feature groups that are cached inside Hopsworks", Response.Status.BAD_REQUEST),
+        "supported for feature groups that are cached inside Hopsworks", Response.Status.BAD_REQUEST),
     ERROR_CREATING_ONLINE_FEATURESTORE_DB(70, "An error occurred when trying to create " +
-      "the MySQL database for an online feature store", Response.Status.INTERNAL_SERVER_ERROR),
+        "the MySQL database for an online feature store", Response.Status.INTERNAL_SERVER_ERROR),
     ERROR_CREATING_ONLINE_FEATURESTORE_USER(71, "An error occurred when trying to create " +
-      "the MySQL database user for an online feature store", Response.Status.INTERNAL_SERVER_ERROR),
+        "the MySQL database user for an online feature store", Response.Status.INTERNAL_SERVER_ERROR),
     ERROR_DELETING_ONLINE_FEATURESTORE_DB(72, "An error occurred when trying to delete " +
-      "the MySQL database for an online feature store", Response.Status.INTERNAL_SERVER_ERROR),
+        "the MySQL database for an online feature store", Response.Status.INTERNAL_SERVER_ERROR),
     ERROR_DELETING_ONLINE_FEATURESTORE_USER(73, "An error occurred when trying to delete " +
-      "the MySQL user for an online feature store", Response.Status.INTERNAL_SERVER_ERROR),
+        "the MySQL user for an online feature store", Response.Status.INTERNAL_SERVER_ERROR),
     ERROR_GRANTING_ONLINE_FEATURESTORE_USER_PRIVILEGES(74, "An error occurred when trying to " +
-      "grant/revoke privileges to a MySQL user for an online feature store", Response.Status.INTERNAL_SERVER_ERROR),
+        "grant/revoke privileges to a MySQL user for an online feature store", Response.Status.INTERNAL_SERVER_ERROR),
     ONLINE_FEATUREGROUP_CANNOT_BE_PARTITIONED(75, "An error occurred when trying to " +
-      "create the MySQL table for the online feature group. User-defined partitioning is not supported for MySQL " +
-      "tables", Response.Status.INTERNAL_SERVER_ERROR),
+        "create the MySQL table for the online feature group. User-defined partitioning is not supported for MySQL " +
+        "tables", Response.Status.INTERNAL_SERVER_ERROR),
     COULD_NOT_CREATE_DATA_VALIDATION_RULES(76, "Failed to create data validation rules",
         Response.Status.INTERNAL_SERVER_ERROR),
     COULD_NOT_READ_DATA_VALIDATION_RESULT(77, "Failed to read data validation result",
@@ -1355,19 +1426,121 @@ public class RESTCodes {
         Response.Status.BAD_REQUEST),
     IMPORT_CONF_ERROR(79, "Error writing import job configuration", Response.Status.INTERNAL_SERVER_ERROR),
     TRAININGDATASETJOB_FAILURE(80, "Could not write featurestore cloud args to HDFS",
-      Response.Status.INTERNAL_SERVER_ERROR),
+        Response.Status.INTERNAL_SERVER_ERROR),
     TRAININGDATASETJOB_DUPLICATE_FEATURE(81, "Feature list contains duplicate", Response.Status.BAD_REQUEST),
-    TRAININGDATASETJOB_FEATURE_NOT_EXISTING(82, "Feature does not exist", Response.Status.BAD_REQUEST),
+    FEATURE_DOES_NOT_EXIST(82, "Feature does not exist", Response.Status.BAD_REQUEST),
     TRAININGDATASETJOB_FEATUREGROUP_DUPLICATE(83, "Multiple featuregroups contain feature",
-      Response.Status.BAD_REQUEST),
+        Response.Status.BAD_REQUEST),
     TRAININGDATASETJOB_TRAININGDATASET_VERSION_EXISTS(84, "Illegal training dataset name - version combination",
-      Response.Status.BAD_REQUEST),
+        Response.Status.BAD_REQUEST),
     TRAININGDATASETJOB_CONF_ERROR(85, "Error writing training dataset job configuration to hdfs",
         Response.Status.INTERNAL_SERVER_ERROR),
     S3_KEYS_FORBIDDEN(86, "IAM role is configured for this instance. AWS access/secret keys are not allowed",
         Response.Status.BAD_REQUEST),
     MISSING_REDSHIFT_DRIVER(87, "Could not find Redshift JDBC driver. " +
-        "Please upload it in Resources/RedshiftJDBC42-no-awssdk.jar", Response.Status.BAD_REQUEST);
+        "Please upload it in Resources/RedshiftJDBC42-no-awssdk.jar", Response.Status.BAD_REQUEST),
+    TRAININGDATASETJOB_MISSPECIFICATION(88, "Training dataset job is misspecified and cannot be created",
+        Response.Status.BAD_REQUEST),
+    FEATUREGROUP_EXISTS(89, "The feature group you are trying to create does already exist.",
+        Response.Status.BAD_REQUEST),
+    XATTRS_OPERATIONS_ONLY_SUPPORTED_FOR_CACHED_FEATUREGROUPS(90, "Attaching " +
+        "extended attributes is only supported for cached featuregroups.",
+        Response.Status.BAD_REQUEST),
+    ILLEGAL_ENTITY_NAME(91, "Illegal feature store entity name", Response.Status.BAD_REQUEST),
+    ILLEGAL_ENTITY_DESCRIPTION(92, "Illegal featurestore entity description", Response.Status.BAD_REQUEST),
+    FEATUREGROUP_NAME_NOT_PROVIDED(94, "Feature group name was not provided", Response.Status.BAD_REQUEST),
+    TRAINING_DATASET_NAME_NOT_PROVIDED(95, "Training dataset name was not provided", Response.Status.BAD_REQUEST),
+    NO_PK_JOINING_KEYS(96, "Could not find any matching feature to join", Response.Status.BAD_REQUEST),
+    LEFT_RIGHT_ON_DIFF_SIZES(97, "LeftOn and RightOn have different sizes", Response.Status.BAD_REQUEST),
+    ILLEGAL_TRAINING_DATASET_SPLIT_NAME(98, "Illegal training dataset split name", Response.Status.BAD_REQUEST),
+    ILLEGAL_TRAINING_DATASET_SPLIT_PERCENTAGE(99, "Illegal training dataset split percentage",
+        Response.Status.BAD_REQUEST),
+    TAG_NOT_ALLOWED(100, "The provided tag is not allowed", Response.Status.BAD_REQUEST),
+    TAG_NOT_FOUND(101, "The provided tag is not attached", Response.Status.NOT_FOUND),
+    FEATUREGROUP_NOT_ONLINE(102, "The feature group is not available online", Response.Status.BAD_REQUEST),
+    FEATUREGROUP_ONDEMAND_NO_PARTS(103, "Partitions not available for on demand feature group",
+        Response.Status.BAD_REQUEST),
+    ILLEGAL_S3_CONNECTOR_SERVER_ENCRYPTION_ALGORITHM(104, "Illegal server encryption algorithm provided",
+        Response.Status.BAD_REQUEST),
+    ILLEGAL_S3_CONNECTOR_SERVER_ENCRYPTION_KEY(105, "Illegal server encryption key provided",
+        Response.Status.BAD_REQUEST),
+    TRAINING_DATASET_DUPLICATE_SPLIT_NAMES(106, "Duplicate split names in training dataset provided.",
+        Response.Status.BAD_REQUEST),
+    STATISTICS_READ_ERROR(107, "Error reading the statistics", Response.Status.INTERNAL_SERVER_ERROR),
+    ILLEGAL_STATISTICS_CONFIG(108, "Illegal statistics config", Response.Status.BAD_REQUEST),
+    ERROR_DELETING_STATISTICS(109, "Error deleting the statistics of a feature store entity",
+        Response.Status.INTERNAL_SERVER_ERROR),
+    ERROR_GETTING_S3_CONNECTOR_ACCESS_AND_SECRET_KEY_FROM_SECRET(110, "Could not get access and secret " +
+        "key from the user secret", Response.Status.INTERNAL_SERVER_ERROR),
+    TRAINING_DATASET_NO_QUERY(111, "The training dataset wasn't generated from a query",
+        Response.Status.BAD_REQUEST),
+    TRAINING_DATASET_NO_SCHEMA(112, "No query or feature schema provided", Response.Status.BAD_REQUEST),
+    TRAINING_DATASET_QUERY_FG_DELETED(113, "Cannot generate query, some feature groups were deleted",
+        Response.Status.BAD_REQUEST),
+    ILLEGAL_FEATUREGROUP_UPDATE(114, "Illegal feature group update", Response.Status.BAD_REQUEST),
+    COULD_NOT_ALTER_FEAUTURE_GROUP_METADATA(115, "Failed to alter feature group meta data",
+        Response.Status.INTERNAL_SERVER_ERROR),
+    COULD_NOT_GET_FEATURE_GROUP_METADATA(116, "Failed to retrieve feature group meta data",
+        Response.Status.INTERNAL_SERVER_ERROR),
+    ERROR_CREATING_HIVE_METASTORE_CLIENT(117, "Failed to open Hive Metastore client",
+        Response.Status.INTERNAL_SERVER_ERROR),
+    NO_DATA_AVAILABLE_FEATUREGROUP_COMMITDATE(118, "No data is available for feature group with this "
+        +  "commit date", Response.Status.NOT_FOUND),
+    PROVIDED_DATE_FORMAT_NOT_SUPPORTED(119, "Invalid date format", Response.Status.BAD_REQUEST),
+    ONLINE_FEATURESTORE_JDBC_CONNECTOR_NOT_FOUND(120, "Online featurestore JDBC connector not found",
+            Response.Status.INTERNAL_SERVER_ERROR),
+    PRIMARY_KEY_REQUIRED(121, "Primary key is required when using Hudi time travel "
+        + "format", Response.Status.BAD_REQUEST),
+    DATABRICKS_INSTANCE_ALREADY_EXISTS(122, "Databricks Instance already registered", Response.Status.CONFLICT),
+    DATABRICKS_INSTANCE_NOT_EXISTS(123, "Databricks Instance doesn't exists", Response.Status.NOT_FOUND),
+    DATABRICKS_CANNOT_START_CLUSTER(124, "Could not start Databricks cluster",
+        Response.Status.INTERNAL_SERVER_ERROR),
+    DATABRICKS_ERROR(125, "Error communicating with Databricks", Response.Status.INTERNAL_SERVER_ERROR),
+    STORAGE_CONNECTOR_GET_ERROR(126, "Error retrieving the storage connector",
+        Response.Status.INTERNAL_SERVER_ERROR),
+    ERROR_ONLINE_FEATURES(127, "Error retrieving online features", Response.Status.INTERNAL_SERVER_ERROR),
+    ERROR_ONLINE_USERS(128, "Error getting database users", Response.Status.INTERNAL_SERVER_ERROR),
+    ERROR_ONLINE_GENERIC(129, "Error communicating with the online feature store",
+        Response.Status.INTERNAL_SERVER_ERROR),
+    COULD_NOT_CREATE_ON_DEMAND_FEATUREGROUP(130, "Could not create on demand feature group",
+        Response.Status.INTERNAL_SERVER_ERROR),
+    COULD_NOT_DELETE_ON_DEMAND_FEATUREGROUP(131, "Could not delete on demand feature group",
+        Response.Status.INTERNAL_SERVER_ERROR),
+    ILLEGAL_FEATURE_GROUP_FEATURE_DEFAULT_VALUE(132, "Illegal feature default value",
+      Response.Status.BAD_REQUEST),
+    KEYWORD_ERROR(133, "Keyword error for feature group/training dataset",
+      Response.Status.INTERNAL_SERVER_ERROR),
+    KEYWORD_FORMAT_ERROR(134, "Keyword format error", Response.Status.BAD_REQUEST),
+    REDSHIFT_CONNECTOR_NOT_FOUND(135, "Redshift Connector not found", Response.Status.NOT_FOUND),
+    ILLEGAL_STORAGE_CONNECTOR_ARG(136, "Illegal storage connector argument", Response.Status.BAD_REQUEST),
+    ERROR_SAVING_STATISTICS(137, "Error saving statistics", Response.Status.BAD_REQUEST),
+    FILTER_CONSTRUCTION_ERROR(138, "Failed to construct filter condition",
+      Response.Status.INTERNAL_SERVER_ERROR),
+    ILLEGAL_FILTER_ARGUMENTS(139, "Malformed filter conditions for Query", Response.Status.BAD_REQUEST),
+    ILLEGAL_ON_DEMAND_DATA_FORMAT(140, "Illegal on-demand feature group data format",
+        Response.Status.BAD_REQUEST),
+    ERROR_JOB_SETUP(141, "Error setting up feature store job", Response.Status.INTERNAL_SERVER_ERROR),
+    LABEL_NOT_FOUND(142, "Could not find label in training dataset schema", Response.Status.NOT_FOUND),
+    DATA_VALIDATION_RESULTS_NOT_FOUND(143,
+      "Could not find feature group validation results. " +
+        "Make sure the results file was not manually removed from the dataset",
+      Response.Status.NOT_FOUND),
+    DATA_VALIDATION_NOT_FOUND(144, "Could not find feature group validation.", Response.Status.NOT_FOUND),
+    FEATURE_STORE_EXPECTATION_NOT_FOUND(145, "Could not find feature store expectation.", Response.Status.NOT_FOUND),
+    FEATURE_GROUP_EXPECTATION_NOT_FOUND(146, "Could not find feature group expectation.", Response.Status.NOT_FOUND),
+    FEATURE_GROUP_EXPECTATION_FEATURE_NOT_FOUND(147,
+                       "Could not find expectation feature(s) in feature group expectation.",
+      Response.Status.NOT_FOUND),
+    FEATURE_STORE_RULE_NOT_FOUND(148, "Could not find feature store data validation rule.",
+      Response.Status.NOT_FOUND),
+    FEATURE_GROUP_CHECKS_FAILED(149,
+                       "Feature group validation checks did not pass, will not persist validation results.",
+                                Response.Status.EXPECTATION_FAILED),
+    RULE_NOT_FOUND(150, "Rule with provided name was not found.", Response.Status.NOT_FOUND),
+    AVRO_PRIMITIVE_TYPE_NOT_SUPPORTED(151, "Error converting Hive Type to Avro primitive type",
+                                      Response.Status.BAD_REQUEST),
+    AVRO_MAP_STRING_KEY(152, "Map types are only supported with STRING type keys", Response.Status.BAD_REQUEST),
+    AVRO_MALFORMED_SCHEMA(153, "Error converting Hive schema to Avro", Response.Status.INTERNAL_SERVER_ERROR);
 
     private int code;
     private String message;
@@ -1406,10 +1579,12 @@ public class RESTCodes {
    */
   public enum TensorBoardErrorCode implements RESTErrorCode {
 
-    TENSORBOARD_CLEANUP_ERROR(1, "Failed when deleting a running TensorBoard", Response.Status.INTERNAL_SERVER_ERROR),
-    TENSORBOARD_START_ERROR(2, "Failed to start TensorBoard", Response.Status.INTERNAL_SERVER_ERROR),
-    TENSORBOARD_FETCH_ERROR(3, "Error while fetching TensorBoard from database",
-            Response.Status.INTERNAL_SERVER_ERROR);
+    TENSORBOARD_CLEANUP_ERROR(1, "Error when deleting a running TensorBoard", Response.Status.INTERNAL_SERVER_ERROR),
+    TENSORBOARD_START_ERROR(2, "Error to start TensorBoard", Response.Status.INTERNAL_SERVER_ERROR),
+    TENSORBOARD_FETCH_ERROR(3, "Error while fetching TensorBoard information",
+            Response.Status.INTERNAL_SERVER_ERROR),
+    TENSORBOARD_NOT_FOUND(4, "Could not find TensorBoard",
+        Response.Status.NOT_FOUND);
 
     private Integer code;
     private String message;
@@ -1451,6 +1626,9 @@ public class RESTCodes {
     JWT_NOT_CREATED(1, "JWT for Airflow service could not be created", Response.Status.INTERNAL_SERVER_ERROR),
     JWT_NOT_STORED(2, "JWT for Airflow service could not be stored", Response.Status.INTERNAL_SERVER_ERROR),
     AIRFLOW_DIRS_NOT_CREATED(3, "Airflow internal directories could not be created",
+        Response.Status.INTERNAL_SERVER_ERROR),
+    DAG_NOT_TEMPLATED(4, "Could not template DAG file", Response.Status.INTERNAL_SERVER_ERROR),
+    AIRFLOW_MANAGER_UNINITIALIZED(5, "AirflowManager is not initialized",
         Response.Status.INTERNAL_SERVER_ERROR);
 
     private Integer code;
@@ -1503,7 +1681,14 @@ public class RESTCodes {
     INSTALL_TYPE_NOT_SUPPORTED(7, "The provided install type is not supported", Response.Status.BAD_REQUEST),
     CONDA_COMMAND_NOT_FOUND(8, "Command not found.", Response.Status.BAD_REQUEST),
     MACHINE_TYPE_NOT_SPECIFIED(9, "Machine type not specified.", Response.Status.BAD_REQUEST),
-    VERSION_NOT_SPECIFIED(10, "Version not specified.", Response.Status.BAD_REQUEST);
+    VERSION_NOT_SPECIFIED(10, "Version not specified.", Response.Status.BAD_REQUEST),
+    ANACONDA_ENVIRONMENT_INITIALIZING(11, "The project's Python environment is currently being initialized. Please " +
+      "try again later.", Response.Status.BAD_REQUEST),
+    ANACONDA_ENVIRONMENT_FILE_INVALID(12, "Path is not a valid environment file, " +
+        "must be Anaconda .yml or requirements.txt", Response.Status.BAD_REQUEST),
+    ANACONDA_PIP_CHECK_FAILED(13, "pip check command failed", Response.Status.INTERNAL_SERVER_ERROR),
+    ANACONDA_ENVIRONMENT_FAILED_INITIALIZATION(14, "The project's Python environment failed to initialize," +
+        " please recreate the environment.", Response.Status.INTERNAL_SERVER_ERROR);
 
     private int code;
     private String message;
@@ -1615,5 +1800,281 @@ public class RESTCodes {
       return range;
     }
   }
+  
+  public enum ElasticErrorCode implements RESTErrorCode {
+    
+    SIGNING_KEY_ERROR(0, "Couldn't get or create the elk signing key",
+        Response.Status.INTERNAL_SERVER_ERROR),
+    JWT_NOT_CREATED(1, "Jwt for elk couldn't be created",
+        Response.Status.INTERNAL_SERVER_ERROR),
+    KIBANA_REQ_ERROR(2, "Error while executing Kibana request",
+        Response.Status.BAD_REQUEST),
+    ELASTIC_CONNECTION_ERROR(3, "Couldn't connect to Elasticsearch",
+        Response.Status.SERVICE_UNAVAILABLE),
+    ELASTIC_INTERNAL_REQ_ERROR(4, "Error while executing Elasticsearch request",
+        Response.Status.INTERNAL_SERVER_ERROR),
+    ELASTIC_QUERY_ERROR(5, "Error while executing a user query on " +
+        "Elasticsearch", Response.Status.BAD_REQUEST),
+    INVALID_ELASTIC_ROLE(6, "Invalid elastic security role",
+        Response.Status.INTERNAL_SERVER_ERROR),
+    INVALID_ELASTIC_ROLE_USER(7, "Invalid elastic security role for a user",
+        Response.Status.UNAUTHORIZED),
+    ELASTIC_QUERY_NO_MAPPING(8, "Elastic query uses a field that is not in the mapping of the index",
+      Response.Status.BAD_REQUEST),
+    ELASTIC_INDEX_NOT_FOUND(9, "Elastic index not found", Response.Status.NOT_FOUND);
+    
+    private Integer code;
+    private String message;
+    private Response.StatusType respStatus;
+    private final int range = 330000;
+  
+    ElasticErrorCode(Integer code, String message, Response.StatusType respStatus) {
+      this.code = range + code;
+      this.message = message;
+      this.respStatus = respStatus;
+    }
+    
+    @Override
+    public Response.StatusType getRespStatus() {
+      return respStatus;
+    }
+    
+    @Override
+    public Integer getCode() {
+      return code;
+    }
+    
+    @Override
+    public String getMessage() {
+      return message;
+    }
+    
+    @Override
+    public int getRange() {
+      return range;
+    }
+  }
+  
+  /**
+   * Error codes for the provenance microservice on Hopsworks
+   */
+  public enum ProvenanceErrorCode implements RESTErrorCode {
+    MALFORMED_ENTRY(1, "Provenance entry is malformed",
+      Response.Status.INTERNAL_SERVER_ERROR),
+    BAD_REQUEST(2, "Provenance query request is malformed",
+      Response.Status.INTERNAL_SERVER_ERROR),
+    UNSUPPORTED(3, "Provenance query is not supported",
+      Response.Status.BAD_REQUEST),
+    INTERNAL_ERROR(4, "Provenance logical error",
+      Response.Status.INTERNAL_SERVER_ERROR),
+    ARCHIVAL_STORE(5, "Provenance archival store error",
+      Response.Status.INTERNAL_SERVER_ERROR),
+    FS_ERROR(6, "Provenance xattr - file system error",
+      Response.Status.INTERNAL_SERVER_ERROR);
 
+    private int code;
+    private String message;
+    private Response.Status respStatus;
+    public final int range = 340000;
+
+    ProvenanceErrorCode(Integer code, String message, Response.Status respStatus) {
+      this.code = range + code;
+      this.message = message;
+      this.respStatus = respStatus;
+    }
+
+    @Override
+    public Integer getCode() {
+      return code;
+    }
+
+    @Override
+    public String getMessage() {
+      return message;
+    }
+
+    public Response.StatusType getRespStatus() {
+      return respStatus;
+    }
+
+    @Override
+    public int getRange() {
+      return range;
+    }
+  }
+
+  public enum ExperimentsErrorCode implements RESTErrorCode {
+
+    EXPERIMENT_NOT_FOUND(0, "No experiment found for provided id.",
+        Response.Status.NOT_FOUND),
+    RESULTS_NOT_FOUND(1, "No results found for provided id.",
+        Response.Status.NOT_FOUND),
+    RESULTS_RETRIEVAL_ERROR(2, "Error occurred when retrieving experiment results.",
+        Response.Status.INTERNAL_SERVER_ERROR),
+    EXPERIMENT_EXECUTABLE_NOT_FOUND(3, "Could not find experiment executable.",
+        Response.Status.BAD_REQUEST),
+    EXPERIMENT_EXECUTABLE_COPY_FAILED(4, "Error occurred when copying experiment executable.",
+        Response.Status.INTERNAL_SERVER_ERROR),
+    EXPERIMENT_LIST_FAILED(5, "Error occurred when fetching experiments.",
+        Response.Status.INTERNAL_SERVER_ERROR),
+    EXPERIMENT_MARSHALLING_FAILED(6,
+        "Error occurred during marshalling/unmarshalling of experiment json.",
+        Response.Status.INTERNAL_SERVER_ERROR);
+
+    private int code;
+    private String message;
+    private Response.Status respStatus;
+    public final int range = 350000;
+
+
+    ExperimentsErrorCode(Integer code, String message, Response.Status respStatus) {
+      this.code = range + code;
+      this.message = message;
+      this.respStatus = respStatus;
+    }
+
+    @Override
+    public Integer getCode() {
+      return code;
+    }
+
+    @Override
+    public String getMessage() {
+      return message;
+    }
+
+    public Response.StatusType getRespStatus() {
+      return respStatus;
+    }
+
+    @Override
+    public int getRange() {
+      return range;
+    }
+  }
+
+  public enum ModelsErrorCode implements RESTErrorCode {
+
+    MODEL_NOT_FOUND(0, "No model found for provided name and version.",
+        Response.Status.NOT_FOUND),
+    KEY_NOT_STRING(1, "metrics key is not a string.",
+        Response.Status.NOT_FOUND),
+    METRIC_NOT_NUMBER(2, "Could not cast provided metric to double.",
+        Response.Status.BAD_REQUEST),
+    MODEL_LIST_FAILED(3, "Error occurred when fetching models.",
+        Response.Status.INTERNAL_SERVER_ERROR),
+    MODEL_MARSHALLING_FAILED(4,
+        "Error occurred during marshalling/unmarshalling of model json.",
+        Response.Status.INTERNAL_SERVER_ERROR),
+    HOPS_ERROR(5, "Error accessing hops storage",
+      Response.Status.INTERNAL_SERVER_ERROR);
+
+    private int code;
+    private String message;
+    private Response.Status respStatus;
+    public final int range = 360000;
+
+    ModelsErrorCode(Integer code, String message, Response.Status respStatus) {
+      this.code = range + code;
+      this.message = message;
+      this.respStatus = respStatus;
+    }
+
+    @Override
+    public Integer getCode() {
+      return code;
+    }
+
+    @Override
+    public String getMessage() {
+      return message;
+    }
+
+    public Response.StatusType getRespStatus() {
+      return respStatus;
+    }
+
+    @Override
+    public int getRange() {
+      return range;
+    }
+  }
+  
+  public enum FeatureStoreTagErrorCode implements RESTErrorCode {
+    TAG_SCHEMA_NOT_FOUND(0, "No schema found for provided name", Response.Status.NOT_FOUND),
+    INVALID_TAG_SCHEMA(1, "Invalid tag schema.", Response.Status.BAD_REQUEST),
+    TAG_NOT_FOUND(2, "No tag found for provided name.", Response.Status.NOT_FOUND),
+    TAG_ALREADY_EXISTS(3, "Tag with the same name already exists.", Response.Status.CONFLICT),
+    INVALID_TAG_NAME(4, "Invalid tag name.", Response.Status.BAD_REQUEST),
+    INVALID_TAG_VALUE(5, "Invalid tag value.", Response.Status.BAD_REQUEST);
+    
+    private int code;
+    private String message;
+    private Response.Status respStatus;
+    public final int range = 370000;
+    
+    FeatureStoreTagErrorCode(Integer code, String message, Response.Status respStatus) {
+      this.code = range + code;
+      this.message = message;
+      this.respStatus = respStatus;
+    }
+    
+    @Override
+    public Integer getCode() {
+      return code;
+    }
+    
+    @Override
+    public String getMessage() {
+      return message;
+    }
+    
+    public Response.StatusType getRespStatus() {
+      return respStatus;
+    }
+    
+    @Override
+    public int getRange() {
+      return range;
+    }
+  }
+  
+  public enum CloudErrorCode implements RESTErrorCode {
+    CLOUD_FEATURE(0, "This method is only available in cloud deployments.", Response.Status.METHOD_NOT_ALLOWED),
+    FAILED_TO_ASSUME_ROLE(1, "Failed to assume role.", Response.Status.BAD_REQUEST),
+    ACCESS_CONTROL_EXCEPTION(2, "You are not allowed to assume this role.", Response.Status.FORBIDDEN),
+    MAPPING_NOT_FOUND(3, "Mapping not found.", Response.Status.BAD_REQUEST),
+    MAPPING_ALREADY_EXISTS(4, "Mapping for the given project and role already exists.", Response.Status.BAD_REQUEST),
+    FAILED_TO_GET_CLUSTER_CRED(5, "Failed to get cluster credential.", Response.Status.BAD_REQUEST);
+  
+    private int code;
+    private String message;
+    private Response.Status respStatus;
+    public final int range = 380000;
+  
+    CloudErrorCode(Integer code, String message, Response.Status respStatus) {
+      this.code = range + code;
+      this.message = message;
+      this.respStatus = respStatus;
+    }
+  
+    @Override
+    public Integer getCode() {
+      return code;
+    }
+  
+    @Override
+    public String getMessage() {
+      return message;
+    }
+  
+    public Response.StatusType getRespStatus() {
+      return respStatus;
+    }
+  
+    @Override
+    public int getRange() {
+      return range;
+    }
+  }
 }

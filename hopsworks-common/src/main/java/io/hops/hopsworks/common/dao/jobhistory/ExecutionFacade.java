@@ -40,13 +40,14 @@
 package io.hops.hopsworks.common.dao.jobhistory;
 
 import io.hops.hopsworks.common.dao.AbstractFacade;
-import io.hops.hopsworks.common.dao.jobs.description.Jobs;
-import io.hops.hopsworks.common.dao.project.Project;
-import io.hops.hopsworks.common.dao.user.Users;
-import io.hops.hopsworks.common.jobs.configuration.JobType;
-import io.hops.hopsworks.common.jobs.jobhistory.JobFinalStatus;
-import io.hops.hopsworks.common.jobs.jobhistory.JobState;
+import io.hops.hopsworks.persistence.entity.jobs.description.Jobs;
+import io.hops.hopsworks.persistence.entity.project.Project;
+import io.hops.hopsworks.persistence.entity.user.Users;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.JobType;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.history.JobFinalStatus;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.history.JobState;
 import io.hops.hopsworks.exceptions.InvalidQueryException;
+import io.hops.hopsworks.persistence.entity.jobs.history.Execution;
 
 import javax.ejb.Stateless;
 import javax.persistence.EntityManager;
@@ -57,6 +58,7 @@ import javax.persistence.TypedQuery;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -81,22 +83,23 @@ public class ExecutionFacade extends AbstractFacade<Execution> {
     return em;
   }
 
-  public Execution findByAppId(String appId) {
+  public Optional<Execution> findByAppId(String appId) {
     try {
-      return em.createNamedQuery("Execution.findByAppId",
-              Execution.class).setParameter("appId", appId).getSingleResult();
+      return Optional.of(em.createNamedQuery("Execution.findByAppId", Execution.class)
+          .setParameter("appId", appId)
+          .getSingleResult());
     } catch (NoResultException e) {
-      return null;
+      return Optional.empty();
     }
   }
   
-  public Execution findById(int id) {
-    TypedQuery<Execution> q = em.createNamedQuery("Execution.findById", Execution.class);
-    q.setParameter("id", id);
+  public Optional<Execution> findById(int id) {
     try {
-      return q.getSingleResult();
+      return Optional.of(em.createNamedQuery("Execution.findById", Execution.class)
+        .setParameter("id", id)
+        .getSingleResult());
     } catch (NoResultException e) {
-      return null;
+      return Optional.empty();
     }
   }
   
@@ -144,6 +147,14 @@ public class ExecutionFacade extends AbstractFacade<Execution> {
   public List<Execution> findNotFinished() {
     return em.createNamedQuery("Execution.findByStates",
       Execution.class).setParameter("states", JobState.getRunningStates()).getResultList();
+  }
+  
+  public List<Execution> findByTypesAndStates(Set<JobType> types, Set<JobState> jobStates) {
+    TypedQuery<Execution> q = em.createNamedQuery(
+      "Execution.findByTypesAndStates", Execution.class);
+    q.setParameter("types", types );
+    q.setParameter("states", jobStates);
+    return q.getResultList();
   }
   
   public CollectionInfo findByJob(Integer offset, Integer limit,
@@ -226,11 +237,15 @@ public class ExecutionFacade extends AbstractFacade<Execution> {
   public enum Sorts {
     ID("ID", "e.id ", "ASC"),
     SUBMISSIONTIME("SUBMISSIONTIME", "e.submissionTime ", "DESC"),
+    USER("CREATOR", "LOWER(CONCAT (e.user.fname, e.user.lname)) " , "ASC"),
+    USER_FIRST_NAME("USER_FIRSTNAME", "e.user.fname " , "ASC"),
+    USER_LAST_NAME("USER_LASTNAME", "e.user.lname " , "ASC"),
     STATE("STATE", "e.state ", "ASC"),
     FINALSTATUS("FINALSTATUS", "e.finalStatus ", "ASC"),
     APPID("APPID", "e.appId ", "DESC"),
     PROGRESS("PROGRESS", "e.progress ", "ASC"),
     DURATION("DURATION", "e.executionStop-e.executionStart ", "ASC");
+
     private final String value;
     private final String sql;
     private final String defaultParam;
@@ -312,12 +327,12 @@ public class ExecutionFacade extends AbstractFacade<Execution> {
   //====================================================================================================================
   
   public Execution create(Jobs job, Users user, String stdoutPath, String stderrPath, JobFinalStatus finalStatus,
-    float progress, String hdfsUser) {
-    return create(job, user, JobState.INITIALIZING, stdoutPath, stderrPath, finalStatus, progress, hdfsUser);
+    float progress, String hdfsUser, String args) {
+    return create(job, user, JobState.INITIALIZING, stdoutPath, stderrPath, finalStatus, progress, hdfsUser, args);
   }
 
   public Execution create(Jobs job, Users user, JobState state, String stdoutPath, String stderrPath,
-    JobFinalStatus finalStatus, float progress, String hdfsUser) {
+    JobFinalStatus finalStatus, float progress, String hdfsUser, String args) {
     //Check if state is ok
     if (state == null) {
       state = JobState.INITIALIZING;
@@ -327,7 +342,7 @@ public class ExecutionFacade extends AbstractFacade<Execution> {
     }
     //Create new object
     Execution exec = new Execution(state, job, user, new java.util.Date(), stdoutPath, stderrPath, finalStatus,
-      progress, hdfsUser);
+      progress, hdfsUser, args);
     //And persist it
     em.persist(exec);
     em.flush();

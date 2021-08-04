@@ -16,11 +16,11 @@
 
 package io.hops.hopsworks.common.serving;
 
-import io.hops.hopsworks.common.dao.project.Project;
-import io.hops.hopsworks.common.dao.serving.Serving;
+import io.hops.hopsworks.persistence.entity.project.Project;
+import io.hops.hopsworks.persistence.entity.serving.ModelServer;
+import io.hops.hopsworks.persistence.entity.serving.Serving;
 import io.hops.hopsworks.common.dao.serving.ServingFacade;
-import io.hops.hopsworks.common.dao.serving.ServingType;
-import io.hops.hopsworks.common.dao.user.Users;
+import io.hops.hopsworks.persistence.entity.user.Users;
 import io.hops.hopsworks.common.integrations.LocalhostStereotype;
 import io.hops.hopsworks.common.serving.sklearn.LocalhostSkLearnServingController;
 import io.hops.hopsworks.common.serving.tf.LocalhostTfServingController;
@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 
 /**
@@ -52,7 +53,7 @@ import java.util.logging.Level;
 @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
 public class LocalhostServingController implements ServingController {
 
-  public static final Integer PID_STOPPED = -2;
+  public static final String CID_STOPPED = "stopped";
   public static final String SERVING_DIRS = "/serving/";
 
   @EJB
@@ -179,7 +180,7 @@ public class LocalhostServingController implements ServingController {
   
   /**
    * Starts or stop a serving instance (depending on the user command). Will call the controller for the corresponding
-   * servingtype, such as Tensorflow or SkLearn
+   * model server, such as Tensorflow Serving or Flask
    *
    * @param project the project where the serving resides
    * @param user the user making the request
@@ -209,7 +210,8 @@ public class LocalhostServingController implements ServingController {
       // Release lock before throwing the exception
       servingFacade.releaseLock(project, servingId);
 
-      String userMsg = "Instance is already " + (command == ServingCommands.START ? "started" : "stopped");
+      String userMsg = "Instance is already: " + (command == ServingCommands.START ?
+        ServingStatusEnum.STARTED.toString() : ServingStatusEnum.STOPPED.toString());
       throw new ServingException(RESTCodes.ServingErrorCode.LIFECYCLEERROR, Level.FINE, userMsg);
     }
   }
@@ -228,7 +230,8 @@ public class LocalhostServingController implements ServingController {
    */
   @Override
   public void createOrUpdate(Project project, Users user, ServingWrapper newServing)
-      throws ProjectException, ServingException, KafkaException, ServiceException, UserException {
+      throws ProjectException, ServingException, KafkaException, UserException,
+    InterruptedException, ExecutionException, ServiceException {
     Serving serving = newServing.getServing();
     if (serving.getId() == null) {
       // Create request
@@ -238,7 +241,7 @@ public class LocalhostServingController implements ServingController {
 
       UUID uuid = UUID.randomUUID();
       serving.setLocalDir(uuid.toString());
-      serving.setLocalPid(PID_STOPPED);
+      serving.setCid(CID_STOPPED);
       serving.setInstances(1);
 
       // Setup the Kafka topic for logging
@@ -264,7 +267,7 @@ public class LocalhostServingController implements ServingController {
         } else {
           // To update the version call the script and download the new version in the directory
           // the server polls for new versions and it will pick it up.
-          if(serving.getServingType() == ServingType.TENSORFLOW){
+          if(serving.getModelServer() == ModelServer.TENSORFLOW_SERVING){
             tfServingController.updateModelVersion(project, user, dbServing);
           } else {
             //If we do not need to update model version there is nothing left to do and we can release the lock
@@ -290,20 +293,20 @@ public class LocalhostServingController implements ServingController {
   
   
   private void startServingInstance(Project project, Users user, Serving serving) throws ServingException {
-    if(serving.getServingType() == ServingType.TENSORFLOW){
+    if(serving.getModelServer() == ModelServer.TENSORFLOW_SERVING){
       tfServingController.startServingInstance(project, user, serving);
     }
-    if(serving.getServingType() == ServingType.SKLEARN){
+    if(serving.getModelServer() == ModelServer.FLASK){
       skLearnServingController.startServingInstance(project, user, serving);
     }
   }
 
   private void killServingInstance(Project project, Serving serving, boolean releaseLock)
       throws ServingException {
-    if(serving.getServingType() == ServingType.TENSORFLOW){
+    if(serving.getModelServer() == ModelServer.TENSORFLOW_SERVING){
       tfServingController.killServingInstance(project, serving, releaseLock);
     }
-    if(serving.getServingType() == ServingType.SKLEARN){
+    if(serving.getModelServer() == ModelServer.FLASK){
       skLearnServingController.killServingInstance(project, serving, releaseLock);
     }
   }
@@ -319,13 +322,13 @@ public class LocalhostServingController implements ServingController {
 
   private ServingStatusEnum getServingStatus(Serving serving) {
     // Compute status
-    if (serving.getLocalPid().equals(PID_STOPPED) && serving.getLockIP() == null) {
+    if (serving.getCid().equals(CID_STOPPED) && serving.getLockIP() == null) {
       // The Pid is not in the database, and nobody has the lock, the instance is stopped
       return ServingStatusEnum.STOPPED;
-    } else if (serving.getLocalPid().equals(PID_STOPPED)) {
+    } else if (serving.getCid().equals(CID_STOPPED)) {
       // The Pid is -1, but someone has the lock, the instance is starting
       return ServingStatusEnum.STARTING;
-    } else if (!serving.getLocalPid().equals(PID_STOPPED) && serving.getLockIP() == null){
+    } else if (!serving.getCid().equals(CID_STOPPED) && serving.getLockIP() == null){
       // The Pid is in the database and nobody as the lock. Instance is running
       return ServingStatusEnum.RUNNING;
     } else {

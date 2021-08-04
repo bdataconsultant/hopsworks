@@ -18,15 +18,15 @@ package io.hops.hopsworks.api.jwt;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import io.hops.hopsworks.api.filter.Audience;
 import io.hops.hopsworks.api.user.ServiceJWTDTO;
-import io.hops.hopsworks.common.dao.user.BbcGroup;
+import io.hops.hopsworks.common.dao.project.ProjectFacade;
 import io.hops.hopsworks.common.dao.user.BbcGroupFacade;
 import io.hops.hopsworks.common.dao.user.UserFacade;
-import io.hops.hopsworks.common.dao.user.Users;
+import io.hops.hopsworks.common.elastic.ElasticJWTController;
 import io.hops.hopsworks.common.user.UsersController;
 import io.hops.hopsworks.common.util.DateUtils;
 import io.hops.hopsworks.common.util.Settings;
+import io.hops.hopsworks.exceptions.ElasticException;
 import io.hops.hopsworks.jwt.Constants;
-import static io.hops.hopsworks.jwt.Constants.BEARER;
 import io.hops.hopsworks.jwt.JWTController;
 import io.hops.hopsworks.jwt.SignatureAlgorithm;
 import io.hops.hopsworks.jwt.exception.DuplicateSigningKeyException;
@@ -35,9 +35,19 @@ import io.hops.hopsworks.jwt.exception.JWTException;
 import io.hops.hopsworks.jwt.exception.NotRenewableException;
 import io.hops.hopsworks.jwt.exception.SigningKeyNotFoundException;
 import io.hops.hopsworks.jwt.exception.VerificationException;
+import io.hops.hopsworks.persistence.entity.project.Project;
+import io.hops.hopsworks.persistence.entity.user.BbcGroup;
+import io.hops.hopsworks.persistence.entity.user.Users;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.parquet.Strings;
 
+import javax.ejb.EJB;
+import javax.ejb.Stateless;
+import javax.ejb.TransactionAttribute;
+import javax.ejb.TransactionAttributeType;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.container.ContainerRequestContext;
+import javax.ws.rs.core.SecurityContext;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -48,19 +58,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.ejb.EJB;
-import javax.ejb.Stateless;
-import javax.ejb.TransactionAttribute;
-import javax.ejb.TransactionAttributeType;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.container.ContainerRequestContext;
 
+import static io.hops.hopsworks.jwt.Constants.BEARER;
 import static io.hops.hopsworks.jwt.Constants.EXPIRY_LEEWAY;
 import static io.hops.hopsworks.jwt.Constants.RENEWABLE;
 import static io.hops.hopsworks.jwt.Constants.ROLES;
 import static javax.ws.rs.core.HttpHeaders.AUTHORIZATION;
-
-import javax.ws.rs.core.SecurityContext;
 
 @Stateless
 @TransactionAttribute(TransactionAttributeType.NEVER)
@@ -82,6 +85,10 @@ public class JWTHelper {
   private UsersController userController;
   @EJB
   private Settings settings;
+  @EJB
+  private ProjectFacade projectFacade;
+  @EJB
+  private ElasticJWTController elasticJWTController;
 
   /**
    * Get the user from the request header Authorization field.
@@ -392,7 +399,8 @@ public class JWTHelper {
     if (keyName == null || keyName.isEmpty()) {
       return;
     }
-    if ( settings.getJWTSigningKeyName().equals(keyName) || Constants.ONE_TIME_JWT_SIGNING_KEY_NAME.equals(keyName)) {
+    if ( settings.getJWTSigningKeyName().equals(keyName) || Constants.ONE_TIME_JWT_SIGNING_KEY_NAME.equals(keyName)
+        || Constants.ELK_SIGNING_KEY_NAME.equals(keyName)) {
       return; //TODO maybe throw exception here?
     }
     jwtController.deleteSigningKey(keyName);
@@ -421,5 +429,57 @@ public class JWTHelper {
       throw new VerificationException("Failed to verify one time token.");
     }
     return jwt;
+  }
+  
+  /**
+   * Create a new signing key for ELK
+   */
+  public String getSigningKeyForELK() throws ElasticException {
+    return elasticJWTController.getSigningKeyForELK();
+  }
+  
+  /**
+   * Create jwt token for a project in elastic.
+   * @param sc
+   * @param projectId
+   * @return
+   * @throws ElasticException
+   */
+  public ElasticJWTResponseDTO createTokenForELK(SecurityContext sc,
+      Integer projectId) throws ElasticException {
+    Users user = getUserPrincipal(sc);
+    Project project = projectFacade.find(projectId);
+    if(settings.isElasticJWTEnabled()){
+      String token = elasticJWTController.createTokenForELK(user, project);
+      String kibanaUrl = settings.getKibanaAppUri(token);
+      return new ElasticJWTResponseDTO(token, kibanaUrl, project.getName());
+    }else{
+      String kibanaUrl = settings.getKibanaAppUri();
+      return new ElasticJWTResponseDTO("", kibanaUrl, project.getName());
+    }
+  }
+  
+  public ElasticJWTResponseDTO createTokenForELKAsDataOwner(Integer projectId)
+      throws ElasticException {
+    Project project = projectFacade.find(projectId);
+    if(settings.isElasticJWTEnabled()){
+      String token = elasticJWTController.createTokenForELKAsDataOwner(project);
+      String kibanaUrl = settings.getKibanaAppUri(token);
+      return new ElasticJWTResponseDTO(token, kibanaUrl, project.getName());
+    }else{
+      String kibanaUrl = settings.getKibanaAppUri();
+      return new ElasticJWTResponseDTO("", kibanaUrl, project.getName());
+    }
+  }
+  
+  public ElasticJWTResponseDTO createTokenForELKAsAdmin() throws ElasticException {
+    if(settings.isElasticJWTEnabled()){
+      String token = elasticJWTController.createTokenForELKAsAdmin();
+      String kibanaUrl = settings.getKibanaAppUri(token);
+      return new ElasticJWTResponseDTO(token, kibanaUrl,"");
+    }else{
+      String kibanaUrl = settings.getKibanaAppUri();
+      return new ElasticJWTResponseDTO("", kibanaUrl,"");
+    }
   }
 }

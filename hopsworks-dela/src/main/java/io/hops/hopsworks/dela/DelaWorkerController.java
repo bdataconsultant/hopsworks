@@ -39,16 +39,10 @@
 
 package io.hops.hopsworks.dela;
 
-import io.hops.hopsworks.common.dao.dataset.Dataset;
-import io.hops.hopsworks.common.dao.project.Project;
-import io.hops.hopsworks.common.dao.user.Users;
 import io.hops.hopsworks.common.dataset.DatasetController;
-import io.hops.hopsworks.exceptions.DatasetException;
-import io.hops.hopsworks.restutils.RESTCodes;
 import io.hops.hopsworks.common.hdfs.HdfsUsersController;
 import io.hops.hopsworks.common.util.Settings;
 import io.hops.hopsworks.dela.dto.hopsworks.HopsworksTransferDTO;
-import io.hops.hopsworks.exceptions.DelaException;
 import io.hops.hopsworks.dela.hopssite.HopsSite;
 import io.hops.hopsworks.dela.hopssite.HopssiteController;
 import io.hops.hopsworks.dela.old_dto.ExtendedDetails;
@@ -60,6 +54,22 @@ import io.hops.hopsworks.dela.old_dto.KafkaDetails;
 import io.hops.hopsworks.dela.old_dto.KafkaEndpoint;
 import io.hops.hopsworks.dela.old_dto.KafkaResource;
 import io.hops.hopsworks.dela.old_dto.ManifestJSON;
+import io.hops.hopsworks.exceptions.DatasetException;
+import io.hops.hopsworks.exceptions.DelaException;
+import io.hops.hopsworks.exceptions.ProvenanceException;
+import io.hops.hopsworks.persistence.entity.dataset.Dataset;
+import io.hops.hopsworks.persistence.entity.project.Project;
+import io.hops.hopsworks.persistence.entity.user.Users;
+import io.hops.hopsworks.restutils.RESTCodes;
+import org.apache.hadoop.fs.Path;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import javax.ejb.EJB;
+import javax.ejb.Stateless;
+import javax.ejb.TransactionAttribute;
+import javax.ejb.TransactionAttributeType;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -67,14 +77,6 @@ import java.util.LinkedList;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.ejb.EJB;
-import javax.ejb.Stateless;
-import javax.ejb.TransactionAttribute;
-import javax.ejb.TransactionAttributeType;
-
-import org.apache.hadoop.fs.Path;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 @Stateless
 @TransactionAttribute(TransactionAttributeType.NEVER)
@@ -104,7 +106,7 @@ public class DelaWorkerController {
     if (dataset.isPublicDs()) {
       return dataset.getPublicDsId();
     }
-    if (dataset.isShared()) {
+    if (dataset.isShared(project)) {
       throw new DelaException(RESTCodes.DelaErrorCode.DATASET_PUBLISH_PERMISSION_ERROR, Level.WARNING,
         DelaException.Source.LOCAL);
     }
@@ -130,7 +132,7 @@ public class DelaWorkerController {
       }
       throw tpe;
     }
-    delaDatasetCtrl.uploadToHops(dataset, publicDSId);
+    delaDatasetCtrl.uploadToHops(project, dataset, publicDSId);
     LOGGER.log(Level.INFO, "{0} shared with hops", publicDSId);
     return publicDSId;
   }
@@ -153,29 +155,29 @@ public class DelaWorkerController {
     delaCtrl.cancel(dataset.getPublicDsId());
     hopsSiteCtrl.cancel(dataset.getPublicDsId());
     delaHdfsCtrl.deleteManifest(project, dataset, user);
-    delaDatasetCtrl.unshareFromHops(dataset);
+    delaDatasetCtrl.unshareFromHops(project, dataset);
   }
 
-  public void unshareFromHopsAndClean(Project project, Dataset dataset, Users user) throws DelaException,
-      DatasetException {
+  public void unshareFromHopsAndClean(Project project, Dataset dataset, Users user) throws DelaException, IOException,
+    DatasetException {
     unshareFromHops(project, dataset, user);
-    delaDatasetCtrl.delete(project, dataset);
+    delaDatasetCtrl.delete(project, dataset, user);
   }
   
   public ManifestJSON startDownload(Project project, Users user, HopsworksTransferDTO.Download downloadDTO)
-    throws DelaException, DatasetException {
+    throws DelaException, DatasetException, ProvenanceException, IOException {
     delaStateCtrl.checkDelaAvailable();
     Dataset dataset = delaDatasetCtrl.download(project, user, downloadDTO.getPublicDSId(), downloadDTO.getName());
 
     try {
       delaCtrlStartDownload(project, dataset, user, downloadDTO);
     } catch (DelaException tpe) {
-      delaDatasetCtrl.delete(project, dataset);
+      delaDatasetCtrl.delete(project, dataset, user);
       throw tpe;
     }
 
     ManifestJSON manifest = delaHdfsCtrl.readManifest(project, dataset, user);
-    delaDatasetCtrl.updateDescription(dataset, manifest.getDatasetDescription());
+    delaDatasetCtrl.updateDescription(project, dataset, manifest.getDatasetDescription());
     return manifest;
   }
 

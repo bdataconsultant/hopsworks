@@ -40,15 +40,25 @@
 package io.hops.hopsworks.common.hdfs;
 
 import com.google.common.base.CharMatcher;
+import io.hops.hopsworks.persistence.entity.dataset.Dataset;
+import io.hops.hopsworks.persistence.entity.dataset.DatasetType;
+import io.hops.hopsworks.persistence.entity.featurestore.featuregroup.Featuregroup;
+import io.hops.hopsworks.persistence.entity.featurestore.trainingdataset.TrainingDataset;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.JobType;
+import io.hops.hopsworks.persistence.entity.project.Project;
 import io.hops.hopsworks.common.util.Settings;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.StringReader;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
 import java.util.logging.Logger;
 import javax.json.Json;
 import javax.json.stream.JsonParsingException;
+import org.apache.hadoop.fs.Path;
 
 public final class Utils {
 
@@ -60,39 +70,77 @@ public final class Utils {
     return path.substring(startName);
   }
 
-  public static String getExtension(String filename) {
-    int lastDot = filename.lastIndexOf(".");
-    if (lastDot < 0) {
-      return "";
-    } else {
-      return filename.substring(lastDot);
-    }
-  }
-
-  public static String stripExtension(String filename) {
-    int lastDot = filename.lastIndexOf(".");
-    if (lastDot < 0) {
-      return filename;
-    } else {
-      return filename.substring(0, lastDot);
-    }
-  }
-
   public static String getDirectoryPart(String path) {
     int lastSlash = path.lastIndexOf("/");
     int startName = (lastSlash > -1) ? lastSlash + 1 : 0;
     return path.substring(0, startName);
   }
 
-  public static String getProjectPath(String projectname) {
-    return "/" + Settings.DIR_ROOT + "/" + projectname + "/";
+  public static String getProjectPath(String projectName) {
+    return "/" + Settings.DIR_ROOT + "/" + projectName + "/";
+  }
+  
+  public static String getFileSystemDatasetPath(Dataset dataset, Settings settings) {
+    if(DatasetType.FEATURESTORE.equals(dataset.getDsType())) {
+      return getFeaturestorePath(dataset.getProject(), settings);
+    } else if(DatasetType.HIVEDB.equals(dataset.getDsType())) {
+      return getHiveDBPath(dataset.getProject(), settings);
+    } else {
+      return "/" + Settings.DIR_ROOT + "/" + dataset.getProject().getName() + "/" + dataset.getName() + "/";
+    }
+  }
+  
+  /**
+   * Assemble the log output path of Hopsworks jobs.
+   *
+   * @param projectName projectName
+   * @param jobType jobType
+   * @return String array with out and err log output path
+   */
+  public static String[] getJobLogLocation(String projectName, JobType jobType) {
+    String defaultOutputPath;
+    switch (jobType) {
+      case SPARK:
+      case PYSPARK:
+      case FLINK:
+      case YARN:
+        defaultOutputPath = Settings.BaseDataset.LOGS.getName() + "/" + jobType.getName() +"/";
+        break;
+      default:
+        defaultOutputPath =  "Logs/";
+    }
+  
+    String stdOutFinalDestination = getProjectPath(projectName) + defaultOutputPath;
+    String stdErrFinalDestination = getProjectPath(projectName) + defaultOutputPath;
+    return new String[]{stdOutFinalDestination, stdErrFinalDestination};
+  }
+  
+  public static String getHiveDBName(Project project) {
+    return project.getName().toLowerCase() + ".db";
+  }
+  
+  public static String getHiveDBPath(Project project, Settings settings) {
+    return settings.getHiveWarehouse() + "/" + getHiveDBName(project);
+  }
+  
+  public static String getFeaturestoreName(Project project) {
+    return project.getName().toLowerCase() + "_featurestore.db";
+  }
+  
+  public static String getFeaturestorePath(Project project, Settings settings) {
+    return settings.getHiveWarehouse() + "/" + getFeaturestoreName(project);
   }
 
-  public static String ensurePathEndsInSlash(String path) {
-    if (!path.endsWith(File.separator)) {
-      return path + File.separator;
-    }
-    return path;
+  public static String getFeaturegroupName(Featuregroup featuregroup) {
+    return getFeatureStoreEntityName(featuregroup.getName(), featuregroup.getVersion());
+  }
+
+  public static String getTrainingDatasetName(TrainingDataset trainingDataset) {
+    return getFeatureStoreEntityName(trainingDataset.getName(), trainingDataset.getVersion());
+  }
+  
+  public static String getFeatureStoreEntityName(String entityName, Integer version) {
+    return entityName + "_" + version.toString();
   }
 
   /**
@@ -144,5 +192,40 @@ public final class Utils {
 
     //fetch the whole file content at once
     return scanner.useDelimiter("\\Z").next();
+  }
+  
+  /**
+   * take a String corresponding to a file uri and return only the path part of the it.
+   * And transform shared path into there full path.
+   * @param path the string from which to extract the path
+   * @return the path
+   * @throws UnsupportedEncodingException 
+   */
+  public static String prepPath(String path) throws UnsupportedEncodingException {
+    Path p;
+    String result = path;
+    if (path.contains(Settings.SHARED_FILE_SEPARATOR)) {
+      String[] parts = path.split(Settings.SHARED_FILE_SEPARATOR);
+      p = new Path(parts[0]);
+      //remove hdfs://10.0.2.15:8020//
+      p = new Path(URLDecoder.decode(p.toUri().getRawPath(), StandardCharsets.UTF_8.toString()));
+      result = p.toString() + Settings.SHARED_FILE_SEPARATOR + parts[1];
+    } else {
+      p = new Path(path);
+      //remove hdfs://10.0.2.15:8020//
+      p = new Path(URLDecoder.decode(p.toUri().getRawPath(), StandardCharsets.UTF_8.toString()));
+      result = p.toString();
+    }
+    return result;
+  }
+  
+  public static String pathStripSlash(String path) {
+    while (path.startsWith(File.separator)) {
+      path = path.substring(1);
+    }
+    while (path.endsWith(File.separator)) {
+      path = path.substring(0, path.length() - 1);
+    }
+    return path;
   }
 }

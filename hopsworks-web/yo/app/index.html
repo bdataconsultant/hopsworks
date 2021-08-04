@@ -44,8 +44,7 @@
     <title>Big Data Platform</title>
     <meta name="description" content="">
     <meta name="viewport" content="width=device-width">
-    <link rel="icon" type="image/png" id="favicon" href="images/giotto-favi.png" />
-    <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Lobster'>
+    <link rel="icon" type="image/png" href="images/hopsworks-logo/HopsworksIcon.svg"/>
     <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Varela+Round'>
     <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Roboto:500'>
     <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Source+Sans+Pro'>
@@ -87,7 +86,6 @@
     <link rel="stylesheet" href="styles/jquery.qtip.css" />
     <link rel="stylesheet" href="styles/loading.css">
     <link rel="stylesheet" href="styles/angular-resizable.css">
-    <link rel="stylesheet" href="styles/cards.css">
     <link rel="stylesheet" href="styles/search-result.css">
     <link rel="stylesheet" href="styles/select2.css">
     <link rel="stylesheet" href="styles/publicDataset.css">
@@ -97,8 +95,10 @@
     <link rel="stylesheet" href="styles/filemgr/dialogs.css">
     <link rel="stylesheet" href="styles/filemgr/main.css">
     <link rel="stylesheet" href="styles/featurestore.css">
-    <link rel="stylesheet" href="styles/filemgr/header-platform.css">
-    <link rel="stylesheet" href="styles/custom.css">
+    <link rel="stylesheet" href="styles/jupyter.css">
+    <link rel="stylesheet" href="styles/hwSearch.css">
+    <link rel="stylesheet" href="styles/icons.css">
+    <link rel="stylesheet" href="styles/theme.css">
     <!-- endbuild -->
 </head>
 
@@ -195,17 +195,25 @@
     <script src="scripts/app.js"></script>
     <script src="scripts/js/util.js"></script>
     <script src="scripts/js/countries.js"></script>
-    <script src="scripts/js/hamburger.js"></script>
     <script src="scripts/js/ace/ace.js"></script>
     <script src="scripts/js/ace/mode-json.js"></script>
 
     <script src="scripts/directives/switch.js"></script>
     <script src="scripts/directives/modal.js"></script>
     <script src="scripts/directives/passwordMatch.js"></script>
-    <script src="scripts/directives/hwcard.js"></script>
+    <script src="scripts/directives/featureList.js"></script>
+    <script src="scripts/directives/tags.js"></script>
     <script src="scripts/directives/hwPanel.js"></script>
     <script src="scripts/directives/filemgr/directives.js"></script>
     <script src="scripts/directives/showHidePassword.js"></script>
+    <script src="scripts/directives/fileViewer.js"></script>
+    <script src="scripts/directives/fsStatistics.js"></script>
+    <script src="scripts/directives/datasetMenu.js"></script>
+    <script src="scripts/directives/hwSearch.js"></script>
+    <script src="scripts/directives/dropdownFixOverflowHidden.js"></script>
+    <script src="scripts/directives/result-card.js"></script>
+    <script src="scripts/directives/result-list.js"></script>
+    <script src="scripts/directives/result.js"></script>
 
     <script src="scripts/controllers/dataSetCreatorCtrl.js"></script>
     <script src="scripts/controllers/datasetsCtrl.js"></script>
@@ -216,21 +224,15 @@
     <script src="scripts/controllers/mainCtrl.js"></script>
     <script src="scripts/controllers/modalCtrl.js"></script>
     <script src="scripts/controllers/alertCtrl.js"></script>
-    <script src="scripts/controllers/newFieldCtrl.js"></script>
-    <script src="scripts/controllers/newTableCtrl.js"></script>
     <script src="scripts/controllers/profileCtrl.js"></script>
     <script src="scripts/controllers/projectCtrl.js"></script>
     <script src="scripts/controllers/projectCreatorCtrl.js"></script>
     <script src="scripts/controllers/projectSettingsCtrl.js"></script>
     <script src="scripts/controllers/recoverCtrl.js"></script>
-    <script src="scripts/controllers/newlistCtrl.js"></script>
     <script src="scripts/controllers/enterNameCtrl.js"></script>
-    <script src="scripts/controllers/modifyFieldCtrl.js"></script>
     <script src="scripts/controllers/registrationCtrl.js"></script>
     <script src="scripts/controllers/selectFileCtrl.js"></script>
-    <script src="scripts/controllers/selectEnvYmlCtrl.js"></script>
-    <script src="scripts/controllers/selectModelServingCtrl.js"></script>
-    <script src="scripts/controllers/attachTemplateCtrl.js"></script>
+    <script src="scripts/controllers/selectEnvImportCtrl.js"></script>
     <script src="scripts/controllers/shareDatasetCtrl.js"></script>
     <script src="scripts/controllers/unshareDatasetCtrl.js"></script>
     <script src="scripts/controllers/viewPublicDatasetCtrl.js"></script>
@@ -239,23 +241,24 @@
     <script src="scripts/controllers/newJobCtrl.js"></script>
     <script src="scripts/controllers/jobDetailCtrl.js"></script>
     <script src="scripts/controllers/jobUICtrl.js"></script>
-    <script src="scripts/controllers/metadataCtrl.js"></script>
-    <script src="scripts/controllers/importTemplateCtrl.js"></script>
+    <script src="scripts/controllers/jobArgsCtrl.js"></script>
+    <script src="scripts/controllers/executionDetailsCtrl.js"></script>
     <script src="scripts/controllers/messageCtrl.js"></script>
     <script src="scripts/controllers/sshKeysCtrl.js"></script>
-    <script src="scripts/controllers/detachTemplateCtrl.js"></script>
-    <script src="scripts/controllers/localFsCtrl.js"></script>
     <script src="scripts/controllers/inputModalCtrl.js"></script>
     <script src="scripts/controllers/uberCtrl.js"></script>
     <script src="scripts/controllers/kafkaCtrl.js"></script>
     <script src="scripts/controllers/transformGraphCtrl.js"></script>
     <script src="scripts/controllers/pythonCtrl.js"></script>
-    <script src="scripts/controllers/experimentsCtrl.js"></script>
+    <script src="scripts/controllers/experimentCtrl.js"></script>
+    <script src="scripts/controllers/modelCtrl.js"></script>
+    <script src="scripts/controllers/tensorBoardCtrl.js"></script>
     <script src="scripts/controllers/selectProjectCtrl.js"></script>
     <script src="scripts/controllers/createTopicCtrl.js"></script>
     <script src="scripts/controllers/createAclCtrl.js"></script>
     <script src="scripts/controllers/schemaCreateCtrl.js"></script>
     <script src="scripts/controllers/schemaViewContentCtrl.js"></script>
+    <script src="scripts/controllers/sharedSchemaViewContentCtrl.js"></script>
     <script src="scripts/controllers/schemaUpdateContentCtrl.js"></script>
     <script src="scripts/controllers/servingCtrl.js"></script>
     <script src="scripts/controllers/delaCtrl.js"></script>
@@ -263,9 +266,7 @@
     <script src="scripts/controllers/setupDownload.js"></script>
     <script src="scripts/controllers/filePreviewCtrl.js"></script>
     <script src="scripts/controllers/clusterUtilisationCtrl.js"></script>
-    <script src="scripts/controllers/cardCtrl.js"></script>
     <script src="scripts/controllers/jupyterCtrl.js"></script>
-    <script src="scripts/controllers/noteCreateCtrl.js"></script>
     <script src="scripts/controllers/searchResultCtrl.js"></script>
     <script src="scripts/controllers/delahopsDatasetCtrl.js"></script>
     <script src="scripts/controllers/delaclusterDatasetCtrl.js"></script>
@@ -275,18 +276,19 @@
     <script src="scripts/controllers/filemgr/main.js"></script>
     <script src="scripts/controllers/filemgr/selector-controller.js"></script>
     <script src="scripts/controllers/featurestoreCtrl.js"></script>
+    <script src="scripts/controllers/fsStatisticsCtrl.js"></script>
     <script src="scripts/controllers/featuregroupViewInfoCtrl.js"></script>
+    <script src="scripts/controllers/featuregroupPreviewCtrl.js"></script>
     <script src="scripts/controllers/selectFeatureTypeCtrl.js"></script>
     <script src="scripts/controllers/trainingDatasetViewInfoCtrl.js"></script>
-    <script src="scripts/controllers/featuregroupStatisticsCtrl.js"></script>
     <script src="scripts/controllers/featureViewInfoCtrl.js"></script>
-    <script src="scripts/controllers/trainingDatasetStatisticsCtrl.js"></script>
     <script src="scripts/controllers/featurestoreStatisticModalCtrl.js"></script>
     <script src="scripts/controllers/sparkConfigCtrl.js"></script>
     <script src="scripts/controllers/flinkConfigCtrl.js"></script>
     <script src="scripts/controllers/oauthCallbackCtrl.js"></script>
     <script src="scripts/controllers/errorCtrl.js"></script>
     <script src="scripts/controllers/servingViewInfoCtrl.js"></script>
+    <script src="scripts/controllers/modelViewInfoCtrl.js"></script>
     <script src="scripts/controllers/passwordRecoveryCtrl.js"></script>
     <script src="scripts/controllers/qrRecoveryCtrl.js"></script>
     <script src="scripts/controllers/apiKeyModalCtrl.js"></script>
@@ -295,9 +297,22 @@
     <script src="scripts/controllers/newTrainingDatasetCtrl.js"></script>
     <script src="scripts/controllers/newStorageConnectorCtrl.js"></script>
     <script src="scripts/controllers/storageConnectorViewInfoCtrl.js"></script>
-    <script src="scripts/controllers/dataValidationCtrl.js"></script>
-    <script src="scripts/controllers/dataValidationModalsCtrl.js"></script>
-
+    <script src="scripts/controllers/dagComposerCtrl.js"></script>
+    <script src="scripts/controllers/dagComposerModalsCtrl.js"></script>
+    <script src="scripts/controllers/provenanceCtrl.js"></script>
+    <script src="scripts/controllers/featureListCtrl.js"></script>
+    <script src="scripts/controllers/hwSearchCtrl.js"></script>
+    <script src="scripts/controllers/featureStoreTableCtrl.js"></script>
+    <script src="scripts/controllers/requestAccessCtrl.js"></script>
+    <script src="scripts/controllers/tagsCtrl.js"></script>
+    <script src="scripts/controllers/searchCtrl.js"></script>
+    <script src="scripts/controllers/resultCtrl.js"></script>
+    <script src="scripts/controllers/resultCardCtrl.js"></script>
+    <script src="scripts/controllers/selectFromListCtrl.js"></script>
+    <script src="scripts/controllers/certsPasswordModalCtrl.js"></script>
+    <script src="scripts/controllers/sharedWithCtrl.js"></script>
+    <script src="scripts/controllers/conflictCtrl.js"></script>
+    <script src="scripts/controllers/notebookAttachedJupyterConfigCtrl.js"></script>
     <!-- Services -->
     <script src="scripts/services/AuthInterceptorService.js"></script>
     <script src="scripts/services/AuthService.js"></script>
@@ -306,7 +321,6 @@
     <script src="scripts/services/UtilsService.js"></script>
     <script src="scripts/services/ElasticService.js"></script>
     <script src="scripts/services/AuthGuardService.js"></script>
-    <script src="scripts/services/MetadataService.js"></script>
     <script src="scripts/services/DataSetService.js"></script>
     <script src="scripts/services/ProjectService.js"></script>
     <script src="scripts/services/UserService.js"></script>
@@ -314,25 +328,21 @@
     <script src="scripts/services/TransformRequestService.js"></script>
     <script src="scripts/services/ModalService.js"></script>
     <script src="scripts/services/ActivityService.js"></script>
-    <script src="scripts/services/SecurityQuestionsService.js"></script>
     <script src="scripts/services/MembersService.js"></script>
-    <script src="scripts/services/MetadataActionService.js"></script>
+    <script src="scripts/services/ExperimentService.js"></script>
     <script src="scripts/services/TensorBoardService.js"></script>
+    <script src="scripts/services/ModelService.js"></script>
     <script src="scripts/services/ServingService.js"></script>
     <script src="scripts/services/JobService.js"></script>
     <script src="scripts/services/RequestService.js"></script>
-    <script src="scripts/services/MetadataRestService.js"></script>
-    <script src="scripts/services/MetadataHelperService.js"></script>
     <script src="scripts/services/StorageService.js"></script>
     <script src="scripts/services/MessageService.js"></script>
     <script src="scripts/services/VariablesService.js"></script>
-    <script src="scripts/services/LocalFsService.js"></script>
     <script src="scripts/services/TourService.js"></script>
     <script src="scripts/services/KafkaService.js"></script>
     <script src="scripts/services/DelaService.js"></script>
     <script src="scripts/services/DelaProjectService.js"></script>
     <script src="scripts/services/DelaClusterService.js"></script>
-    <script src="scripts/services/DelaClusterProjectService.js"></script>
     <script src="scripts/services/HopssiteService.js"></script>
     <script src="scripts/services/ClusterUtilService.js"></script>
     <script src="scripts/services/PythonService.js"></script>
@@ -343,11 +353,12 @@
     <script src="scripts/services/filemgr/apimiddleware.js"></script>
     <script src="scripts/services/filemgr/filenavigator.js"></script>
     <script src="scripts/services/FeaturestoreService.js"></script>
-    <script src="scripts/services/MachineTypeService.js"></script>
+    <script src="scripts/services/FsStatisticsService.js"></script>
     <script src="scripts/services/DatasetBrowserService.js"></script>
     <script src="scripts/services/ApiKeyService.js"></script>
-    <script src="scripts/services/DataValidationService.js"></script>
-    <script src="scripts/services/CustomizationService.js"></script>
+    <script src="scripts/services/PaginationService.js"></script>
+    <script src="scripts/services/ProjectMembershipService.js"></script>
+    <script src="scripts/services/XAttrService.js"></script>
     <!-- Providers -->
     <script src="scripts/providers/filemgr/config.js"></script>
     <script src="scripts/providers/customerConfig.js"></script>

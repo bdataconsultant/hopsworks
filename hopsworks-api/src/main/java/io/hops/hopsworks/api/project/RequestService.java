@@ -45,27 +45,28 @@ import io.hops.hopsworks.api.filter.Audience;
 import io.hops.hopsworks.api.filter.NoCacheResponse;
 import io.hops.hopsworks.api.jwt.JWTHelper;
 import io.hops.hopsworks.api.util.RESTApiJsonResponse;
-import io.hops.hopsworks.common.dao.dataset.Dataset;
 import io.hops.hopsworks.common.dao.dataset.DatasetFacade;
-import io.hops.hopsworks.common.dao.dataset.DatasetRequest;
 import io.hops.hopsworks.common.dao.dataset.DatasetRequestFacade;
 import io.hops.hopsworks.common.dao.dataset.RequestDTO;
-import io.hops.hopsworks.common.dao.hdfs.inode.Inode;
 import io.hops.hopsworks.common.dao.hdfs.inode.InodeFacade;
-import io.hops.hopsworks.common.dao.message.Message;
-import io.hops.hopsworks.common.dao.project.Project;
 import io.hops.hopsworks.common.dao.project.ProjectFacade;
-import io.hops.hopsworks.common.dao.project.team.ProjectTeam;
 import io.hops.hopsworks.common.dao.project.team.ProjectTeamFacade;
 import io.hops.hopsworks.common.dao.user.UserFacade;
-import io.hops.hopsworks.common.dao.user.Users;
-import io.hops.hopsworks.exceptions.DatasetException;
-import io.hops.hopsworks.exceptions.ProjectException;
-import io.hops.hopsworks.restutils.RESTCodes;
+import io.hops.hopsworks.common.dataset.DatasetController;
 import io.hops.hopsworks.common.message.MessageController;
 import io.hops.hopsworks.common.util.EmailBean;
 import io.hops.hopsworks.common.util.Settings;
+import io.hops.hopsworks.exceptions.DatasetException;
+import io.hops.hopsworks.exceptions.ProjectException;
 import io.hops.hopsworks.jwt.annotation.JWTRequired;
+import io.hops.hopsworks.persistence.entity.dataset.Dataset;
+import io.hops.hopsworks.persistence.entity.dataset.DatasetRequest;
+import io.hops.hopsworks.persistence.entity.hdfs.inode.Inode;
+import io.hops.hopsworks.persistence.entity.message.Message;
+import io.hops.hopsworks.persistence.entity.project.Project;
+import io.hops.hopsworks.persistence.entity.project.team.ProjectTeam;
+import io.hops.hopsworks.persistence.entity.user.Users;
+import io.hops.hopsworks.restutils.RESTCodes;
 import io.swagger.annotations.Api;
 
 import javax.ejb.EJB;
@@ -80,9 +81,9 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.SecurityContext;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.ws.rs.core.SecurityContext;
 
 @Path("/request")
 @Stateless
@@ -100,6 +101,8 @@ public class RequestService {
   private NoCacheResponse noCacheResponse;
   @EJB
   private DatasetFacade datasetFacade;
+  @EJB
+  private DatasetController datasetCtrl;
   @EJB
   private DatasetRequestFacade datasetRequest;
   @EJB
@@ -127,9 +130,8 @@ public class RequestService {
     }
     Users user = jWTHelper.getUserPrincipal(sc);
     Inode inode = inodes.findById(requestDTO.getInodeId());
-    Inode parent = inodes.findParent(inode);
     //requested project
-    Project proj = projectFacade.findByName(parent.getInodePK().getName());
+    Project proj = datasetCtrl.getOwningProject(inode);
     Dataset ds = datasetFacade.findByProjectAndInode(proj, inode);
 
     //requesting project

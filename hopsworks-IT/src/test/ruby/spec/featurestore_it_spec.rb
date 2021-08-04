@@ -15,26 +15,26 @@
 =end
 
 describe "On #{ENV['OS']}" do
+  after(:all) {clean_all_test_projects(spec: "featurestore_it")}
   describe 'featurestore integration tests' do
-    after (:all) {clean_projects}
 
     describe "create feature store tour project and run example feature engineering job" do
       before :all do
-        with_valid_tour_project("featurestore")
+        with_valid_tour_project("fs")
       end
 
       it "should have copied a sample .jar job, notebooks and data to the project's datasets" do
         project = get_project
 
         # Check TestJob dataset
-        get_datasets_in(project, "TestJob")
+        get_datasets_in_path(project, "TestJob", query: "&type=DATASET")
         inode_list = JSON.parse(response.body)
         expect_status(200)
         expect(find_inode_in_dataset(inode_list, "hops-examples-featurestore")).to be true
         expect(find_inode_in_dataset(inode_list, "data")).to be true
 
         # Check Jupyter dataset
-        get_datasets_in(project, "Jupyter")
+        get_datasets_in_path(project, "Jupyter", query: "&type=DATASET")
         inode_list = JSON.parse(response.body)
         expect_status(200)
         expect(inode_list.empty?).to be false
@@ -43,7 +43,7 @@ describe "On #{ENV['OS']}" do
 
       it "should have created an example feature engineering job when the tour was started" do
         project = get_project
-        get_job(project.id, get_featurestore_tour_job_name, nil)
+        get_job(project.id, get_featurestore_tour_job_name)
         parsed_json = JSON.parse(response.body)
         expect_status(200)
         expect(parsed_json["name"] == get_featurestore_tour_job_name).to be true
@@ -68,10 +68,10 @@ describe "On #{ENV['OS']}" do
         execution = parsed_json["items"][0]
 
         # Wait for execution to complete
-        wait_for_execution(2000) do
+        wait_for_me_time(2000) do
           get_execution(project.id, get_featurestore_tour_job_name, execution["id"])
           execution_dto = JSON.parse(response.body)
-          not is_execution_active(execution_dto)
+          { 'success' => (not is_execution_active(execution_dto)) }
         end
 
         # Check that the execution completed successfully

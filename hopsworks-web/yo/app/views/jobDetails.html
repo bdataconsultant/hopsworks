@@ -75,7 +75,7 @@
               <select uib-dropdown class="dropdown" ng-model="jobDetailCtrl.schedule.unit">
                 <option value="minute">minute{{jobDetailCtrl.schedule.addition}}</option>
                 <option value="hour">hour{{jobDetailCtrl.schedule.addition}}</option>
-                <option value="day" ng-selected=>day{{jobDetailCtrl.schedule.addition}}</option>
+                <option value="day" ng-selected>day{{jobDetailCtrl.schedule.addition}}</option>
                 <option value="week">week{{jobDetailCtrl.schedule.addition}}</option>
                 <option value="month">month{{jobDetailCtrl.schedule.addition}}</option>
               </select>
@@ -100,7 +100,7 @@
         </div>
     </div>
     </div>
-    <div uib-accordion-group  class="panel-default" heading="Configuration">    
+    <div uib-accordion-group  class="panel-default" is-open="true" heading="Configuration">
       <!-- Spark configuration -->
       <div ng-show="jobDetailCtrl.job.runConfig.type === 'sparkJobConfiguration'">
         <div class="row">
@@ -108,12 +108,12 @@
             <strong>Job details</strong>
           </div>
         </div>
-        <div class="row" ng-show="jobDetailCtrl.job.runConfig.appPath.endsWith('.py')">
-          <div class="text-right col-md-4">Python file <i class="fa fa-info-circle" uib-tooltip="The path to the python executable to run for this job." style="margin-left: 10px"></i></div>
-          <div class="col-md-8">{{jobDetailCtrl.job.runConfig.appPath}}</div>
-        </div>
         <div class="row" ng-show="jobDetailCtrl.job.runConfig.appPath.endsWith('.ipynb')">
           <div class="text-right col-md-4">Notebook file <i class="fa fa-info-circle" uib-tooltip="The path to the notebook to run as a python executable for this job" style="margin-left: 10px"></i></div>
+          <div class="col-md-8">{{jobDetailCtrl.job.runConfig.appPath}}</div>
+        </div>
+        <div class="row" ng-show="jobDetailCtrl.job.runConfig.appPath.endsWith('.py')">
+          <div class="text-right col-md-4">Python file <i class="fa fa-info-circle" uib-tooltip="The path to the Python file to run for the job" style="margin-left: 10px"></i></div>
           <div class="col-md-8">{{jobDetailCtrl.job.runConfig.appPath}}</div>
         </div>
         <div class="row" ng-show="jobDetailCtrl.job.runConfig.appPath.endsWith('.jar')">
@@ -124,9 +124,9 @@
           <div class="text-right col-md-4">Main class name <i class="fa fa-info-circle" uib-tooltip="The name of the main class to run." style="margin-left: 10px"></i></div>
           <div class="col-md-8">{{jobDetailCtrl.job.runConfig.mainClass}}</div>
         </div>
-        <div class="row">
-          <div class="text-right col-md-4">Job arguments <i class="fa fa-info-circle" uib-tooltip="The arguments to be passed to the main method of the class entered above." style="margin-left: 10px"></i></div>
-          <div class="col-md-8">{{jobDetailCtrl.job.runConfig.args}}</div>
+        <div class="row" ng-show="jobDetailCtrl.job.runConfig.defaultArgs">
+          <div class="text-right col-md-4">Default args <i class="fa fa-info-circle" uib-tooltip="The default arguments used to run this job" style="margin-left: 10px"></i></div>
+          <div class="col-md-8">{{jobDetailCtrl.job.runConfig.defaultArgs}}</div>
         </div>
         <div class="row" ng-show="jobDetailCtrl.job.runConfig.experimentType === 'EXPERIMENT' || jobDetailCtrl.job.runConfig.experimentType === 'PARALLEL_EXPERIMENTS' || jobDetailCtrl.job.runConfig.experimentType === 'DISTRIBUTED_TRAINING'">
           <div class="text-right col-md-4">Experiment Type <i class="fa fa-info-circle" uib-tooltip="The type of Machine Learning experiment" style="margin-left: 10px"></i></div>
@@ -181,12 +181,16 @@
           <div class="col-md-8">{{jobDetailCtrl.job.runConfig['spark.executor.instances']}}</div>
         </div>
         <div class="row">
-          <div class="text-right col-md-4">Number of executor cores <i class="fa fa-info-circle" uib-tooltip="The number of cores that should be requested for each Spark executor in this job." style="margin-left: 10px"></i></div>
+          <div class="text-right col-md-4">Executor cores <i class="fa fa-info-circle" uib-tooltip="The number of cores that should be requested for each Spark executor in this job." style="margin-left: 10px"></i></div>
           <div class="col-md-8">{{jobDetailCtrl.job.runConfig['spark.executor.cores']}}</div>
         </div>
         <div class="row">
           <div class="text-right col-md-4">Executor memory (MB)<i class="fa fa-info-circle" uib-tooltip="The amount of memory, in MB, that should be requested for each Spark executor in this job." style="margin-left: 10px"></i></div>
           <div class="col-md-8">{{jobDetailCtrl.job.runConfig['spark.executor.memory']}}</div>
+        </div>
+        <div class="row" ng-if="jobDetailCtrl.job.runConfig.experimentType">
+          <div class="text-right col-md-4">Executor gpus<i class="fa fa-info-circle" uib-tooltip="The number of GPUs that should be requested for each Spark executor in this job." style="margin-left: 10px"></i></div>
+          <div class="col-md-8">{{jobDetailCtrl.job.runConfig['spark.executor.gpus']}}</div>
         </div>
         <div class="row" ng-show="jobDetailCtrl.job.runConfig.properties !== undefined && jobDetailCtrl.job.runConfig.properties!== ''">
           <div class="text-right col-md-4">Properties <i class="fa fa-info-circle" uib-tooltip="Job properties." style="margin-left: 10px"></i></div>
@@ -194,7 +198,7 @@
         </div>
       </div>
       <!-- Flink configuration -->
-      <div ng-show="jobDetailCtrl.job.runConfig.type === 'flinkJobConfiguration' || jobDetailCtrl.job.runConfig.type === 'beamFlinkJobConfiguration'">
+      <div ng-show="jobDetailCtrl.job.runConfig.type === 'flinkJobConfiguration'">
         <div class="row">
           <div class="text-right col-md-4">JobManager memory (MB) <i class="fa fa-info-circle" uib-tooltip="The amount of memory, in MB, of the JobManager." style="margin-left: 10px"></i></div>
           <div class="col-md-8">
@@ -218,6 +222,130 @@
           <div class="col-md-8">{{jobDetailCtrl.job.runConfig.properties}}</div>
         </div>
       </div>
+      <!-- Python configuration -->
+      <div ng-show="jobDetailCtrl.job.runConfig.type === 'pythonJobConfiguration' || jobDetailCtrl.job.runConfig.jobType === 'PYTHON'">
+        <div class="row" ng-show="jobDetailCtrl.job.runConfig.appPath.endsWith('.py')">
+          <div class="text-right col-md-4">Python file <i class="fa fa-info-circle" uib-tooltip="The path to the python executable to run for this job." style="margin-left: 10px"></i></div>
+          <div class="col-md-8">{{jobDetailCtrl.job.runConfig.appPath}}</div>
+        </div>
+        <div class="row" ng-show="jobDetailCtrl.job.runConfig.appPath.endsWith('.ipynb')">
+          <div class="text-right col-md-4">Notebook file <i class="fa fa-info-circle" uib-tooltip="The path to the notebook to run as a python executable for this job" style="margin-left: 10px"></i></div>
+          <div class="col-md-8">{{jobDetailCtrl.job.runConfig.appPath}}</div>
+        </div>
+        <div class="row" ng-show="jobDetailCtrl.job.runConfig.defaultArgs">
+          <div class="text-right col-md-4">Default args <i class="fa fa-info-circle" uib-tooltip="The default arguments used to run this job" style="margin-left: 10px"></i></div>
+          <div class="col-md-8">{{jobDetailCtrl.job.runConfig.defaultArgs}}</div>
+        </div>
+        <div class="row">
+          <div class="text-right col-md-4">Memory (MB)
+            <i class="fa fa-info-circle"
+               uib-tooltip="The amount of memory, in MB, available for this the Job."
+               style="margin-left: 10px">
+            </i>
+          </div>
+          <div class="col-md-8">
+            {{jobDetailCtrl.job.runConfig['memory']}}
+          </div>
+        </div>
+        <div class="row">
+          <div class="text-right col-md-4">CPU cores
+            <i class="fa fa-info-circle"
+               uib-tooltip="The number of virtual CPU cores available for this job."
+               style="margin-left: 10px">
+            </i>
+          </div>
+          <div class="col-md-8">{{jobDetailCtrl.job.runConfig['cores']}}</div>
+        </div>
+        <div class="row">
+          <div class="text-right col-md-4">GPUs
+            <i class="fa fa-info-circle"
+               uib-tooltip="The number of GPUs available for this job."
+               style="margin-left: 10px">
+            </i>
+          </div>
+          <div class="col-md-8">{{jobDetailCtrl.job.runConfig['gpus']}}</div>
+        </div>
+      </div>
+      <!-- Docker job configuration -->
+      <div ng-show="jobDetailCtrl.job.runConfig.type === 'dockerJobConfiguration' || jobDetailCtrl.job.runConfig.jobType === 'DOCKER'">
+        <div class="row">
+          <div class="text-right col-md-4">Docker image <i class="fa fa-info-circle" uib-tooltip="The location of the docker image" style="margin-left: 10px"></i></div>
+          <div class="col-md-8">{{jobDetailCtrl.job.runConfig.imagePath}}</div>
+        </div>
+        <div class="row" ng-show="jobDetailCtrl.job.runConfig.command">
+          <div class="text-right col-md-4">Command <i class="fa fa-info-circle" uib-tooltip="The command the container will execute." style="margin-left: 10px"></i></div>
+          <div class="col-md-8">{{jobDetailCtrl.job.runConfig.command}}</div>
+        </div>
+        <div class="row" ng-show="jobDetailCtrl.job.runConfig.args">
+          <div class="text-right col-md-4">Arguments <i class="fa fa-info-circle" uib-tooltip="Command arguments to run the docker image with." style="margin-left: 10px"></i></div>
+          <div class="col-md-8">{{jobDetailCtrl.job.runConfig.args}}</div>
+        </div>
+        <div class="row">
+          <div class="text-right col-md-4">Memory (MB)
+            <i class="fa fa-info-circle"
+               uib-tooltip="The amount of memory, in MB, available for this the Job."
+               style="margin-left: 10px">
+            </i>
+          </div>
+          <div class="col-md-8">
+            {{jobDetailCtrl.job.runConfig['memory']}}
+          </div>
+        </div>
+        <div class="row">
+          <div class="text-right col-md-4">CPU cores
+            <i class="fa fa-info-circle"
+               uib-tooltip="The number of virtual CPU cores available for this job."
+               style="margin-left: 10px">
+            </i>
+          </div>
+          <div class="col-md-8">{{jobDetailCtrl.job.runConfig['cores']}}</div>
+        </div>
+        <div class="row">
+          <div class="text-right col-md-4">GPUs
+            <i class="fa fa-info-circle"
+               uib-tooltip="The number of GPUs available for this job."
+               style="margin-left: 10px">
+            </i>
+          </div>
+          <div class="col-md-8">{{jobDetailCtrl.job.runConfig['gpus']}}</div>
+        </div>
+        <div class="row">
+          <div class="text-right col-md-4">Output path
+            <i class="fa fa-info-circle"
+               uib-tooltip="directory where the docker container should redirect its output so that it is made available under the project's Logs dataset."
+               style="margin-left: 10px">
+            </i>
+          </div>
+          <div class="col-md-8">{{jobDetailCtrl.job.runConfig['outputPath']}}</div>
+        </div>
+        <div class="row">
+          <div class="text-right col-md-4">Environment variables
+            <i class="fa fa-info-circle"
+               uib-tooltip="Additional line-separated environment variables to be available in the container."
+               style="margin-left: 10px">
+            </i>
+          </div>
+          <div class="col-md-8">{{jobDetailCtrl.job.runConfig['envVars']}}</div>
+        </div>
+        <div class="row">
+          <div class="text-right col-md-4">Uid
+            <i class="fa fa-info-circle"
+               uib-tooltip="User id the container runs with. If empty, container will run with uid set by the image."
+               style="margin-left: 10px">
+            </i>
+          </div>
+          <div class="col-md-8">{{jobDetailCtrl.job.runConfig['uid']}}</div>
+        </div>
+        <div class="row">
+          <div class="text-right col-md-4">Gid
+            <i class="fa fa-info-circle"
+               uib-tooltip="Group id the container runs with. If empty, container will run with gid set by the image."
+               style="margin-left: 10px">
+            </i>
+          </div>
+          <div class="col-md-8">{{jobDetailCtrl.job.runConfig['gid']}}</div>
+        </div>
+      </div>
       <!-- Common TFSPARK and TENSORFLOW -->
       <div class="row" ng-show="jobDetailCtrl.job.runConfig.type === 'tensorFlowJobConfiguration' || (jobDetailCtrl.job.runConfig.type === 'sparkJobConfiguration' && jobDetailCtrl.job.runConfig.tfOnSpark)">
           <div class="text-right col-md-4">Number of Parameter Servers<i class="fa fa-info-circle" uib-tooltip="The number of parameter servers that should be requested." style="margin-left: 10px"></i></div>
@@ -229,8 +357,5 @@
         </div>
     </div>
   </div>
-
-
-
 </div>
 

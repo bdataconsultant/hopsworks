@@ -39,19 +39,24 @@
 
 package io.hops.hopsworks.common.hdfs;
 
+import io.hops.hopsworks.persistence.entity.hdfs.inode.Inode;
 import io.hops.hopsworks.common.util.Settings;
 import io.hops.metadata.hdfs.entity.EncodingPolicy;
 import io.hops.metadata.hdfs.entity.EncodingStatus;
-import java.io.BufferedReader;
+
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.URI;
 import java.security.PrivilegedExceptionAction;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import io.hops.metadata.hdfs.entity.MetaStatus;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -60,6 +65,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.AclEntry;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.hdfs.protocol.HdfsConstants;
@@ -73,12 +79,15 @@ public class DistributedFileSystemOps {
 
   private static final long MB = 1024l * 1024l;
 
+  public static final String HOPSFS_SCHEME = "hopsfs";
+
   private final DistributedFileSystem dfs;
   private Configuration conf;
   private String hadoopConfDir;
   private final String effectiveUser;
 
   public enum StoragePolicy {
+    CLOUD("CLOUD"),
     SMALL_FILES("DB"),
     DEFAULT("HOT");
 
@@ -91,6 +100,15 @@ public class DistributedFileSystemOps {
     @Override
     public String toString() {
       return policyName;
+    }
+    
+    public static StoragePolicy fromPolicy(String policyName) {
+      switch(policyName) {
+        case "CLOUD": return CLOUD;
+        case "DB": return SMALL_FILES;
+        case "HOT": return DEFAULT;
+        default: throw new IllegalArgumentException("unknown policy:" + policyName);
+      }
     }
   }
 
@@ -147,15 +165,15 @@ public class DistributedFileSystemOps {
    * @throws IOException
    */
   public String cat(Path file) throws IOException {
-    StringBuilder out = new StringBuilder();
-    try (BufferedReader br = new BufferedReader(new InputStreamReader(dfs.
-            open(file)));) {
-      String line;
-      while ((line = br.readLine()) != null) {
-        out.append(line).append("\n");
+    ByteArrayOutputStream outputBuffer = new ByteArrayOutputStream();
+    byte[] buffer = new byte[64 * 1024];
+    int length;
+    try (DataInputStream dataStream = dfs.open(file)) {
+      while ((length = dataStream.read(buffer)) != -1) {
+        outputBuffer.write(buffer, 0, length);
       }
-      return out.toString();
     }
+    return outputBuffer.toString("UTF-8");
   }
 
   /**
@@ -170,7 +188,12 @@ public class DistributedFileSystemOps {
     return cat(path);
   }
 
-  public void copyFromHDFSToLocal(String src, String dest) throws IOException {
+  /**
+   * Copy from HDFS to the local file system.
+   * <p/>
+   * @throws IOException
+   */
+  public void copyToLocal(String src, String dest) throws IOException {
     dfs.copyToLocalFile(new Path(src), new Path(dest));
   }
 
@@ -183,8 +206,7 @@ public class DistributedFileSystemOps {
    * <p/>
    * @throws java.io.IOException
    */
-  public boolean mkdir(Path location, final FsPermission filePermission) throws
-          IOException {
+  public boolean mkdir(Path location, final FsPermission filePermission) throws IOException {
     return dfs.mkdir(location, filePermission);
   }
 
@@ -195,8 +217,7 @@ public class DistributedFileSystemOps {
    * @return True if successful.
    * @throws java.io.IOException
    */
-  public boolean mkdir(String path) throws
-          IOException {
+  public boolean mkdir(String path) throws IOException {
     Path location = new Path(path);
     return dfs.mkdir(location, FsPermission.getDefault());
   }
@@ -210,8 +231,7 @@ public class DistributedFileSystemOps {
    * <p/>
    * @throws java.io.IOException
    */
-  public boolean mkdirs(Path location, final FsPermission filePermission) throws
-          IOException {
+  public boolean mkdirs(Path location, final FsPermission filePermission) throws IOException {
     return dfs.mkdirs(location, filePermission);
   }
 
@@ -258,13 +278,24 @@ public class DistributedFileSystemOps {
    * @throws IOException
    */
   public boolean rm(Path location, boolean recursive) throws IOException {
-    logger.log(Level.INFO, "Deleting {0} as {1}", new Object[]{location.
-      toString(),
-      dfs.toString()});
+    logger.log(Level.INFO, "Deleting {0} as {1}", new Object[]{location.toString(), dfs.toString()});
     if (dfs.exists(location)) {
       return dfs.delete(location, recursive);
     }
     return true;
+  }
+
+  /**
+   * Delete a file or directory from the file system.
+   *
+   * @param location The location of file or directory to be removed.
+   * @param recursive If true, a directory will be removed with all its
+   * children.
+   * @return True if the operation is successful.
+   * @throws IOException
+   */
+  public boolean rm(String location, boolean recursive) throws IOException {
+    return rm(new Path(location), recursive);
   }
 
   /**
@@ -276,26 +307,8 @@ public class DistributedFileSystemOps {
    * @param destination
    * @throws IOException
    */
-  public void copyFromLocal(boolean deleteSource, Path source, Path destination)
-          throws IOException {
+  public void copyFromLocal(boolean deleteSource, Path source, Path destination) throws IOException {
     dfs.copyFromLocalFile(deleteSource, source, destination);
-  }
-
-  /**
-   * Copy from HDFS to the local file system.
-   * <p/>
-   * @param hdfsPath
-   * @param localPath
-   * @throws IOException
-   */
-  public void copyToLocal(String hdfsPath, String localPath) throws IOException {
-    if (!hdfsPath.startsWith("hdfs:")) {
-      hdfsPath = "hdfs://" + hdfsPath;
-    }
-    if (!localPath.startsWith("file:")) {
-      localPath = "file://" + localPath;
-    }
-    dfs.copyToLocalFile(new Path(hdfsPath), new Path(localPath));
   }
 
   /**
@@ -308,9 +321,7 @@ public class DistributedFileSystemOps {
    * @throws IllegalArgumentException If the destination path contains an
    * invalid folder name.
    */
-  public void copyToHDFSFromLocal(boolean deleteSource, String src,
-          String destination)
-          throws IOException {
+  public void copyToHDFSFromLocal(boolean deleteSource, String src, String destination) throws IOException {
     //Make sure the directories exist
     Path dirs = new Path(Utils.getDirectoryPart(destination));
     mkdirs(dirs, getParentPermission(dirs));
@@ -345,26 +356,12 @@ public class DistributedFileSystemOps {
     if (source.equals(destination)) {
       return;
     }
-    //If source does not start with hdfs, prepend.
-    if (!source.startsWith("hdfs")) {
-      source = "hdfs://" + source;
-    }
-
-    //Check destination place, create directory.
-    String destDir;
-    if (!destination.startsWith("hdfs")) {
-      destDir = Utils.getDirectoryPart(destination);
-      destination = "hdfs://" + destination;
-    } else {
-      String tmp = destination.substring("hdfs://".length());
-      destDir = Utils.getDirectoryPart(tmp);
-    }
-    Path dest = new Path(destDir);
-    if (!dfs.exists(dest)) {
-      dfs.mkdirs(dest);
-    }
     Path src = new Path(source);
     Path dst = new Path(destination);
+    
+    if (!dfs.exists(dst.getParent())) {
+      dfs.mkdirs(dst.getParent());
+    }
     moveWithinHdfs(src, dst);
   }
 
@@ -423,7 +420,34 @@ public class DistributedFileSystemOps {
   public FSDataOutputStream create(Path path) throws IOException {
     return create(path.toString());
   }
+  
+  /**
+   * Creates a file and all parent dirs that does not exist and returns
+   * an FSDataOutputStream ready for append
+   *
+   * @param path
+   * @return FSDataOutputStream
+   * @throws IOException
+   */
+  public FSDataOutputStream append(String path) throws IOException {
+    return append(new Path(path));
+  }
+  
+  public FSDataOutputStream append(Path path) throws IOException {
+    if (!exists(path)) {
+      return create(path);
+    } else {
+      return dfs.append(path);
+    }
+  }
 
+  public void create(Path path, String content) throws IOException {
+    try(FSDataOutputStream outputStream = dfs.create(path)) {
+      outputStream.writeBytes(content);
+      outputStream.flush();
+    }
+  }
+  
   /**
    * Set permission for path.
    * <p>
@@ -431,9 +455,19 @@ public class DistributedFileSystemOps {
    * @param permission
    * @throws IOException
    */
-  public void setPermission(Path path, final FsPermission permission) throws
-          IOException {
+  public void setPermission(Path path, final FsPermission permission) throws IOException {
     dfs.setPermission(path, permission);
+  }
+
+  /**
+   * Set acl for path.
+   * <p>
+   * @param path
+   * @param aclEntries
+   * @throws IOException
+   */
+  public void setPermission(Path path, final List<AclEntry> aclEntries) throws IOException {
+    dfs.setAcl(path, aclEntries);
   }
 
   /**
@@ -443,8 +477,7 @@ public class DistributedFileSystemOps {
    * @param permission
    * @throws IOException
    */
-  public void setPermission(Set<Path> paths, final FsPermission permission) throws
-          IOException {
+  public void setPermission(Set<Path> paths, final FsPermission permission) throws IOException {
     for (Path path : paths) {
       setPermission(path, permission);
     }
@@ -458,8 +491,7 @@ public class DistributedFileSystemOps {
    * @param groupname
    * @throws IOException
    */
-  public void setOwner(Path path, String username, String groupname) throws
-          IOException {
+  public void setOwner(Path path, String username, String groupname) throws IOException {
     dfs.setOwner(path, username, groupname);
   }
 
@@ -469,10 +501,8 @@ public class DistributedFileSystemOps {
    * @param diskspaceQuotaInMB hdfs quota size for disk space
    * @throws IOException
    */
-  public void setHdfsSpaceQuotaInMBs(Path src, long diskspaceQuotaInMB) throws
-          IOException {
-    setHdfsQuotaBytes(src, HdfsConstants.QUOTA_DONT_SET,
-        DistributedFileSystemOps.MB * diskspaceQuotaInMB);
+  public void setHdfsSpaceQuotaInMBs(Path src, long diskspaceQuotaInMB) throws IOException {
+    setHdfsQuotaBytes(src, HdfsConstants.QUOTA_DONT_SET, DistributedFileSystemOps.MB * diskspaceQuotaInMB);
   }
 
   /**
@@ -482,9 +512,7 @@ public class DistributedFileSystemOps {
    * @param diskspaceQuotaInBytes
    * @throws IOException
    */
-  public void setHdfsQuotaBytes(Path src, long numberOfFiles, long diskspaceQuotaInBytes)
-          throws
-          IOException {
+  public void setHdfsQuotaBytes(Path src, long numberOfFiles, long diskspaceQuotaInBytes) throws IOException {
     dfs.setQuota(src, numberOfFiles, diskspaceQuotaInBytes);
   }
 
@@ -495,8 +523,7 @@ public class DistributedFileSystemOps {
    * @throws IOException
    */
   public long getHdfsSpaceQuotaInMbs(Path path) throws IOException {
-    return dfs.getContentSummary(path).getSpaceQuota()
-            / DistributedFileSystemOps.MB;
+    return dfs.getContentSummary(path).getSpaceQuota() / DistributedFileSystemOps.MB;
   }
 
   /**
@@ -516,8 +543,7 @@ public class DistributedFileSystemOps {
    * @throws IOException
    */
   public long getUsedQuotaInMbs(Path path) throws IOException {
-    return dfs.getContentSummary(path).getSpaceConsumed()
-            / DistributedFileSystemOps.MB;
+    return dfs.getContentSummary(path).getSpaceConsumed() / DistributedFileSystemOps.MB;
   }
 
   public FSDataInputStream open(Path location) throws IOException {
@@ -544,17 +570,13 @@ public class DistributedFileSystemOps {
    * @return
    * @throws IOException
    */
-  public boolean compress(String p) throws IOException,
-          IllegalStateException {
+  public boolean compress(String p) throws IOException, IllegalStateException {
     Path location = new Path(p);
     //add the erasure coding configuration file
-    File erasureCodingConfFile
-            = new File(hadoopConfDir, Settings.ERASURE_CODING_CONFIG);
+    File erasureCodingConfFile = new File(hadoopConfDir, Settings.ERASURE_CODING_CONFIG);
     if (!erasureCodingConfFile.exists()) {
-      logger.log(Level.SEVERE, "Unable to locate configuration file in {0}",
-              erasureCodingConfFile);
-      throw new IllegalStateException(
-              "No erasure coding conf file: " + Settings.ERASURE_CODING_CONFIG);
+      logger.log(Level.SEVERE, "Unable to locate configuration file in {0}", erasureCodingConfFile);
+      throw new IllegalStateException("No erasure coding conf file: " + Settings.ERASURE_CODING_CONFIG);
     }
 
     this.conf.addResource(new Path(erasureCodingConfFile.getAbsolutePath()));
@@ -614,36 +636,37 @@ public class DistributedFileSystemOps {
       return false;
     }
   }
-
+  
   /**
-   * Marks a file/folder in location as metadata enabled
+   * Set Meta ServiceStatus
    * <p/>
-   * @param location
    * @throws IOException
    */
-  public void setMetaEnabled(String location) throws IOException {
-    Path path = new Path(location);
-    setMetaEnabled(path);
+  public void setMetaStatus(Path path, Inode.MetaStatus status) throws IOException {
+    switch(status) {
+      case DISABLED:
+        dfs.setMetaStatus(path, MetaStatus.DISABLED);
+        break;
+      case META_ENABLED:
+        dfs.setMetaStatus(path, MetaStatus.META_ENABLED);
+        break;
+      case MIN_PROV_ENABLED:
+        dfs.setMetaStatus(path, MetaStatus.MIN_PROV_ENABLED);
+        break;
+      case FULL_PROV_ENABLED:
+        dfs.setMetaStatus(path, MetaStatus.FULL_PROV_ENABLED);
+        break;
+    }
   }
   
   /**
-   * Marks a file/folder in location as metadata enabled
+   * Set Provenance enabled flag on a given path
    * <p/>
-   * @param path
    * @throws IOException
    */
-  public void setMetaEnabled(Path path) throws IOException {
-    this.dfs.setMetaEnabled(path, true);
-  }
-
-  /**
-   * Unset Metadata enabled flag on a given path
-   * <p/>
-   * @param path
-   * @throws IOException
-   */
-  public void unsetMetaEnabled(Path path) throws IOException {
-    this.dfs.setMetaEnabled(path, false);
+  public void setMetaStatus(String location, Inode.MetaStatus status) throws IOException {
+    Path path = new Path(location);
+    setMetaStatus(path, status);
   }
   
   /**
@@ -762,5 +785,14 @@ public class DistributedFileSystemOps {
    */
   public byte[] getXAttr(Path path, String name) throws IOException {
     return dfs.getXAttr(path, name);
+  }
+  
+  /**
+   * Get all extended attribute for a given file/directory.
+   * @param path
+   * @throws IOException
+   */
+  public Map<String, byte[]> getXAttrs(Path path) throws IOException {
+    return dfs.getXAttrs(path);
   }
 }

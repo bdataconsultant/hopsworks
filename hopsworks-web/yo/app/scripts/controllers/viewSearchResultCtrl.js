@@ -91,18 +91,17 @@ angular.module('hopsWorksApp')
                   growl.error("Select a project to import the Dataset to", {title: 'Error', ttl: 5000, referenceId: 21});
                   return;
                 }
-                ProjectService.getDatasetInfo({inodeId: result.id}).$promise.then(
-                        function (response) {
-                          var datasetDto = response;
-                          ProjectService.importPublicDataset({}, {'id': self.request.projectId,
-                            'inodeId': datasetDto.inodeId, 'projectName': datasetDto.projectName}).$promise.then(
-                                  function (success) {
-                                    growl.success("Dataset Imported", {title: 'Success', ttl: 1500});
-                                    $uibModalInstance.close(success);
-                                  }, function (error) {
-                            growl.error(error.data.errorMsg, {title: 'Error', ttl: 5000, referenceId: 21});
-                          });
-                        }, function (error) {
+                ProjectService.getDatasetInfo({inodeId: result.id}).$promise.then(function (response) {
+                  var datasetDto = response;
+                  var datasetService = DataSetService(self.request.projectId);
+                  datasetService.import(datasetDto.name, datasetDto.projectName, datasetDto.datasetType).then(
+                    function (success) {
+                      growl.success("Dataset Imported", {title: 'Success', ttl: 1500});
+                      $uibModalInstance.close(success);
+                    }, function (error) {
+                      growl.error(error.data.errorMsg, {title: 'Error', ttl: 5000, referenceId: 21});
+                    });
+                  }, function (error) {
                   console.log('Error: ', error);
                 });
               };
@@ -186,10 +185,14 @@ angular.module('hopsWorksApp')
             };
 
             self.goto = function () {
+              var i = 3;
+              if (self.content.details.path.startsWith("/apps/hive/warehouse")) {
+                i = 4;
+              }
               var splitedPath = self.content.details.path.split("/");
               var parentPath = "/";
 
-              for (var i = 3; i < splitedPath.length - 1; i++) {
+              for (; i < splitedPath.length - 1; i++) {
                 parentPath = parentPath + splitedPath[i] + "/";
               }
               $rootScope.selectedFile = splitedPath[splitedPath.length - 1];

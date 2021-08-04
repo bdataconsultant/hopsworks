@@ -40,19 +40,16 @@
 package io.hops.hopsworks.common.dao.hdfs;
 
 import io.hops.hopsworks.common.dao.AbstractFacade;
+import io.hops.hopsworks.persistence.entity.hdfs.HdfsDirectoryWithQuotaFeature;
 
 import javax.ejb.Stateless;
 import javax.persistence.EntityManager;
 import javax.persistence.NoResultException;
 import javax.persistence.PersistenceContext;
-import javax.persistence.TypedQuery;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.Optional;
 
 @Stateless
 public class HdfsDirectoryWithQuotaFeatureFacade extends AbstractFacade<HdfsDirectoryWithQuotaFeature> {
-
-  private final static Logger logger = Logger.getLogger(HdfsDirectoryWithQuotaFeature.class.getName());
 
   @PersistenceContext(unitName = "kthfsPU")
   private EntityManager em;
@@ -64,17 +61,15 @@ public class HdfsDirectoryWithQuotaFeatureFacade extends AbstractFacade<HdfsDire
 
   public HdfsDirectoryWithQuotaFeatureFacade() { super(HdfsDirectoryWithQuotaFeature.class); }
 
-  public HdfsDirectoryWithQuotaFeature getByInodeId(Long inodeId) {
-    TypedQuery<HdfsDirectoryWithQuotaFeature> query = em.createNamedQuery(
-        "HdfsDirectoryWithQuotaFeature.findByInodeId", HdfsDirectoryWithQuotaFeature.class)
-        .setParameter("inodeId", inodeId);
+  public Optional<HdfsDirectoryWithQuotaFeature> getByInodeId(Long inodeId) {
     try {
-      return query.getSingleResult();
+      return Optional.of(em.createNamedQuery(
+          "HdfsDirectoryWithQuotaFeature.findByInodeId", HdfsDirectoryWithQuotaFeature.class)
+          .setParameter("inodeId", inodeId)
+          .getSingleResult());
     } catch (NoResultException ex) {
-      logger.log(Level.SEVERE, "Cannot find Inode attributes for inode: " + inodeId);
+      return Optional.empty();
     }
-
-    return null;
   }
 
 }

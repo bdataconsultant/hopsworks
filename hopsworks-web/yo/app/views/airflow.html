@@ -42,25 +42,29 @@
   <div ng-include="'nav.html'"></div>
 
 
-  <div id="wrapper" class="toggled" ng-controller="ProjectCtrl as projectCtrl">
+  <div id="wrapper" ng-class="{'toggled': projectCtrl.isClosed}" ng-controller="ProjectCtrl as projectCtrl">
     <div class="overlay"></div>
 
     <div ng-include="'navProject.html'"></div>
-    <div class="job-content-wrapper">
-      <h3 id="projectBread" style="display: none;"> {{ projectCtrl.currentProject.projectName}} / Jobs</h3>
+    <div ng-if="mainCtrl.showSearchPage" class="content-wrapper">
+      <div id="projectSearchResults">
+        <div ng-include="'views/search/search.html'"></div>
+      </div>
     </div>
     <!-- Page Content -->
     <!--class="content"--> 
-    <div style="overflow: hidden; margin-top: 128px;" >
-
-      <div class="row" style="height: 60px;" >
-        <div class="col-sm-1 col-md-1 col-lg-1" >
-          <img class="pull-left" style="margin-left:20px;" height="40" width="40" src="images/airflow-200x198.png"/>
-        </div>
-
-        <div class="col-sm-6 col-md-1" style="margin: 10px">
-          <button class="btn btn-success active" ng-click="projectCtrl.connectToAirflow()" type="button" id="newAirflow">
-            Open Airflow
+    <div ng-if="!mainCtrl.showSearchPage" style="overflow: hidden;" class="content-wrapper">
+      <h3 id="projectBread" style="border-bottom: none"></h3>
+      <div class="row" style="margin-bottom: 5px;">
+        <div class="col-sm-10">
+          <button class="btn btn-info active" ng-click="projectCtrl.goToDagComposer()" type="button"
+                  id="new_dag_composer_btn">
+            New ML workflow<i style="margin-left: 10px" class="glyphicon glyphicon-pencil">
+              </i>
+          </button>
+          <button class="btn btn-primary active" ng-click="projectCtrl.connectToAirflow()" type="button" id="newAirflow">
+            Open Airflow<i style="margin-left: 10px" class="glyphicon glyphicon-play-circle">
+          </i>
           </button>
         </div>
       </div>

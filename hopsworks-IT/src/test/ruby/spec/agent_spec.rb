@@ -14,6 +14,7 @@
  If not, see <https://www.gnu.org/licenses/>.
 =end
 describe "On #{ENV['OS']}" do
+  after(:all) {clean_all_test_projects(spec: "agent")}
   before(:all) do
     @registered_hosts = find_all_registered_hosts
   end
@@ -27,6 +28,10 @@ describe "On #{ENV['OS']}" do
     end
 
     context "#not logged in" do
+      before :all do
+        reset_session
+      end
+      
       it "should not be able to ping" do
         post @ping_resource, {}
         expect_status(401)
@@ -70,7 +75,8 @@ describe "On #{ENV['OS']}" do
         end
         it "should not be able to register" do
           post @register_resource, {"host-id": @random_host, password: "some_pass"}
-          expect_status(500)
+          expect_status(404)
+          expect_json(errorCode: 100025)
         end
 
         it "should not be able to heartbeat" do
@@ -80,22 +86,22 @@ describe "On #{ENV['OS']}" do
       end
 
       describe "host exists" do
-        before(:each) do
+        before(:all) do
           @hostname = "host_#{short_random_id}"
           add_new_random_host(@hostname)
         end
 
-        after(:each) do
-          host = find_by_hostid(@hostname)
+        after(:all) do
+          host = find_by_hostname(@hostname)
           host.destroy
         end
 
         it "should be able to register" do
-          host = find_by_hostid(@hostname)
+          host = find_by_hostname(@hostname)
           expect(host.registered).to eq(false)
           post @register_resource, {"host-id": @hostname, password: "pass123"}
           expect_status(200)
-          host = find_by_hostid(@hostname)
+          host = find_by_hostname(@hostname)
           expect(host.registered).to eq(true)
         end
 
@@ -104,7 +110,7 @@ describe "On #{ENV['OS']}" do
           post @heartbeat_resource, {"host-id": @hostname, "num-gpus": 0, "agent-time": 1,
                                      "cores": 4, "memory-capacity": 2}
           expect_status(200)
-          host = find_by_hostid(@hostname)
+          host = find_by_hostname(@hostname)
           expect(host.cores).to eq(4)
         end
       end

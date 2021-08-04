@@ -44,13 +44,9 @@
     <div class="container content-wrapper" ng-if="!loginCtrl.secondFactorRequired" style="border-top:none">
         <div class="row">
             <div class="center-block" style="width: 320px;">
-                <div class="panel" style="border:#337ab7 1px solid">
-                    <div class="panel-heading text-center" style="background-color:transparent">
-                        <a
-                            style="text-decoration:none; font-family: Lobster; font-size: 30px; margin-left: 5px; color: #fff;">
-                            <img alt="" class="block-center img-rounded" style="margin-left:0px" width="190"
-                                ng-src="{{loginLogo}}">
-                        </a>
+                <div class="panel">
+                    <div class="panel-heading text-center" style="padding: 0px 0px;">
+                        <img alt="hopsworks icon" height="72" src="images/hopsworks-logo/Hopsworkslogowhite.svg">
                     </div>
                     <div class="panel-body">
                         <!-- <p class="text-center">SIGN IN TO CONTINUE.</p> -->
@@ -68,7 +64,7 @@
                             </div>
                             <!-- <div class="clearfix">
                                 <div class="pull-left">
-                                    <a class="text-muted" href="https://groups.google.com/forum/#!forum/hopshadoop">Need
+                                    <a class="text-muted" href="https://community.hopsworks.ai">Need
                                         support?</a>
                                 </div>
                                 <div class="pull-right">
@@ -124,8 +120,8 @@
             <div class="center-block" style="width: 320px;">
                 <div class="panel">
                     <div class="panel-heading text-center">
-                        <img alt="images/hops.png" class="profile-image img-circle" width="100"
-                            src="https://gravatar.com/avatar/{{loginCtrl.emailHash}}?d=retro&s=200">
+                        <img alt="gravatar" class="profile-image img-circle" width="100"
+                             src="https://gravatar.com/avatar/{{loginCtrl.emailHash}}?d=retro&s=200">
                     </div>
                     <div class="panel-body">
                         <h3 class="text-center" style="color: #555;">2-Step Verification</h3>

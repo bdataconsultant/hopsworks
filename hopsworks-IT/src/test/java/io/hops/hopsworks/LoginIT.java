@@ -17,7 +17,7 @@ package io.hops.hopsworks;
 
 import io.hops.hopsworks.util.DBHelper;
 import io.hops.hopsworks.util.Helpers;
-import io.hops.hopsworks.util.User;
+import io.hops.hopsworks.util.models.User;
 import io.hops.hopsworks.util.helpers.RegistrationHelper;
 import org.junit.After;
 import static org.junit.Assert.assertEquals;
@@ -148,7 +148,7 @@ public class LoginIT {
     By error = By.id("second-factor-error");
     By errorClose = By.id("second-factor-error-close");
     Helpers
-      .assertEqualsElementText("An argument was not provided or it was malformed.", error, verificationErrors, driver);
+      .assertEqualsElementText("Could not recognize the account type. Report a bug.", error, verificationErrors, driver);
     driver.findElement(LOGIN_INPUT_OTP).clear();
     driver.findElement(errorClose).click();
     driver.findElement(LOGIN_INPUT_OTP).sendKeys("123456");

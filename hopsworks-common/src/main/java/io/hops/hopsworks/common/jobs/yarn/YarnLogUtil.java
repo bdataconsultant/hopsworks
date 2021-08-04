@@ -62,13 +62,18 @@ import org.apache.hadoop.yarn.logaggregation.AggregatedLogFormat.ContainerLogsRe
 public class YarnLogUtil {
 
   private static final Logger LOGGER = Logger.getLogger(YarnLogUtil.class.getName());
-
+  
+  public static void writeLog(DistributedFileSystemOps dfs, String dst,
+    String message) {
+    writeLog(dfs, dst, message, null);
+  }
+  
   public static void writeLog(DistributedFileSystemOps dfs, String dst,
       String message, Exception exception) {
     PrintStream writer = null;
     try {
       writer = new PrintStream(dfs.create(dst));
-      if (exception != null) {
+      if (exception != null && exception.getMessage() != null) {
         writer.print(message + "\n" + exception.getMessage());
       } else {
         writer.print(message);
@@ -103,7 +108,7 @@ public class YarnLogUtil {
     LogAggregationStatus logAggregationStatus = waitForLogAggregation(monitor.getYarnClient(),
         monitor.getApplicationId());
     if (logAggregationStatus == null) {
-      // Status might be null if there were issues starting the application
+      // ServiceStatus might be null if there were issues starting the application
       // most likely on the yarn side.
       return;
     }
@@ -172,7 +177,7 @@ public class YarnLogUtil {
 
   private static boolean isFinal(LogAggregationStatus status){
     if (status == null) {
-      // Status might be null if there were issues starting the application
+      // ServiceStatus might be null if there were issues starting the application
       // most likely on the yarn side.
       return true;
     }

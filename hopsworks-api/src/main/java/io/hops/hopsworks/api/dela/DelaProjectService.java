@@ -39,29 +39,25 @@
 
 package io.hops.hopsworks.api.dela;
 
+import com.logicalclocks.servicediscoverclient.exceptions.ServiceDiscoveryException;
 import io.hops.hopsworks.api.dela.dto.InodeIdDTO;
 import io.hops.hopsworks.api.filter.AllowedProjectRoles;
 import io.hops.hopsworks.api.filter.Audience;
 import io.hops.hopsworks.api.filter.NoCacheResponse;
 import io.hops.hopsworks.api.jwt.JWTHelper;
 import io.hops.hopsworks.api.util.RESTApiJsonResponse;
-import io.hops.hopsworks.common.dao.dataset.Dataset;
 import io.hops.hopsworks.common.dao.dataset.DatasetFacade;
-import io.hops.hopsworks.common.dao.hdfs.inode.Inode;
 import io.hops.hopsworks.common.dao.hdfs.inode.InodeFacade;
-import io.hops.hopsworks.common.dao.project.Project;
 import io.hops.hopsworks.common.dao.project.ProjectFacade;
 import io.hops.hopsworks.common.dao.user.UserFacade;
-import io.hops.hopsworks.common.dao.user.Users;
-import io.hops.hopsworks.exceptions.DatasetException;
-import io.hops.hopsworks.restutils.RESTCodes;
+import io.hops.hopsworks.common.hosts.ServiceDiscoveryController;
+import io.hops.hopsworks.common.kafka.KafkaBrokers;
 import io.hops.hopsworks.common.kafka.KafkaController;
 import io.hops.hopsworks.common.util.Settings;
 import io.hops.hopsworks.dela.DelaHdfsController;
 import io.hops.hopsworks.dela.DelaWorkerController;
 import io.hops.hopsworks.dela.TransferDelaController;
 import io.hops.hopsworks.dela.dto.hopsworks.HopsworksTransferDTO;
-import io.hops.hopsworks.exceptions.DelaException;
 import io.hops.hopsworks.dela.old_dto.ElementSummaryJSON;
 import io.hops.hopsworks.dela.old_dto.HopsContentsSummaryJSON;
 import io.hops.hopsworks.dela.old_dto.KafkaEndpoint;
@@ -69,13 +65,18 @@ import io.hops.hopsworks.dela.old_dto.ManifestJSON;
 import io.hops.hopsworks.dela.old_dto.SuccessJSON;
 import io.hops.hopsworks.dela.old_dto.TorrentExtendedStatusJSON;
 import io.hops.hopsworks.dela.old_dto.TorrentId;
+import io.hops.hopsworks.exceptions.DatasetException;
+import io.hops.hopsworks.exceptions.DelaException;
+import io.hops.hopsworks.exceptions.ProvenanceException;
+import io.hops.hopsworks.exceptions.ServiceException;
 import io.hops.hopsworks.jwt.annotation.JWTRequired;
+import io.hops.hopsworks.persistence.entity.dataset.Dataset;
+import io.hops.hopsworks.persistence.entity.hdfs.inode.Inode;
+import io.hops.hopsworks.persistence.entity.project.Project;
+import io.hops.hopsworks.persistence.entity.user.Users;
+import io.hops.hopsworks.restutils.RESTCodes;
 import io.swagger.annotations.ApiParam;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+
 import javax.ejb.EJB;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
@@ -92,6 +93,12 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
+import java.io.IOException;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @RequestScoped
 @Produces(MediaType.APPLICATION_JSON)
@@ -122,15 +129,19 @@ public class DelaProjectService {
   private InodeFacade inodeFacade;
   @EJB
   private JWTHelper jWTHelper;
+  @EJB
+  private KafkaBrokers kafkaBrokers;
+  @EJB
+  private ServiceDiscoveryController serviceDiscoveryController;
 
   private Project project;
   private Integer projectId;
-
+  
   public void setProjectId(Integer projectId) {
     this.projectId = projectId;
     this.project = projectFacade.find(projectId);
   }
-
+  
   public Integer getProjectId() {
     return projectId;
   }
@@ -144,7 +155,7 @@ public class DelaProjectService {
   @Produces(MediaType.APPLICATION_JSON)
   @AllowedProjectRoles({AllowedProjectRoles.DATA_SCIENTIST, AllowedProjectRoles.DATA_OWNER})
   @JWTRequired(acceptedTokens={Audience.API}, allowedUserRoles={"HOPS_ADMIN", "HOPS_USER"})
-  public Response getProjectContents() throws DelaException {
+  public Response getProjectContents(@Context SecurityContext sc) throws DelaException {
 
     List<Integer> projectIds = new LinkedList<>();
     projectIds.add(projectId);
@@ -178,7 +189,8 @@ public class DelaProjectService {
   @Consumes(MediaType.APPLICATION_JSON)
   @AllowedProjectRoles({AllowedProjectRoles.DATA_SCIENTIST, AllowedProjectRoles.DATA_OWNER})
   @JWTRequired(acceptedTokens={Audience.API}, allowedUserRoles={"HOPS_ADMIN", "HOPS_USER"})
-  public Response getExtendedDetails(@PathParam("publicDSId") String publicDSId) throws DelaException {
+  public Response getExtendedDetails(@PathParam("publicDSId") String publicDSId, @Context SecurityContext sc)
+    throws DelaException {
     TorrentId torrentId = new TorrentId(publicDSId);
     TorrentExtendedStatusJSON resp = delaTransferCtrl.details(torrentId);
     return successResponse(resp);
@@ -191,7 +203,7 @@ public class DelaProjectService {
   @JWTRequired(acceptedTokens={Audience.API}, allowedUserRoles={"HOPS_ADMIN", "HOPS_USER"})
   public Response removePublic(@Context SecurityContext sc, @PathParam("publicDSId") String publicDSId,
     @ApiParam(value="delete dataset", required = true) @QueryParam("clean") boolean clean)
-      throws DelaException, DatasetException {
+    throws DelaException, IOException, DatasetException {
 
     Dataset dataset = getDatasetByPublicId(publicDSId);
     Users user = jWTHelper.getUserPrincipal(sc);
@@ -212,7 +224,8 @@ public class DelaProjectService {
   @AllowedProjectRoles({AllowedProjectRoles.DATA_SCIENTIST, AllowedProjectRoles.DATA_OWNER})
   @JWTRequired(acceptedTokens={Audience.API}, allowedUserRoles={"HOPS_ADMIN", "HOPS_USER"})
   public Response startDownload(@Context SecurityContext sc, @PathParam("publicDSId") String publicDSId,
-    HopsworksTransferDTO.Download downloadDTO) throws DelaException, DatasetException {
+    HopsworksTransferDTO.Download downloadDTO) throws DelaException, DatasetException, ProvenanceException,
+    IOException {
     Users user = jWTHelper.getUserPrincipal(sc);
     //dataset not createed yet
 
@@ -242,13 +255,26 @@ public class DelaProjectService {
   @AllowedProjectRoles({AllowedProjectRoles.DATA_SCIENTIST, AllowedProjectRoles.DATA_OWNER})
   @JWTRequired(acceptedTokens={Audience.API}, allowedUserRoles={"HOPS_ADMIN", "HOPS_USER"})
   public Response downloadDatasetKafka(@Context HttpServletRequest req, @Context SecurityContext sc,
-    @PathParam("publicDSId") String publicDSId, HopsworksTransferDTO.Download downloadDTO) throws DelaException {
+    @PathParam("publicDSId") String publicDSId, HopsworksTransferDTO.Download downloadDTO)
+      throws DelaException, ServiceException {
     Users user = jWTHelper.getUserPrincipal(sc);
     Dataset dataset = getDatasetByPublicId(publicDSId);
 
     String certPath = kafkaController.getKafkaCertPaths(project);
-    String brokerEndpoint = settings.getRandomKafkaBroker();
-    String restEndpoint = settings.getRestEndpoint();
+    Optional<String> kafkaBrokerOpt = kafkaBrokers.getAnyKafkaBroker();
+    String brokerEndpoint = kafkaBrokerOpt.orElseThrow(() ->
+      new DelaException(RESTCodes.DelaErrorCode.MISCONFIGURED, Level.WARNING, DelaException.Source.KAFKA,
+              "Could not find any active Kafka broker"));
+
+    String restEndpoint;
+    try {
+      restEndpoint = "https://" + serviceDiscoveryController
+          .constructServiceFQDNWithPort(ServiceDiscoveryController.HopsworksService.HOPSWORKS_APP);
+    } catch (ServiceDiscoveryException e) {
+      throw new ServiceException(RESTCodes.ServiceErrorCode.SERVICE_NOT_FOUND, Level.SEVERE,
+          "Could not find Hopsworks service");
+    }
+
     String keyStore = certPath + "/keystore.jks";
     String trustStore = certPath + "/truststore.jks";
     KafkaEndpoint kafkaEndpoint = new KafkaEndpoint(brokerEndpoint, restEndpoint, settings.getDELA_DOMAIN(),

@@ -15,20 +15,25 @@
  */
 package io.hops.hopsworks.common.util;
 
-import io.hops.hopsworks.common.dao.project.Project;
+import io.hops.hopsworks.persistence.entity.project.Project;
 import io.hops.hopsworks.common.hdfs.Utils;
-import io.hops.hopsworks.common.jobs.configuration.JobConfiguration;
-import io.hops.hopsworks.common.jobs.flink.FlinkJobConfiguration;
+import io.hops.hopsworks.common.hosts.ServiceDiscoveryController;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.JobConfiguration;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.flink.FlinkJobConfiguration;
 import io.hops.hopsworks.common.util.templates.ConfigProperty;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 public class FlinkConfigurationUtil extends ConfigurationUtil {
   @Override
-  public Map<String, String> getFrameworkProperties(Project project, JobConfiguration jobConfiguration,
-    Settings settings, String hdfsUser, String usersFullName, String tfLibraryPath,
-    Map<String, String> extraJavaOptions) {
+  public Map<String, String> setFrameworkProperties(Project project, JobConfiguration jobConfiguration,
+                                                    Settings settings, String hdfsUser, Map<String, String>
+                                                    extraJavaOptions, String kafkaBrokersString,
+                                                    String hopsworksRestEndpoint, 
+                                                    ServiceDiscoveryController serviceDiscoveryController)
+      throws IOException {
     FlinkJobConfiguration flinkJobConfiguration = (FlinkJobConfiguration) jobConfiguration;
     
     Map<String, ConfigProperty> flinkProps = new HashMap<>();
@@ -45,7 +50,7 @@ public class FlinkConfigurationUtil extends ConfigurationUtil {
     }
     extraJavaOptions.put(Settings.JOB_LOG4J_CONFIG, settings.getFlinkConfDir() + Settings.JOB_LOG4J_PROPERTIES);
     extraJavaOptions.put(Settings.JOB_LOG4J_PROPERTIES, settings.getFlinkConfDir() + Settings.JOB_LOG4J_PROPERTIES);
-    extraJavaOptions.put(Settings.HOPSWORKS_REST_ENDPOINT_PROPERTY, settings.getRestEndpoint());
+    extraJavaOptions.put(Settings.HOPSWORKS_REST_ENDPOINT_PROPERTY, hopsworksRestEndpoint);
     extraJavaOptions.put(Settings.HOPSUTIL_INSECURE_PROPERTY, String.valueOf(settings.isHopsUtilInsecure()));
     extraJavaOptions.put(Settings.SERVER_TRUSTSTORE_PROPERTY, Settings.SERVER_TRUSTSTORE_PROPERTY);
     extraJavaOptions.put(Settings.HOPSWORKS_ELASTIC_ENDPOINT_PROPERTY, settings.getElasticRESTEndpoint());
@@ -53,7 +58,7 @@ public class FlinkConfigurationUtil extends ConfigurationUtil {
     extraJavaOptions.put(Settings.HOPSWORKS_PROJECTNAME_PROPERTY, project.getName());
   
     extraJavaOptions.put(Settings.HOPSWORKS_PROJECTUSER_PROPERTY, hdfsUser);
-    extraJavaOptions.put(Settings.KAFKA_BROKERADDR_PROPERTY, settings.getKafkaBrokersStr());
+    extraJavaOptions.put(Settings.KAFKA_BROKERADDR_PROPERTY, kafkaBrokersString);
     extraJavaOptions.put(Settings.HOPSWORKS_JOBTYPE_PROPERTY, jobConfiguration.getJobType().name());
     if (jobConfiguration.getAppName() != null) {
       extraJavaOptions.put(Settings.HOPSWORKS_JOBNAME_PROPERTY, jobConfiguration.getAppName());

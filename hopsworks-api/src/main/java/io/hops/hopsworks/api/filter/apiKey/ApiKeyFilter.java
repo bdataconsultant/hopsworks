@@ -18,16 +18,17 @@ package io.hops.hopsworks.api.filter.apiKey;
 import io.hops.hopsworks.api.filter.util.HopsworksSecurityContext;
 import io.hops.hopsworks.api.filter.util.Subject;
 import io.hops.hopsworks.api.util.RESTApiJsonResponse;
-import io.hops.hopsworks.common.dao.user.Users;
-import io.hops.hopsworks.common.dao.user.security.apiKey.ApiKey;
-import io.hops.hopsworks.common.dao.user.security.apiKey.ApiScope;
 import io.hops.hopsworks.common.user.UsersController;
 import io.hops.hopsworks.common.user.security.apiKey.ApiKeyController;
 import io.hops.hopsworks.common.util.Settings;
 import io.hops.hopsworks.exceptions.ApiKeyException;
+import io.hops.hopsworks.jwt.annotation.JWTRequired;
+import io.hops.hopsworks.persistence.entity.user.Users;
+import io.hops.hopsworks.persistence.entity.user.security.apiKey.ApiKey;
+import io.hops.hopsworks.persistence.entity.user.security.apiKey.ApiScope;
 import io.hops.hopsworks.restutils.JsonResponse;
 import io.hops.hopsworks.restutils.RESTCodes;
-import static io.hops.hopsworks.jwt.Constants.BEARER;
+
 import javax.annotation.Priority;
 import javax.ejb.EJB;
 import javax.ws.rs.Priorities;
@@ -46,6 +47,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import static io.hops.hopsworks.jwt.Constants.BEARER;
+import static io.hops.hopsworks.jwt.Constants.WWW_AUTHENTICATE_VALUE;
 
 @Provider
 @ApiKeyRequired
@@ -79,7 +83,13 @@ public class ApiKeyFilter implements ContainerRequestFilter {
       return;
     }
     if (authorizationHeader.startsWith(BEARER)) {
-      LOGGER.log(Level.FINEST, "{0}token found, leaving Api key interceptor", BEARER);
+      LOGGER.log(Level.FINEST, "{0} token found, leaving Api key interceptor", BEARER);
+      if (getJWTAnnotation() == null) {
+        jsonResponse.setErrorCode(RESTCodes.SecurityErrorCode.EJB_ACCESS_LOCAL.getCode());
+        jsonResponse.setErrorMsg("Authorization method not supported.");
+        requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).header(HttpHeaders.WWW_AUTHENTICATE,
+          WWW_AUTHENTICATE_VALUE).entity(jsonResponse).build());
+      }
       return;
     }
     if (!authorizationHeader.startsWith(API_KEY)) {
@@ -155,5 +165,14 @@ public class ApiKeyFilter implements ContainerRequestFilter {
     ApiKeyRequired methodRolesAnnotation = method.getAnnotation(ApiKeyRequired.class);
     ApiKeyRequired classRolesAnnotation = resourceClass.getAnnotation(ApiKeyRequired.class);
     return methodRolesAnnotation != null ? methodRolesAnnotation : classRolesAnnotation;
+  }
+  
+  private JWTRequired getJWTAnnotation() {
+    Class<?> resourceClass = resourceInfo.getResourceClass();
+    Method method = resourceInfo.getResourceMethod();
+    JWTRequired methodAcceptedTokens = method.getAnnotation(JWTRequired.class);
+    JWTRequired classAcceptedTokens = resourceClass.getAnnotation(JWTRequired.class);
+    JWTRequired annotation = methodAcceptedTokens != null ? methodAcceptedTokens : classAcceptedTokens;
+    return annotation;
   }
 }

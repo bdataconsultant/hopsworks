@@ -15,17 +15,11 @@
 =end
 
 describe "On #{ENV['OS']}" do
+  after (:all) do
+    clean_all_test_projects(spec: "tf_inference")
+    purge_all_tf_serving_instances
+  end
   describe 'inference' do
-    before (:all) do
-      if ENV['OS'] == "centos"
-        skip "These tests do not run on centos"
-      end
-    end
-
-    after (:all) do
-      purge_all_tf_serving_instances
-    end
-
     let(:test_data) {[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -120,13 +114,10 @@ describe "On #{ENV['OS']}" do
             expect_status(200)
 
             # Sleep some time while the TfServing server starts
-            wait_for do
-              system "pgrep -f #{@serving[:name]} -a"
-              $?.exitstatus == 0
-            end
+            wait_for_type(@serving[:name])
           end
 
-          it "should succeeds to infer from a with kafka logging" do
+          it "should succeeds to infer from a serving with kafka logging" do
             post "#{ENV['HOPSWORKS_API']}/project/#{@project[:id]}/inference/models/#{@serving[:name]}:predict", {
                 signature_name: 'predict_images',
                 instances: test_data
@@ -145,9 +136,13 @@ describe "On #{ENV['OS']}" do
               kafkaTopicDTO: {
                  name: "NONE"
               },
-              servingType: "TENSORFLOW"
+              modelServer: "TENSORFLOW_SERVING",
+              servingTool: "DEFAULT"
              }
             expect_status(201)
+
+            # Sleep some time while the TfServing server restarts
+            wait_for_type(@serving[:name])
 
             post "#{ENV['HOPSWORKS_API']}/project/#{@project[:id]}/inference/models/#{@serving[:name]}:predict", {
                 signature_name: 'predict_images',
@@ -164,7 +159,8 @@ describe "On #{ENV['OS']}" do
               kafkaTopicDTO: {
                  name: @topic[:topic_name]
               },
-              servingType: "TENSORFLOW"
+              modelServer: "TENSORFLOW_SERVING",
+              servingTool: "DEFAULT"
              }
           end
 
@@ -190,6 +186,8 @@ describe "On #{ENV['OS']}" do
         with_valid_project
         with_tf_serving(@project[:id], @project[:projectname], @user[:username])
         start_serving(@project, @serving)
+        wait_for_type(@serving[:name])
+        sleep(5)
         @key = create_api_key('inferenceKey', %w(INFERENCE))
         @invalid_key = create_api_key('inferenceKey_invalid', %w(JOB DATASET_VIEW DATASET_CREATE DATASET_DELETE))
         reset_session
@@ -208,7 +206,7 @@ describe "On #{ENV['OS']}" do
         before(:all) do
           set_api_key_to_header(@key)
         end
-        it 'should succeeds to infer' do
+        it 'should succeed to infer' do
           post "#{ENV['HOPSWORKS_API']}/project/#{@project[:id]}/inference/models/#{@serving[:name]}:predict", {
               signature_name: 'predict_images',
               instances: test_data

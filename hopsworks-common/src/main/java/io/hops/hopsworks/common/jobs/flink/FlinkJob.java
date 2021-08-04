@@ -39,16 +39,17 @@
 
 package io.hops.hopsworks.common.jobs.flink;
 
-import io.hops.hopsworks.common.dao.jobs.description.Jobs;
-import io.hops.hopsworks.common.dao.user.Users;
-import io.hops.hopsworks.common.hdfs.DistributedFileSystemOps;
+import com.logicalclocks.servicediscoverclient.exceptions.ServiceDiscoveryException;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.JobType;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.flink.FlinkJobConfiguration;
+import io.hops.hopsworks.persistence.entity.jobs.description.Jobs;
+import io.hops.hopsworks.persistence.entity.user.Users;
 import io.hops.hopsworks.common.hdfs.Utils;
+import io.hops.hopsworks.common.hosts.ServiceDiscoveryController;
 import io.hops.hopsworks.common.jobs.AsynchronousJobExecutor;
 import io.hops.hopsworks.common.jobs.yarn.YarnJob;
-import io.hops.hopsworks.common.jobs.yarn.YarnJobsMonitor;
 import io.hops.hopsworks.common.util.Settings;
 import io.hops.hopsworks.exceptions.JobException;
-import org.apache.hadoop.yarn.client.api.YarnClient;
 
 import java.io.IOException;
 import java.util.Map;
@@ -65,20 +66,20 @@ public class FlinkJob extends YarnJob {
     FlinkJob.class.getName());
   private FlinkYarnRunnerBuilder flinkBuilder;
   
-  FlinkJob(Jobs job, AsynchronousJobExecutor services,
-    Users user, String jobUser, YarnJobsMonitor jobsMonitor,
-    Settings settings) {
-    super(job, services, user, jobUser, settings.getHadoopSymbolicLinkDir(), jobsMonitor, settings);
+  FlinkJob(Jobs job, AsynchronousJobExecutor services, Users user, String jobUser,
+           Settings settings, String kafkaBrokersString, String hopsworksRestEndpoint, 
+           ServiceDiscoveryController serviceDiscoveryController) {
+    super(job, services, user, jobUser, settings.getHadoopSymbolicLinkDir(), settings,
+        kafkaBrokersString, hopsworksRestEndpoint, serviceDiscoveryController);
+
     if (!(job.getJobConfig() instanceof FlinkJobConfiguration)) {
-      throw new IllegalArgumentException(
-        "Job must contain a FlinkJobConfiguration object. Received: "
+      throw new IllegalArgumentException("Job must contain a FlinkJobConfiguration object. Received: "
           + job.getJobConfig().getClass());
     }
   }
   
   @Override
-  protected boolean setupJob(DistributedFileSystemOps dfso, YarnClient yarnClient) throws JobException {
-    super.setupJob(dfso, yarnClient);
+  protected boolean setupJob() throws JobException {
     if (flinkBuilder == null) {
       flinkBuilder = new FlinkYarnRunnerBuilder(jobs);
     }
@@ -92,9 +93,9 @@ public class FlinkJob extends YarnJob {
     try {
       runner = flinkBuilder
         .getYarnRunner(jobs.getProject(), jobUser, services.getFileOperations(hdfsUser.getUserName()),
-          yarnClient, services, settings);
+          yarnClient, services, settings, kafkaBrokersString, hopsworksRestEndpoint, serviceDiscoveryController);
       
-    } catch (IOException e) {
+    } catch (IOException | ServiceDiscoveryException e) {
       LOG.log(Level.SEVERE,
         "Failed to create YarnRunner.", e);
       try {
@@ -105,18 +106,13 @@ public class FlinkJob extends YarnJob {
       return false;
     }
     
-    String stdOutFinalDestination = Utils.getProjectPath(
+    String stdFinalDestination = Utils.getProjectPath(
       jobs.
         getProject().
         getName())
-      + Settings.FLINK_DEFAULT_OUTPUT_PATH;
-    String stdErrFinalDestination = Utils.getProjectPath(
-      jobs.
-        getProject().
-        getName())
-      + Settings.FLINK_DEFAULT_OUTPUT_PATH;
-    setStdOutFinalDestination(stdOutFinalDestination);
-    setStdErrFinalDestination(stdErrFinalDestination);
+      + Settings.BaseDataset.LOGS.getName() + "/" + JobType.FLINK.getName();
+    setStdOutFinalDestination(stdFinalDestination);
+    setStdErrFinalDestination(stdFinalDestination);
     return true;
   }
   

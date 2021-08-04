@@ -39,21 +39,25 @@
 
 package io.hops.hopsworks.common.jobs.flink;
 
-import io.hops.hopsworks.common.dao.hdfs.inode.Inode;
-import io.hops.hopsworks.common.dao.hdfs.inode.InodeFacade;
-import io.hops.hopsworks.common.dao.hdfsUser.HdfsUsers;
-import io.hops.hopsworks.common.dao.jobhistory.Execution;
-import io.hops.hopsworks.common.dao.jobs.description.Jobs;
-import io.hops.hopsworks.common.dao.project.Project;
+import com.logicalclocks.servicediscoverclient.exceptions.ServiceDiscoveryException;
+import io.hops.hopsworks.common.hosts.ServiceDiscoveryController;
+import io.hops.hopsworks.exceptions.ServiceException;
+import io.hops.hopsworks.persistence.entity.hdfs.inode.Inode;
+import io.hops.hopsworks.persistence.entity.hdfs.user.HdfsUsers;
+import io.hops.hopsworks.persistence.entity.jobs.history.Execution;
+import io.hops.hopsworks.persistence.entity.jobs.description.Jobs;
+import io.hops.hopsworks.persistence.entity.project.Project;
 import io.hops.hopsworks.common.dao.project.ProjectFacade;
-import io.hops.hopsworks.common.dao.user.Users;
+import io.hops.hopsworks.persistence.entity.user.Users;
 import io.hops.hopsworks.common.dao.user.activity.ActivityFacade;
-import io.hops.hopsworks.common.dao.user.activity.ActivityFlag;
+import io.hops.hopsworks.persistence.entity.user.activity.ActivityFlag;
 import io.hops.hopsworks.common.hdfs.HdfsUsersController;
 import io.hops.hopsworks.common.hdfs.UserGroupInformationService;
+import io.hops.hopsworks.common.hdfs.Utils;
+import io.hops.hopsworks.common.hdfs.inode.InodeController;
 import io.hops.hopsworks.common.jobs.AsynchronousJobExecutor;
-import io.hops.hopsworks.common.jobs.configuration.JobType;
-import io.hops.hopsworks.common.jobs.yarn.YarnJobsMonitor;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.JobType;
+import io.hops.hopsworks.common.kafka.KafkaBrokers;
 import io.hops.hopsworks.common.util.Settings;
 import io.hops.hopsworks.common.yarn.YarnClientService;
 import io.hops.hopsworks.common.yarn.YarnClientWrapper;
@@ -96,8 +100,6 @@ public class FlinkController {
   private static final Logger LOGGER = Logger.getLogger(FlinkController.class.getName());
   
   @EJB
-  YarnJobsMonitor jobsMonitor;
-  @EJB
   private AsynchronousJobExecutor submitter;
   @EJB
   private ActivityFacade activityFacade;
@@ -112,34 +114,48 @@ public class FlinkController {
   @EJB
   private ProjectFacade projectFacade;
   @EJB
-  private InodeFacade inodeFacade;
+  private InodeController inodeController;
+  @EJB
+  private KafkaBrokers kafkaBrokers;
+  @EJB
+  private ServiceDiscoveryController serviceDiscoveryController;
 
   
-  public Execution startJob(final Jobs job, final Users user) throws GenericException, JobException {
+  public Execution startJob(final Jobs job, final Users user)
+      throws GenericException, JobException, ServiceException {
     //First: some parameter checking.
     if (job == null) {
       throw new NullPointerException("Cannot run a null job.");
     } else if (user == null) {
       throw new NullPointerException("Cannot run a job as a null user.");
-    } else if (job.getJobType() != JobType.FLINK && job.getJobType() != JobType.BEAM_FLINK) {
+    } else if (job.getJobType() != JobType.FLINK) {
       throw new IllegalArgumentException(
-        "Job configuration is not a Flink or Beam job configuration.");
+        "Job configuration is not a Flink job configuration.");
     }
-    
+
+    // Set Hopsworks consul service domain, don't use the address, use the name
     String username = hdfsUsersBean.getHdfsUserName(job.getProject(), user);
     FlinkJob flinkjob = null;
     try {
+      String hopsworksRestEndpoint = "https://" + serviceDiscoveryController.
+          constructServiceFQDNWithPort(ServiceDiscoveryController.HopsworksService.HOPSWORKS_APP);
+
       UserGroupInformation proxyUser = ugiService.getProxyUser(username);
       try {
         flinkjob = proxyUser.doAs((PrivilegedExceptionAction<FlinkJob>) () -> new FlinkJob(job, submitter, user,
-          hdfsUsersBean.getHdfsUserName(job.getProject(), job.getCreator()), jobsMonitor, settings));
+            hdfsUsersBean.getHdfsUserName(job.getProject(), job.getCreator()), settings,
+            kafkaBrokers.getKafkaBrokersString(), hopsworksRestEndpoint, serviceDiscoveryController));
       } catch (InterruptedException ex) {
         LOGGER.log(Level.SEVERE, null, ex);
       }
     } catch (IOException ex) {
       throw new JobException(RESTCodes.JobErrorCode.PROXY_ERROR, Level.SEVERE,
         "job: " + job.getId() + ", user:" + user.getUsername(), ex.getMessage(), ex);
+    } catch (ServiceDiscoveryException ex) {
+      throw new ServiceException(RESTCodes.ServiceErrorCode.SERVICE_NOT_FOUND, Level.SEVERE,
+          "job: " + job.getId() + ", user:" + user.getUsername(), ex.getMessage(), ex);
     }
+
     if (flinkjob == null) {
       throw new GenericException(RESTCodes.GenericErrorCode.UNKNOWN_ERROR, Level.WARNING,
         "Could not instantiate job with name: " + job.getName() + " and id: " + job.getId(),
@@ -205,7 +221,7 @@ public class FlinkController {
     Map<String, Project> projectsJobs = new HashMap<>();
     //Read all completed jobs from "historyserver.archive.fs.dir"
     try {
-      List<Inode> jobs = inodeFacade.getChildren(archiveDir);
+      List<Inode> jobs = inodeController.getChildren(archiveDir);
       for (Inode job : jobs) {
         if (job.getHdfsUser() != null) {
           projectsJobs.put(job.getInodePK().getName(), projectFacade.findByName(job.getHdfsUser().getProject()));
@@ -232,7 +248,7 @@ public class FlinkController {
     //Read all completed jobs from "historyserver.archive.fs.dir"
     //Flink history server caches old jobs locally. Server is setup to restart once a day, but until it does we might
     // can jobs that don't exist
-    Inode inode = inodeFacade.getInodeAtPath(archivePath + File.separator + job);
+    Inode inode = inodeController.getInodeAtPath(archivePath + File.separator + job);
     if (inode != null) {
       HdfsUsers hdfsUser = inode.getHdfsUser();
       if (hdfsUser != null) {
@@ -248,12 +264,10 @@ public class FlinkController {
    * @throws IOException If the flink conf file could be read.
    */
   public String getArchiveDir() throws IOException {
-    //R
     Yaml yaml = new Yaml();
     try (InputStream in = new FileInputStream(new File(settings.getFlinkConfFile()))) {
       Map<String, Object> obj = (Map<String, Object>) yaml.load(in);
-      return ((String) obj.get("historyserver.archive.fs.dir")).replace("hdfs://", "");
+      return Utils.prepPath((String) obj.get("historyserver.archive.fs.dir"));
     }
   }
-  
 }

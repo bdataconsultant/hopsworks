@@ -15,11 +15,11 @@
  */
 package io.hops.hopsworks.api.python.library.search;
 
-import io.hops.hopsworks.common.dao.project.Project;
-import io.hops.hopsworks.common.dao.python.PythonDep;
 import io.hops.hopsworks.common.python.library.LibraryController;
 import io.hops.hopsworks.common.python.library.LibraryVersionDTO;
 import io.hops.hopsworks.exceptions.ServiceException;
+import io.hops.hopsworks.persistence.entity.project.Project;
+import io.hops.hopsworks.persistence.entity.python.PythonDep;
 
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
@@ -91,7 +91,7 @@ public class LibrarySearchBuilder {
     LibrarySearchDTO dto = new LibrarySearchDTO();
     uri(dto, uriInfo, library);
     dto.setLibrary(library);
-    HashMap<String, List<LibraryVersionDTO>> libVersions = libraryController.pipSearch(library, project);
+    HashMap<String, List<LibraryVersionDTO>> libVersions = libraryController.pipSearch(library);
     dto.setCount((long) libVersions.size());
     return buildItems(dto, uriInfo, libVersions, project, null);
   }

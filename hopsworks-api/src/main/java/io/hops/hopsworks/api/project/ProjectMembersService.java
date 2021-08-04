@@ -44,18 +44,14 @@ import io.hops.hopsworks.api.filter.NoCacheResponse;
 import io.hops.hopsworks.api.jwt.JWTHelper;
 import io.hops.hopsworks.api.util.RESTApiJsonResponse;
 import io.hops.hopsworks.common.constants.message.ResponseMessages;
-import io.hops.hopsworks.common.dao.featurestore.FeaturestoreController;
-import io.hops.hopsworks.common.dao.featurestore.FeaturestoreDTO;
-import io.hops.hopsworks.common.dao.featurestore.online_featurestore.OnlineFeaturestoreController;
-import io.hops.hopsworks.common.dao.project.Project;
-import io.hops.hopsworks.common.dao.project.service.ProjectServiceEnum;
-import io.hops.hopsworks.common.dao.project.service.ProjectServiceFacade;
-import io.hops.hopsworks.common.dao.project.team.ProjectTeam;
 import io.hops.hopsworks.common.dao.project.team.ProjectTeamFacade;
-import io.hops.hopsworks.common.dao.user.Users;
+import io.hops.hopsworks.common.dataset.util.DatasetHelper;
+import io.hops.hopsworks.common.dataset.util.DatasetPath;
+import io.hops.hopsworks.common.hdfs.Utils;
 import io.hops.hopsworks.common.project.MembersDTO;
 import io.hops.hopsworks.common.project.ProjectController;
-import io.hops.hopsworks.common.util.Settings;
+import io.hops.hopsworks.common.util.AccessController;
+import io.hops.hopsworks.exceptions.DatasetException;
 import io.hops.hopsworks.exceptions.FeaturestoreException;
 import io.hops.hopsworks.exceptions.GenericException;
 import io.hops.hopsworks.exceptions.HopsSecurityException;
@@ -66,6 +62,11 @@ import io.hops.hopsworks.exceptions.ServiceException;
 import io.hops.hopsworks.exceptions.TensorBoardException;
 import io.hops.hopsworks.exceptions.UserException;
 import io.hops.hopsworks.jwt.annotation.JWTRequired;
+import io.hops.hopsworks.persistence.entity.dataset.DatasetType;
+import io.hops.hopsworks.persistence.entity.project.Project;
+import io.hops.hopsworks.persistence.entity.project.team.ProjectRoleTypes;
+import io.hops.hopsworks.persistence.entity.project.team.ProjectTeam;
+import io.hops.hopsworks.persistence.entity.user.Users;
 import io.hops.hopsworks.restutils.RESTCodes;
 
 import javax.ejb.EJB;
@@ -79,12 +80,14 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.GenericEntity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -98,27 +101,21 @@ public class ProjectMembersService {
   @EJB
   private ProjectTeamFacade projectTeamFacade;
   @EJB
-  private ProjectServiceFacade projectServiceFacade;
-  @EJB
-  private OnlineFeaturestoreController onlineFeaturestoreController;
-  @EJB
-  private Settings settings;
-  @EJB
   private NoCacheResponse noCacheResponse;
   @EJB
   private JWTHelper jWTHelper;
   @EJB
-  private FeaturestoreController featurestoreController;
-  
+  private AccessController accessCtrl;
+  @EJB
+  private DatasetHelper datasetHelper;
+
   private Integer projectId;
 
   public ProjectMembersService() {
   }
-
   public void setProjectId(Integer projectId) {
     this.projectId = projectId;
   }
-
   public Integer getProjectId() {
     return projectId;
   }
@@ -132,7 +129,7 @@ public class ProjectMembersService {
   @AllowedProjectRoles({AllowedProjectRoles.DATA_SCIENTIST, AllowedProjectRoles.DATA_OWNER})
   @JWTRequired(acceptedTokens = {Audience.API},
       allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
-  public Response findMembersByProjectID() {
+  public Response findMembersByProjectID(@Context SecurityContext sc) {
     List<ProjectTeam> list = projectController.findProjectTeamById(this.projectId);
     GenericEntity<List<ProjectTeam>> projects = new GenericEntity<List<ProjectTeam>>(list) {
     };
@@ -155,8 +152,7 @@ public class ProjectMembersService {
   @POST
   @Produces(MediaType.APPLICATION_JSON)
   @AllowedProjectRoles({AllowedProjectRoles.DATA_OWNER})
-  @JWTRequired(acceptedTokens = {Audience.API},
-      allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
+  @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
   public Response addMembers(MembersDTO members, @Context SecurityContext sc) throws KafkaException,
     ProjectException, UserException, FeaturestoreException {
 
@@ -198,34 +194,22 @@ public class ProjectMembersService {
   @Path("/{email}")
   @Produces(MediaType.APPLICATION_JSON)
   @AllowedProjectRoles({AllowedProjectRoles.DATA_OWNER})
-  @JWTRequired(acceptedTokens = {Audience.API},
-      allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
+  @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
   public Response updateRoleByEmail(@PathParam("email") String email, @FormParam("role") String role,
-      @Context SecurityContext sc) throws ProjectException, UserException, FeaturestoreException {
-
+      @Context SecurityContext sc) throws ProjectException, UserException, FeaturestoreException, IOException {
     Project project = projectController.findProjectById(this.projectId);
     RESTApiJsonResponse json = new RESTApiJsonResponse();
     Users user = jWTHelper.getUserPrincipal(sc);
     if (email == null) {
       throw new IllegalArgumentException("Email was not provided.");
     }
-    if (role == null) {
+    if (role == null || !ProjectRoleTypes.isAllowedRole(role)) {
       throw new IllegalArgumentException("Role was not provided.");
     }
     if (project.getOwner().getEmail().equals(email)) {
       throw new ProjectException(RESTCodes.ProjectErrorCode.PROJECT_OWNER_ROLE_NOT_ALLOWED, Level.FINE);
     }
-    projectController.updateMemberRole(project, user, email, role);
-    //Update user-privileges on the online feature store
-    if (projectServiceFacade.isServiceEnabledForProject(project, ProjectServiceEnum.FEATURESTORE)
-      && settings.isOnlineFeaturestore()) {
-      Users member = projectTeamFacade.findUserByEmail(email);
-      onlineFeaturestoreController.createDatabaseUser(member, project);
-      FeaturestoreDTO featurestoreDTO = featurestoreController.getFeaturestoreForProjectWithName(project,
-        featurestoreController.getOfflineFeaturestoreDbName(project));
-      onlineFeaturestoreController.updateUserOnlineFeatureStoreDB(project, member,
-        featurestoreController.getFeaturestoreWithId(featurestoreDTO.getFeaturestoreId()));
-    }
+    projectController.updateMemberRole(project, user, email, ProjectRoleTypes.fromString(role).getRole());
     json.setSuccessMessage(ResponseMessages.MEMBER_ROLE_UPDATED);
     return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).entity(json).build();
   }
@@ -257,18 +241,26 @@ public class ProjectMembersService {
       throw new ProjectException(RESTCodes.ProjectErrorCode.MEMBER_REMOVAL_NOT_ALLOWED, Level.FINE);
     }
 
-    //Not able to remove project owner regardless of who is trying to remove the member
-    if (project.getOwner().getEmail().equals(email)) {
-      throw new ProjectException(RESTCodes.ProjectErrorCode.PROJECT_OWNER_NOT_ALLOWED, Level.FINE);
-    }
     projectController.removeMemberFromTeam(project, reqUser, email);
 
-    if (projectServiceFacade.isServiceEnabledForProject(project, ProjectServiceEnum.FEATURESTORE)) {
-      Users member = projectTeamFacade.findUserByEmail(email);      
-      onlineFeaturestoreController.removeOnlineFeaturestoreUser(project, member);
-    }
     json.setSuccessMessage(ResponseMessages.MEMBER_REMOVED_FROM_TEAM);
     return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).entity(json).build();
   }
-
+  
+  @GET
+  @Produces(MediaType.APPLICATION_JSON)
+  @AllowedProjectRoles({AllowedProjectRoles.DATA_OWNER, AllowedProjectRoles.DATA_SCIENTIST})
+  @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
+  @Path("/dataset/{name}")
+  public Response getDatasetMembers(@PathParam("name") String dsName,
+    @QueryParam("type") DatasetType datasetType)
+    throws ProjectException, DatasetException {
+    Project project = projectController.findProjectById(this.projectId);
+    String path = Utils.getProjectPath(project.getName()) + dsName;
+    DatasetPath dp = datasetHelper.getDatasetPath(project, path, datasetType);
+    Collection<ProjectTeam> membersCol = accessCtrl.getExtendedMembers(dp.getDataset());
+    GenericEntity<Collection<ProjectTeam>> members = new GenericEntity<Collection<ProjectTeam>>(membersCol) {
+    };
+    return Response.ok().entity(members).build();
+  }
 }

@@ -44,13 +44,13 @@
   <parent>
     <groupId>io.hops</groupId>
     <artifactId>hopsworks</artifactId>
-    <version>1.0.0</version>
+    <version>2.2.0</version>
     <relativePath>..</relativePath>
   </parent>
   
   <groupId>io.hops.hopsworks</groupId>
   <artifactId>hopsworks-admin</artifactId>
-  <version>1.0.0</version>
+  <version>2.2.0</version>
   <packaging>war</packaging>
   <description>Hopsworks admin panel</description>
   <name>hopsworks-admin</name>
@@ -60,6 +60,18 @@
   </properties>
   
   <dependencies>
+    <dependency>
+      <groupId>io.hops.hopsworks</groupId>
+      <artifactId>hopsworks-persistence</artifactId>
+      <version>${project.version}</version>
+      <exclusions>
+        <!-- exclude all transitive dependencies -->
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
     <dependency>
       <groupId>io.hops.hopsworks</groupId>
       <artifactId>hopsworks-rest-utils</artifactId>
@@ -112,7 +124,8 @@
         <artifactId>maven-war-plugin</artifactId>
         <version>3.0.0</version>
         <configuration>
-          <failOnMissingWebXml>false</failOnMissingWebXml>
+          <failOnMissingWebXml>true</failOnMissingWebXml>
+          <attachClasses>true</attachClasses>
         </configuration>
       </plugin>
     </plugins>

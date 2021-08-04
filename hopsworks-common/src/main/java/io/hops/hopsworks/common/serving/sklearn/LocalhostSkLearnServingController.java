@@ -16,18 +16,20 @@
 
 package io.hops.hopsworks.common.serving.sklearn;
 
+import com.google.common.base.Strings;
 import com.google.common.io.Files;
-import io.hops.hopsworks.common.dao.project.Project;
-import io.hops.hopsworks.common.dao.serving.Serving;
 import io.hops.hopsworks.common.dao.serving.ServingFacade;
-import io.hops.hopsworks.common.dao.user.Users;
 import io.hops.hopsworks.common.hdfs.Utils;
 import io.hops.hopsworks.common.security.CertificateMaterializer;
-import io.hops.hopsworks.exceptions.ServingException;
 import io.hops.hopsworks.common.util.OSProcessExecutor;
 import io.hops.hopsworks.common.util.ProcessDescriptor;
 import io.hops.hopsworks.common.util.ProcessResult;
+import io.hops.hopsworks.common.util.ProjectUtils;
 import io.hops.hopsworks.common.util.Settings;
+import io.hops.hopsworks.exceptions.ServingException;
+import io.hops.hopsworks.persistence.entity.project.Project;
+import io.hops.hopsworks.persistence.entity.serving.Serving;
+import io.hops.hopsworks.persistence.entity.user.Users;
 import io.hops.hopsworks.restutils.RESTCodes;
 
 import javax.ejb.EJB;
@@ -44,7 +46,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static io.hops.hopsworks.common.hdfs.HdfsUsersController.USER_NAME_DELIMITER;
-import static io.hops.hopsworks.common.serving.LocalhostServingController.PID_STOPPED;
+import static io.hops.hopsworks.common.serving.LocalhostServingController.CID_STOPPED;
 import static io.hops.hopsworks.common.serving.LocalhostServingController.SERVING_DIRS;
 
 /**
@@ -66,6 +68,8 @@ public class LocalhostSkLearnServingController {
   private CertificateMaterializer certificateMaterializer;
   @EJB
   private OSProcessExecutor osProcessExecutor;
+  @EJB
+  private ProjectUtils projectUtils;
   
   public int getMaxNumInstances() {
     return 1;
@@ -85,7 +89,7 @@ public class LocalhostSkLearnServingController {
    */
   public void killServingInstance(Project project, Serving serving, boolean releaseLock)
       throws ServingException {
-    String script = settings.getHopsworksDomainDir() + "/bin/sklearn_serving.sh";
+    String script = settings.getSudoersDir() + "/sklearn_serving.sh";
 
     Path secretDir = Paths.get(settings.getStagingDir(), SERVING_DIRS + serving.getLocalDir());
 
@@ -93,12 +97,13 @@ public class LocalhostSkLearnServingController {
         .addCommand("/usr/bin/sudo")
         .addCommand(script)
         .addCommand("kill")
-        .addCommand(String.valueOf(serving.getLocalPid()))
-        .addCommand(String.valueOf(serving.getLocalPort()))
+        .addCommand(serving.getCid())
+        .addCommand(serving.getName())
+        .addCommand(serving.getProject().getName().toLowerCase())
         .addCommand(secretDir.toString())
         .ignoreOutErrStreams(true)
         .build();
-    logger.log(Level.INFO, processDescriptor.toString());
+    logger.log(Level.FINE, processDescriptor.toString());
     try {
       osProcessExecutor.execute(processDescriptor);
     } catch (IOException ex) {
@@ -106,7 +111,7 @@ public class LocalhostSkLearnServingController {
         "serving id: " + serving.getId(), ex.getMessage(), ex);
     }
 
-    serving.setLocalPid(PID_STOPPED);
+    serving.setCid(CID_STOPPED);
     serving.setLocalPort(-1);
     servingFacade.updateDbObject(serving, project);
 
@@ -125,54 +130,73 @@ public class LocalhostSkLearnServingController {
    *
    * @param project the project to start the serving in
    * @param user the user starting the serving
-   * @param serving the serving instance to start (sklearn servingtype)
+   * @param serving the serving instance to start (flask server)
    * @throws ServingException
    */
   public void startServingInstance(Project project, Users user, Serving serving) throws ServingException {
-    String script = settings.getHopsworksDomainDir() + "/bin/sklearn_serving.sh";
+    String script = settings.getSudoersDir() + "/sklearn_serving.sh";
     Integer port = ThreadLocalRandom.current().nextInt(40000, 59999);
     Path secretDir = Paths.get(settings.getStagingDir(), SERVING_DIRS + serving.getLocalDir());
-    ProcessDescriptor processDescriptor = new ProcessDescriptor.Builder()
-        .addCommand("/usr/bin/sudo")
-        .addCommand(script)
-        .addCommand("start")
-        .addCommand(Utils.getFileName(Paths.get(serving.getArtifactPath()).toString()))
-        .addCommand(Paths.get(serving.getArtifactPath()).toString())
-        .addCommand(String.valueOf(port))
-        .addCommand(secretDir.toString())
-        .addCommand(project.getName() + USER_NAME_DELIMITER + user.getUsername())
-        .addCommand(project.getName().toLowerCase())
-        .addCommand(settings.getAnacondaProjectDir(project) + "/bin/python")
-        .addCommand(certificateMaterializer.getUserTransientKeystorePath(project, user))
-        .addCommand(certificateMaterializer.getUserTransientTruststorePath(project, user))
-        .addCommand(certificateMaterializer.getUserTransientPasswordPath(project, user))
-        .addCommand(serving.getName())
-        .setWaitTimeout(2L, TimeUnit.MINUTES)
-        .ignoreOutErrStreams(true)
-        .build();
-    logger.log(Level.INFO, processDescriptor.toString());
     try {
+      
+      ProcessDescriptor processDescriptor = new ProcessDescriptor.Builder()
+          .addCommand("/usr/bin/sudo")
+          .addCommand(script)
+          .addCommand("start")
+          .addCommand(Utils.getFileName(Paths.get(serving.getArtifactPath()).toString()))
+          .addCommand(Paths.get(serving.getArtifactPath()).toString())
+          .addCommand(String.valueOf(port))
+          .addCommand(secretDir.toString())
+          .addCommand(project.getName() + USER_NAME_DELIMITER + user.getUsername())
+          .addCommand(project.getName().toLowerCase())
+          .addCommand(settings.getAnacondaProjectDir() + "/bin/python")
+          .addCommand(certificateMaterializer.getUserTransientKeystorePath(project, user))
+          .addCommand(certificateMaterializer.getUserTransientTruststorePath(project, user))
+          .addCommand(certificateMaterializer.getUserTransientPasswordPath(project, user))
+          .addCommand(serving.getName())
+          .addCommand(projectUtils.getFullDockerImageName(project, false))
+          .setWaitTimeout(2L, TimeUnit.MINUTES)
+          .ignoreOutErrStreams(true)
+          .build();
+      logger.log(Level.FINE, processDescriptor.toString());
+
       // Materialized TLS certificates so that user can read from HDFS inside python script
       certificateMaterializer.materializeCertificatesLocal(user.getUsername(), project.getName());
       ProcessResult processResult = osProcessExecutor.execute(processDescriptor);
       if (processResult.getExitCode() != 0) {
         // Startup process failed for some reason
-        serving.setLocalPid(PID_STOPPED);
+        serving.setCid(CID_STOPPED);
         servingFacade.updateDbObject(serving, project);
-        throw new ServingException(RESTCodes.ServingErrorCode.LIFECYCLEERRORINT, Level.INFO);
+        throw new ServingException(RESTCodes.ServingErrorCode.LIFECYCLEERRORINT, Level.WARNING,
+          "Could not start sklearn serving", "ut:" + processResult.getStdout() + ", err:" + processResult.getStderr());
       }
 
       // Read the pid for SkLearn Serving Flask server
       Path pidFilePath = Paths.get(secretDir.toString(), "sklearn_flask_server.pid");
+      // Pid file is created by sklearn server inside the docker container.
+      // That means the process that started the container returned with exit code 0 but the file might not have been
+      // created yet. Therefore, we wait until the file is created
       String pidContents = Files.readFirstLine(pidFilePath.toFile(), Charset.defaultCharset());
-
+      int pidReadCounter = 0;
+      while (Strings.isNullOrEmpty(pidContents) && pidReadCounter < 10) {
+        logger.log(Level.FINE, "Waiting for sklearn to start...");
+        Thread.sleep(1000);
+        pidContents = Files.readFirstLine(pidFilePath.toFile(), Charset.defaultCharset());
+        pidReadCounter++;
+      }
+  
+      if (Strings.isNullOrEmpty(pidContents)) {
+        throw new ServingException(RESTCodes.ServingErrorCode.LIFECYCLEERRORINT, Level.WARNING,
+          "Could not start sklearn serving because pid file could not be read or was empty");
+      }
+      logger.log(Level.FINE, "sklearn pidContents:"+pidContents);
       // Update the info in the db
-      serving.setLocalPid(Integer.valueOf(pidContents));
+      serving.setCid(pidContents);
       serving.setLocalPort(port);
       servingFacade.updateDbObject(serving, project);
     } catch (Exception ex) {
       // Startup process failed for some reason
-      serving.setLocalPid(PID_STOPPED);
+      serving.setCid(CID_STOPPED);
       servingFacade.updateDbObject(serving, project);
 
       throw new ServingException(RESTCodes.ServingErrorCode.LIFECYCLEERRORINT, Level.SEVERE, null,

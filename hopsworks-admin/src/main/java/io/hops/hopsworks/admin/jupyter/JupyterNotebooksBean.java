@@ -38,16 +38,16 @@
  */
 package io.hops.hopsworks.admin.jupyter;
 
-import io.hops.hopsworks.common.dao.hdfsUser.HdfsUsers;
 import io.hops.hopsworks.common.dao.hdfsUser.HdfsUsersFacade;
-import io.hops.hopsworks.common.dao.jupyter.JupyterProject;
-import io.hops.hopsworks.common.dao.jupyter.config.JupyterManager;
 import io.hops.hopsworks.common.dao.project.ProjectFacade;
 import io.hops.hopsworks.common.dao.user.UserFacade;
-import io.hops.hopsworks.common.dao.user.Users;
 import io.hops.hopsworks.common.hdfs.HdfsUsersController;
 import io.hops.hopsworks.common.jupyter.JupyterController;
+import io.hops.hopsworks.common.jupyter.JupyterManager;
 import io.hops.hopsworks.exceptions.ServiceException;
+import io.hops.hopsworks.persistence.entity.hdfs.user.HdfsUsers;
+import io.hops.hopsworks.persistence.entity.jupyter.JupyterProject;
+import io.hops.hopsworks.persistence.entity.user.Users;
 
 import javax.ejb.EJB;
 import javax.enterprise.context.RequestScoped;
@@ -123,11 +123,11 @@ public class JupyterNotebooksBean implements Serializable {
     String hdfsUser = getHdfsUser(notebook);
     try {
       if (hdfsUser.compareTo("Orphaned") == 0) {
-        jupyterController.shutdownOrphan(notebook.getPid(), notebook.getPort());
+        jupyterController.shutdownOrphan(notebook.getCid(), notebook.getPort());
       } else {
         Users user = userFacade.findByUsername(hdfsUsersController.getUserName(hdfsUser));
         jupyterController.shutdown(notebook.getProjectId(), hdfsUser, user, notebook.getSecret(),
-          notebook.getPid(), notebook.getPort());
+          notebook.getCid(), notebook.getPort());
       }
       FacesContext context = FacesContext.getCurrentInstance();
       context.addMessage(null, new FacesMessage("Successful", "Successfully killed Jupyter Notebook Server."));

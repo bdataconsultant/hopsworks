@@ -22,9 +22,10 @@
 angular.module('hopsWorksApp')
     .controller('servingCtrl', ['$scope', '$routeParams', 'growl', 'ServingService', 'UtilsService', '$location',
         'PythonService', 'ModalService', '$interval', 'StorageService', '$mdSidenav', 'DataSetService',
-        'KafkaService', 'JobService',
-        function ($scope, $routeParams, growl, ServingService, UtilsService, $location, PythonDepsService,
-                  ModalService, $interval, StorageService, $mdSidenav, DataSetService, KafkaService) {
+        'KafkaService', 'JobService','ElasticService', 'ModelService', 'VariablesService',
+        function ($scope, $routeParams, growl, ServingService, UtilsService, $location, PythonService,
+                  ModalService, $interval, StorageService, $mdSidenav, DataSetService, KafkaService, JobService,
+                  ElasticService, ModelService, VariablesService) {
 
             var self = this;
 
@@ -43,15 +44,18 @@ angular.module('hopsWorksApp')
             self.showLogs = false;
             self.kibanaUI = "";
 
+            self.selectedModel;
+            self.models = [];
+
             self.projectKafkaTopics = [];
             self.kafkaDefaultNumPartitions = 1;
             self.kafkaDefaultNumReplicas = 1;
             self.kafkaMaxNumReplicas = 1;
 
             self.servings = [];
-
-            self.editServing = {};
-            self.editServing.batchingEnabled = false;
+            self.loaded = false;
+            self.loading = false;
+            self.loadingText = "";
 
             // Configuration to create a new Kafka topic for the serving
             self.createKafkaTopicDTO = {};
@@ -85,14 +89,20 @@ angular.module('hopsWorksApp')
             self.ignorePoll = false;
             self.createNewServingMode = false;
 
-            self.editServing.servingType = "TENSORFLOW"
             self.sklearnScriptRegex = /(.py|.ipynb)\b/
             self.sklearnSelectScriptErrorMsg = "Please select a .py or .ipynb file."
             self.nameRegex = /^[a-zA-Z0-9]+$/;
 
+            self.kfserving = false;
+
+            self.editServing = {};
+            self.editServing.batchingEnabled = false;
+            self.editServing.modelServer = "TENSORFLOW_SERVING";
+            self.editServing.servingTool = "DEFAULT";
+
             this.selectFile = function () {
-                if (self.editServing.servingType === "TENSORFLOW") {
-                    ModalService.selectModelServing('lg', '*', '').then(
+                if (self.editServing.modelServer === "TENSORFLOW_SERVING") {
+                    ModalService.selectDir('lg', self.projectId, '*', '').then(
                         function (success) {
                             self.onDirSelected(success);
                         },
@@ -100,11 +110,10 @@ angular.module('hopsWorksApp')
                             // Users changed their minds.
                         });
                 }
-                if (self.editServing.servingType == "SKLEARN") {
+                if (self.editServing.modelServer === "FLASK") {
                     ModalService.selectFile('lg', self.projectId, self.sklearnScriptRegex, self.sklearnSelectScriptErrorMsg,
                         false).then(
                         function (success) {
-                            var projectName = UtilsService.getProjectName();
                             self.onFileSelected(success);
                         }, function (error) {
                             //The user changed their mind.
@@ -127,12 +136,13 @@ angular.module('hopsWorksApp')
                     name = artifactPathSplits[artifactPathSplits.length - 1];
                 }
 
-                datasetService.getContents(relativePath).then(
+                datasetService.getAllDatasets(relativePath).then(
                     function (success) {
                         var versions = [];
-                        for (var version in success.data) {
-                            if (!isNaN(success.data[version].name)) {
-                                versions.push(success.data[version].name);
+                        var files = success.data.items;
+                        for (var version in files) {
+                            if (!isNaN(files[version].attributes.name)) {
+                                versions.push(files[version].attributes.name);
                             } else {
                                 growl.error("Directory doesn't respect the required structure", {
                                     title: 'Error',
@@ -173,8 +183,8 @@ angular.module('hopsWorksApp')
              * @param artifactPath the directory HDFS path
              */
             self.onDirSelected = function (artifactPath) {
-                if (self.editServing.servingType === "TENSORFLOW") {
-                    self.validateTfModelPath(artifactPath, self.editServing.name);
+                if (self.editServing.modelServer === "TENSORFLOW_SERVING") {
+                    self.validateTfModelPath(artifactPath, undefined);
                 }
             };
 
@@ -192,7 +202,7 @@ angular.module('hopsWorksApp')
                     });
                     return
                 }
-                if (typeof name === 'undefined' || name === null || name == "") {
+                if (typeof name === 'undefined' || name === null || name === "") {
                     name = filename.replace(".py", "");
                     name = name.replace(/_/g, "")
                 }
@@ -207,7 +217,7 @@ angular.module('hopsWorksApp')
              * @param path the selected path
              */
             self.onFileSelected = function (path) {
-                if (self.editServing.servingType === "SKLEARN") {
+                if (self.editServing.modelServer === "FLASK") {
                     self.validateSkLearnScriptPath(path, self.editServing.name)
                 }
             }
@@ -221,26 +231,38 @@ angular.module('hopsWorksApp')
             self.hideCreateServingForm = function () {
                 self.showCreateNewServingForm = false;
                 self.createNewServingMode = false;
+                self.kfserving = false;
+                self.versions = [];
+                self.sliderOptions.value = 1;
+                self.showAdvancedForm = false;
+
                 self.editServing = {};
-                self.editServing.kafkaTopicDTO = {};
-                self.editServing.kafkaTopicDTO.name = "CREATE";
+                self.editServing.kafkaTopicDTO = self.projectKafkaTopics[0];
                 self.editServing.kafkaTopicDTO.numOfPartitions = self.kafkaDefaultNumPartitions;
                 self.editServing.kafkaTopicDTO.numOfReplicas = self.kafkaDefaultNumReplicas;
                 self.editServing.batchingEnabled = false;
-                self.editServing.servingType = "TENSORFLOW";
+                self.editServing.modelServer = "TENSORFLOW_SERVING";
+                self.editServing.servingTool = "DEFAULT";
                 self.versions = [];
                 self.sliderOptions.value = 1;
                 self.showAdvancedForm = false;
             };
 
             self.getAllServings = function () {
+                if(!self.loaded) {
+                    startLoading('Loading Servings...')
+                }
                 ServingService.getAllServings(self.projectId).then(
                     function (success) {
+                        stopLoading();
                         if (!self.ignorePoll) {
                             self.servings = success.data;
+                            self.loaded = true;
                         }
                     },
                     function (error) {
+                        stopLoading();
+                        self.loaded = true;
                         growl.error(error.data.errorMsg, {
                             title: 'Error',
                             ttl: 15000
@@ -248,9 +270,46 @@ angular.module('hopsWorksApp')
                     });
             };
 
+            var startLoading = function(label) {
+                self.loading = true;
+                self.loadingText = label;
+            };
+            var stopLoading = function() {
+                self.loading = false;
+                self.loadingText = "";
+            };
+
             self.filterTopics = function (topic) {
                 return topic.name === self.editServing.kafkaTopicDTO.name;
             };
+
+            self.setKFServing = function(){
+                // KFServing currently not supported with Flask model server.
+                if (self.editServing.modelServer === "FLASK") {
+                    self.kfserving = false;
+                }
+                if (self.kfserving) {
+                    self.editServing.servingTool = "KFSERVING";
+                    // Request batching not supported in KFServing v0.3
+                    self.editServing.batchingEnabled = false;
+                } else {
+                    self.editServing.servingTool = "DEFAULT";
+                }
+            }
+
+            self.setIsKFServing = function(isKFServing) {
+                self.isKFServing = isKFServing;
+                if (!self.isKFServing){
+                    self.kfserving = false;
+                }
+            }
+
+            self.setIsKubernetes = function(isKubernetes) {
+                self.isKubernetes = isKubernetes;
+                if (!self.isKubernetes){
+                    self.sliderOptions.options.disabled = true;
+                }
+            }
 
             self.updateKafkaDetails = function () {
                 if (self.editServing.kafkaTopicDTO.name === 'CREATE' ||
@@ -351,8 +410,8 @@ angular.module('hopsWorksApp')
 
                 // Check that python kernel is enabled if it is a sklearn serving, as the flask serving will be launched
                 // inside the project anaconda environment
-                if (self.editServing.servingType === "SKLEARN") {
-                    PythonDepsService.enabled(self.projectId).then(
+                if (self.editServing.modelServer === "FLASK") {
+                    PythonService.enabled(self.projectId).then(
                         function (success) {
                             self.doCreateOrUpdate()
                         },
@@ -398,10 +457,12 @@ angular.module('hopsWorksApp')
                 angular.copy(serving, self.editServing);
                 self.editServing.modelVersion = self.editServing.modelVersion.toString();
                 self.sliderOptions.value = serving.requestedInstances;
-                if (self.editServing.servingType === "TENSORFLOW") {
+                self.kfserving = self.editServing.servingTool === "KFSERVING";
+                if (self.editServing.modelServer === "TENSORFLOW_SERVING") {
                     self.validateTfModelPath(serving.artifactPath, serving.name);
                 }
                 self.showCreateServingForm();
+                self.setKFServing();
             };
 
             /**
@@ -444,25 +505,69 @@ angular.module('hopsWorksApp')
                     },
                     function (error) {
                         self.ignorePoll = false;
-                        growl.error(error.data.errorMsg, {
-                            title: 'Error',
-                            ttl: 15000
-                        });
+                        if (typeof error.data.usrMsg !== 'undefined') {
+                            growl.error(error.data.usrMsg, {title: error.data.errorMsg, ttl: 10000});
+                        } else {
+                            growl.error("", {title: error.data.errorMsg, ttl: 10000});
+                        }
                     });
 
             };
 
+            self.fetchAsync = function (modelNameLike) {
+                self.loadingModels = false;
+                var query = '';
+                if(modelNameLike) {
+                    query = '?filter_by=name_like:' + modelNameLike;
+                }
+                ModelService.getAll(self.projectId, query).then(
+                    function(success) {
+                        if(success.data.items) {
+                            var modelNames = new Set();
+                            for(var i = 0; i < success.data.items.length; i < i++) {
+                                modelNames.add(success.data.items[i].name)
+                            }
+                            self.models = Array.from(modelNames);
+                        } else {
+                            self.models = [];
+                        }
+                        self.loadingModels = true;
+                    },
+                    function(error) {
+                        if (typeof error.data.usrMsg !== 'undefined') {
+                            growl.error(error.data.usrMsg, {title: error.data.errorMsg, ttl: 8000});
+                        } else {
+                            growl.error("", {title: error.data.errorMsg, ttl: 8000});
+                        }
+                        self.loadingModels = true;
+                    });
+            };
+
             /**
-             * Function called when the user is switching between the form for creating a TFServing vs a SkLearnServing
+             * Function called when the user is switching between the form for creating a TF Serving or Flask
              *
-             * @param servingType the selected sereving type
+             * @param modelServer the selected model server
              */
-            self.setServingType = function (servingType) {
+            self.setModelServer = function (modelServer) {
                 self.editServing.artifactPath = ""
                 self.editServing.name = ""
                 self.editServing.modelVersion = ""
-                self.editServing.servingType = servingType
+                self.editServing.modelServer = modelServer
+
+                if (modelServer === "FLASK") {
+                    // request batching is not supported with Flask
+                    self.editServing.batchingEnabled = false;
+                }
+
+                // refresh kfserving settings
+                self.setKFServing()
             }
+
+            self.setFullModelPath = function() {
+                var projectName = UtilsService.getProjectName();
+                self.editServing.artifactPath = '/Projects/' + projectName + '/Models/' + self.editServing.artifactPath;
+                self.validateTfModelPath(self.editServing.artifactPath, undefined);
+            };
 
             /**
              * Called when the user press the "Logs" button
@@ -470,12 +575,23 @@ angular.module('hopsWorksApp')
              * @param serving the serving to show the logs for
              */
             self.showServingLogs = function (serving) {
-                var projectName = UtilsService.getProjectName();
-                self.kibanaUI = "/giotto-api/kibana/app/kibana?projectId=" + self.projectId +
-                    "#/discover?_g=()&_a=(columns:!(modelname,host,log_message,'@timestamp')," +
-                    "index:'" + projectName.toLowerCase() + "_serving-*',interval:auto," +
-                    "query:(language:lucene,query:'modelname:" + serving.name + "'),sort:!('@timestamp',desc))";
-                self.showLogs = true;
+             var projectName = UtilsService.getProjectName();
+             ElasticService.getJwtToken(self.projectId).then(
+                 function (success) {
+                    var kibanaUrl = success.data.kibanaUrl;
+                     self.kibanaUI = kibanaUrl + "projectId=" + self.projectId +
+                                        "#/discover?_g=()&_a=(columns:!(serving_name,log_message,'@timestamp')," +
+                                        "index:'" + projectName.toLowerCase() + "_serving-*',interval:auto," +
+                                        "query:(language:lucene,query:'serving_name:" + serving.name + "'),sort:!('@timestamp',desc))";
+                     self.showLogs = true;
+
+                 }, function (error) {
+                     if (typeof error.data.usrMsg !== 'undefined') {
+                         growl.error(error.data.usrMsg, {title: error.data.errorMsg, ttl: 8000});
+                        } else {
+                          growl.error("", {title: error.data.errorMsg, ttl: 8000});
+                        }
+             });
             };
 
             self.showDetailedInformation = function (serving) {
@@ -516,7 +632,7 @@ angular.module('hopsWorksApp')
                     }
                 );
 
-                KafkaService.defaultTopicValues(self.projectId).then(
+                KafkaService.defaultTopicValues().then(
                     function (success) {
                         self.kafkaDefaultNumPartitions = success.data.numOfPartitions;
                         self.kafkaDefaultNumReplicas = success.data.numOfReplicas;
@@ -528,7 +644,31 @@ angular.module('hopsWorksApp')
                             ttl: 15000
                         });
                     }
-                )
+                );
+
+                VariablesService.isKubernetes().then(
+                    function(success) {
+                        self.setIsKubernetes(success.data.successMessage === "true")
+                    },
+                    function (error) {
+                        growl.error(error.data.errorMsg, {
+                            title: 'Failed to fetch if kubernetes is enabled',
+                            ttl: 15000
+                        });
+                    }
+                );
+
+                VariablesService.isKFServing().then(
+                    function(success) {
+                        self.setIsKFServing(success.data.successMessage === "true")
+                    },
+                    function (error) {
+                        growl.error(error.data.errorMsg, {
+                            title: 'Failed to fetch if kfserving is enabled',
+                            ttl: 15000
+                        });
+                    }
+                );
             };
             self.init();
         }

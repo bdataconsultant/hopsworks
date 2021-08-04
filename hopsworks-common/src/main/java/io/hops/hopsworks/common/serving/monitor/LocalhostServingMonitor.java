@@ -16,9 +16,9 @@
 
 package io.hops.hopsworks.common.serving.monitor;
 
-import io.hops.hopsworks.common.dao.serving.Serving;
+import io.hops.hopsworks.persistence.entity.serving.ModelServer;
+import io.hops.hopsworks.persistence.entity.serving.Serving;
 import io.hops.hopsworks.common.dao.serving.ServingFacade;
-import io.hops.hopsworks.common.dao.serving.ServingType;
 import io.hops.hopsworks.common.serving.LocalhostServingController;
 import io.hops.hopsworks.common.serving.ServingController;
 import io.hops.hopsworks.exceptions.ServingException;
@@ -44,8 +44,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static io.hops.hopsworks.common.serving.LocalhostServingController.PID_STOPPED;
 import static io.hops.hopsworks.common.serving.LocalhostServingController.SERVING_DIRS;
+import static io.hops.hopsworks.common.serving.LocalhostServingController.CID_STOPPED;
 
 /**
  * This singleton iterates over the running Serving instances and checks whether
@@ -89,74 +89,79 @@ public class LocalhostServingMonitor {
       intervalValue = intervalTimeunit.toMillis(intervalValue);
       timerService.createTimer(intervalValue, intervalValue, "Localhost Serving instances monitor");
 
-      tfScript = settings.getHopsworksDomainDir() + "/bin/tfserving.sh";
-      sklearnScript = settings.getHopsworksDomainDir() + "/bin/sklearn_serving.sh";
+      tfScript = settings.getSudoersDir() + "/tfserving.sh";
+      sklearnScript = settings.getSudoersDir() + "/sklearn_serving.sh";
     }
 
   }
 
   @Timeout
   public void monitor(Timer timer) {
-    // Get the list of running Localhost Serving instances
-    List<Serving> servingList = servingFacade.getLocalhostRunning();
-    for (Serving serving : servingList) {
-      try {
-        Serving dbServing = servingFacade.acquireLock(serving.getProject(), serving.getId());
-        ProcessDescriptor.Builder builder = new ProcessDescriptor.Builder().addCommand("/usr/bin/sudo");
-        if (serving.getServingType() == ServingType.TENSORFLOW) {
-          builder.addCommand(tfScript);
-        }
-        if (serving.getServingType() == ServingType.SKLEARN) {
-          builder.addCommand(sklearnScript);
-        }
-        ProcessDescriptor processDescriptor = builder.addCommand("alive")
-            .addCommand(String.valueOf(dbServing.getLocalPid()))
-            .addCommand(dbServing.getLocalDir())
-            .ignoreOutErrStreams(true)
-            .build();
-
-        LOGGER.log(Level.FINE, processDescriptor.toString());
+    try {
+      // Get the list of running Localhost Serving instances
+      List<Serving> servingList = servingFacade.getLocalhostRunning();
+      for (Serving serving : servingList) {
         try {
-          ProcessResult processResult = osProcessExecutor.execute(processDescriptor);
+          Serving dbServing = servingFacade.acquireLock(serving.getProject(), serving.getId());
+          ProcessDescriptor.Builder builder = new ProcessDescriptor.Builder().addCommand("/usr/bin/sudo");
+          if (serving.getModelServer() == ModelServer.TENSORFLOW_SERVING) {
+            builder.addCommand(tfScript);
+          }
+          if (serving.getModelServer() == ModelServer.FLASK) {
+            builder.addCommand(sklearnScript);
+          }
+          ProcessDescriptor processDescriptor = builder.addCommand("alive")
+              .addCommand(dbServing.getProject().getName().toLowerCase())
+              .addCommand(dbServing.getName())
+              .ignoreOutErrStreams(true)
+              .build();
 
-          if (processResult.getExitCode() != 0) {
+          LOGGER.log(Level.FINE, processDescriptor.toString());
+          try {
+            ProcessResult processResult = osProcessExecutor.execute(processDescriptor);
 
-            // The processes is dead, run the kill script to delete the directory
-            // and update the value in the db
-            Path secretDir = Paths.get(settings.getStagingDir(), SERVING_DIRS + serving.getLocalDir());
-            builder = new ProcessDescriptor.Builder().addCommand("/usr/bin/sudo");
-            if (serving.getServingType() == ServingType.TENSORFLOW) {
-              builder.addCommand(tfScript);
+            if (processResult.getExitCode() != 0) {
+
+              // The processes is dead, run the kill script to delete the directory
+              // and update the value in the db
+              Path secretDir = Paths.get(settings.getStagingDir(), SERVING_DIRS + serving.getLocalDir());
+              builder = new ProcessDescriptor.Builder().addCommand("/usr/bin/sudo");
+              if (serving.getModelServer() == ModelServer.TENSORFLOW_SERVING) {
+                builder.addCommand(tfScript);
+              }
+              if (serving.getModelServer() == ModelServer.FLASK) {
+                builder.addCommand(sklearnScript);
+              }
+              processDescriptor = builder.addCommand("kill")
+                  .addCommand(dbServing.getCid())
+                  .addCommand(dbServing.getName())
+                  .addCommand(dbServing.getProject().getName().toLowerCase())
+                  .addCommand(secretDir.toString())
+                  .ignoreOutErrStreams(true)
+                  .build();
+
+              LOGGER.log(Level.FINE, processDescriptor.toString());
+              osProcessExecutor.execute(processDescriptor);
+
+              // If the process succeeded to delete the localDir update the db
+              dbServing.setCid(CID_STOPPED);
+              dbServing.setLocalPort(-1);
+              servingFacade.updateDbObject(dbServing, dbServing.getProject());
             }
-            if (serving.getServingType() == ServingType.SKLEARN) {
-              builder.addCommand(sklearnScript);
-            }
-            processDescriptor = builder.addCommand("kill")
-                .addCommand(String.valueOf(dbServing.getLocalPid()))
-                .addCommand(String.valueOf(dbServing.getLocalPort()))
-                .addCommand(secretDir.toString())
-                .ignoreOutErrStreams(true)
-                .build();
 
-            LOGGER.log(Level.FINE, processDescriptor.toString());
-            osProcessExecutor.execute(processDescriptor);
-
-            // If the process succeeded to delete the localDir update the db
-            dbServing.setLocalPid(PID_STOPPED);
-            dbServing.setLocalPort(-1);
-            servingFacade.updateDbObject(dbServing, dbServing.getProject());
+          } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Could not clean up serving instance with id: "
+                + serving.getId(), e);
           }
 
-        } catch (IOException e) {
-          LOGGER.log(Level.SEVERE, "Could not clean up serving instance with id: "
+          servingFacade.releaseLock(serving.getProject(), serving.getId());
+        } catch (ServingException e) {
+          LOGGER.log(Level.INFO, "Error processing serving instance with id: "
               + serving.getId(), e);
         }
-
-        servingFacade.releaseLock(serving.getProject(), serving.getId());
-      } catch (ServingException e) {
-        LOGGER.log(Level.INFO, "Error processing serving instance with id: "
-            + serving.getId(), e);
       }
+    } catch(Exception e) {
+      LOGGER.log(Level.SEVERE, "Got an exception while monitoring servings" , e);
     }
   }
 }

@@ -17,17 +17,19 @@
 INFERENCE_SCHEMA_NAME = "inferenceschema"
 INFERENCE_SCHEMA_VERSION = 2
 
-TF_MODEL_TOUR_FILE_LOCATION = "/user/hdfs/tensorflow_demo/data/mnist/model/*"
-SKLEARN_MODEL_TOUR_FILE_LOCATION = "/user/hdfs/tensorflow_demo/data/iris/iris_knn.pkl"
+TF_TOURS_LOCATION = "/user/hdfs/tensorflow_demo/data"
+MNIST_TOUR_DATA_LOCATION = "#{TF_TOURS_LOCATION}/mnist"
+TF_MODEL_TOUR_FILE_LOCATION = "#{MNIST_TOUR_DATA_LOCATION}/model/*"
+SKLEARN_MODEL_TOUR_FILE_LOCATION = "#{TF_TOURS_LOCATION}/iris/iris_knn.pkl"
 SKLEARN_SCRIPT_FILE_NAME="iris_flower_classifier.py"
-SKLEARN_SCRIPT_TOUR_FILE_LOCATION = "/user/hdfs/tensorflow_demo/notebooks/Serving/sklearn/#{SKLEARN_SCRIPT_FILE_NAME}"
+SKLEARN_SCRIPT_TOUR_FILE_LOCATION = "/user/hdfs/tensorflow_demo/notebooks/End_To_End_Pipeline/sklearn/#{SKLEARN_SCRIPT_FILE_NAME}"
 
 module ServingHelper
 
   def with_tf_serving(project_id, project_name, user)
     # Copy model to the project directory
     mkdir("/Projects/#{project_name}/Models/mnist/", "#{project_name}__#{user}", "#{project_name}__Models", 750)
-    copy(TF_MODEL_TOUR_FILE_LOCATION, "/Projects/#{project_name}/Models/mnist/", "#{project_name}__#{user}", "#{project_name}__Models", 750, "#{project_name}")
+    copy(TF_MODEL_TOUR_FILE_LOCATION, "/Projects/#{project_name}/Models/mnist/", "#{user}", "#{project_name}__Models", 750, "#{project_name}")
 
     @serving ||= create_tf_serving(project_id, project_name)
     @topic = ProjectTopics.find(@serving[:kafka_topic_id])
@@ -42,11 +44,11 @@ module ServingHelper
           "#{project_name}__Models", 750)
     # Copy model to the servingversion dir
     copy(SKLEARN_MODEL_TOUR_FILE_LOCATION, "/Projects/#{project_name}/Models/IrisFlowerClassifier/1/",
-         "#{project_name}__#{user}",
+         "#{user}",
          "#{project_name}__Models", 750, "#{project_name}")
     # Copy script to the servingversion dir
     copy(SKLEARN_SCRIPT_TOUR_FILE_LOCATION, "/Projects/#{project_name}/Models/IrisFlowerClassifier/1/",
-         "#{project_name}__#{user}",
+         "#{user}",
          "#{project_name}__Models", 750, "#{project_name}")
 
     @serving ||= create_sklearn_serving(project_id, project_name)
@@ -65,15 +67,19 @@ module ServingHelper
                   numOfPartitions: 1,
                   numOfReplicas: 1
                },
-               servingType: "TENSORFLOW"
+               modelServer: "TENSORFLOW_SERVING",
+               servingTool: "DEFAULT",
+               availableInstances: 1,
+               requestedInstances: 1
               }
     expect_status(201)
-
     Serving.find_by(project_id: project_id, name: serving_name)
   end
 
   def purge_all_tf_serving_instances()
-    system "sudo /bin/bash -c \"pgrep -f tensorflow_model_server | xargs kill\""
+    if !kubernetes_installed
+      system "sudo /bin/bash -c \"pgrep -f tensorflow_model_server | xargs kill\""
+    end
   end
 
   def create_sklearn_serving(project_id, project_name)
@@ -87,15 +93,19 @@ module ServingHelper
              numOfPartitions: 1,
              numOfReplicas: 1
          },
-         servingType: "SKLEARN"
+         modelServer: "FLASK",
+         servingTool: "DEFAULT",
+         availableInstances: 1,
+         requestedInstances: 1
         }
     expect_status(201)
-
     Serving.find_by(project_id: project_id, name: serving_name)
   end
 
   def purge_all_sklearn_serving_instances()
-    system "sudo /bin/bash -c \"pgrep -f sklearn_flask_server | xargs kill\""
+    if !kubernetes_installed
+      system "sudo /bin/bash -c \"pgrep -f sklearn_flask_server | xargs kill\""
+    end
   end
 
   def delete_all_sklearn_serving_instances(project)
@@ -110,11 +120,32 @@ module ServingHelper
   def start_serving(project, serving)
     post "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/serving/#{serving[:id]}?action=start"
     expect_status(200)
-
     # Sleep some time while the TfServing server starts
-    wait_for do
-      system "pgrep -f #{serving[:name]} -a"
-      $?.exitstatus == 0
+
+  end
+
+  def wait_for_type(serving_name)
+    if !kubernetes_installed
+      wait_for(60) do
+        system "pgrep -f #{serving_name} -a"
+        $?.exitstatus == 0
+      end
+      #Wait a bit more for the actual server to start in the container
+      sleep(20)
+    else
+      sleep(120)
+    end
+  end
+
+  def check_process_running(name)
+    if !kubernetes_installed
+      # check if the process is running on the host
+      system "pgrep -f #{name}"
+      if $?.exitstatus != 1
+        raise "the process is still running"
+      end
+    else
+      sleep(120)
     end
   end
 end

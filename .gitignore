@@ -10,6 +10,7 @@ buildNumber.properties
 
 scripts/private_key
 scripts/insecure_private_key
+scripts/scp-deploy-frontend.sh
 
 hopsworks-web/yo/app/karma.conf.js
 
@@ -102,6 +103,8 @@ package-lock.json
 
 ## Directory-based project format:
 .idea/
+
+.java-version
 
 hopsworks-web/yo/node_modules
 

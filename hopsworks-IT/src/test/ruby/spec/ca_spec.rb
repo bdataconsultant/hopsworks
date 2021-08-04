@@ -38,15 +38,18 @@
 =end
 
 require 'openssl'
+require 'cgi'
 
 describe "On #{ENV['OS']}" do
+  after(:all) {clean_all_test_projects(spec: "ca")}
   describe "#CA certificates" do
 
     # Test csr
     before :all do
       @certs_dir = Variables.find_by(id: "certs_dir").value
+      @locality = "tester"
 
-      @subject = "/C=SE/ST=Stockholm/L=SE/O=SE/OU=1/CN=test/emailAddress=agent@hops.io"
+      @subject = "/C=SE/ST=Stockholm/L=#{@locality}/O=SE/OU=1/CN=test/emailAddress=agent@hops.io"
     end
 
     describe "# Host certificates" do
@@ -77,7 +80,7 @@ describe "On #{ENV['OS']}" do
 
           # Check that the certificate is on the local fs. this assumes you are running the
           # tests on a proper vm
-          check_certificate_exists(@certs_dir + "/intermediate/", "test__1", @subject)
+          check_certificate_exists(@certs_dir + "/intermediate/", "test__#{@locality}__1", @subject)
         end
 
         it 'should fail to sign the same host certificate twice', vm: true do
@@ -86,39 +89,59 @@ describe "On #{ENV['OS']}" do
 
           # Check that the certificate is on the local fs. this assumes you are running the
           # tests on a proper vm
-          check_certificate_not_empty(@certs_dir + "/intermediate/", "test__1")
+          check_certificate_not_empty(@certs_dir + "/intermediate/", "test__#{@locality}__1")
         end
 
         it 'should succeed to revoke the certificate', vm: true do
-          delete "#{ENV['HOPSWORKS_CA']}/certificate/host?certId=test__1"
+          delete "#{ENV['HOPSWORKS_CA']}/certificate/host?certId=test__#{@locality}__1"
           expect_status(200)
 
-          check_certificate_revoked(@certs_dir + "/intermediate/", "test__1", @subject)
+          check_certificate_revoked(@certs_dir + "/intermediate/", "test__#{@locality}__1", @subject)
+        end
+
+        it 'should succeed to revoke all host certificates', vm: true do
+          subjects = [
+            subject_0 = "/C=SE/ST=Stockholm/L=subject0/O=SE/OU=1/CN=host0/emailAddress=agent@hops.io",
+            subject_1 = "/C=SE/ST=Stockholm/L=subject1/O=SE/OU=1/CN=host0/emailAddress=agent@hops.io",
+            subject_2 = "/C=SE/ST=Stockholm/L=subject2/O=SE/OU=1/CN=host0/emailAddress=agent@hops.io"
+          ]
+          subjects.each{ |subject|
+            post "#{ENV['HOPSWORKS_CA']}/certificate/host", {csr: generate_csr(subject)}
+            expect_status(200)
+          }
+
+          delete "#{ENV['HOPSWORKS_CA']}/certificate/host/all?hostname=host0"
+          expect_status(200)
+
+          # Check only for one is ok-ish
+          # check_certificate_revoked function expects the certificate under test to *always* be
+          # at the last line
+          check_certificate_revoked(@certs_dir + "/intermediate/", "host0__subject2__1", subjects[2])
         end
 
         it 'should return no-content if the revokation is triggered twice'  do
-          delete "#{ENV['HOPSWORKS_CA']}/certificate/host?certId=test__1"
+          delete "#{ENV['HOPSWORKS_CA']}/certificate/host?certId=test__#{@locality}__1"
           expect_status(204)
         end
 
         it 'should sign a certificate with - in the hostname', vm: true do
-          subject = "/C=SE/ST=Stockholm/L=SE/O=SE/OU=1/CN=test-hello-hello/emailAddress=agent@hops.io"
+          subject = "/C=SE/ST=Stockholm/L=#{@locality}/O=SE/OU=1/CN=test-hello-hello/emailAddress=agent@hops.io"
           post "#{ENV['HOPSWORKS_CA']}/certificate/host", {csr: generate_csr(subject)}
           expect_status(200)
 
           # Check that the certificate is on the local fs. this assumes you are running the
           # tests on a proper vm
-          check_certificate_exists(@certs_dir + "/intermediate/", "test-hello-hello__1", subject)
+          check_certificate_exists(@certs_dir + "/intermediate/", "test-hello-hello__#{@locality}__1", subject)
         end
 
         it 'should sign a certificate with : in the cn - used for K8s certificates', vm: true do
-          subject = "/C=SE/ST=Stockholm/L=SE/O=SE/OU=1/CN=hello:hello/emailAddress=agent@hops.io"
+          subject = "/C=SE/ST=Stockholm/L=#{@locality}/O=SE/OU=1/CN=hello:hello/emailAddress=agent@hops.io"
           post "#{ENV['HOPSWORKS_CA']}/certificate/host", {csr: generate_csr(subject)}
           expect_status(200)
 
           # Check that the certificate is on the local fs. this assumes you are running the
           # tests on a proper vm
-          check_certificate_exists(@certs_dir + "/intermediate/", "hello:hello__1", subject)
+          check_certificate_exists(@certs_dir + "/intermediate/", "hello:hello__#{@locality}__1", subject)
         end
       end
 
@@ -128,23 +151,23 @@ describe "On #{ENV['OS']}" do
         end
 
         it 'should sign a certificate comma separated', vm: true do
-          subject = 'C=SE,ST=Stockholm,L=SE,O=SE,OU=1,CN=testreg,emailAddress=agent@hops.io'
+          subject = "C=SE,ST=Stockholm,L=#{@locality},O=SE,OU=1,CN=testreg,emailAddress=agent@hops.io"
           post "#{ENV['HOPSWORKS_CA']}/certificate/host", {csr: generate_csr(subject)}
           expect_status(200)
 
           # Check that the certificate is on the local fs. this assumes you are running the
           # tests on a proper vm
-          check_certificate_exists(@certs_dir + "/intermediate/", "testreg__1", subject)
+          check_certificate_exists(@certs_dir + "/intermediate/", "testreg__#{@locality}__1", subject)
         end
 
         it 'should sign a certificate separated by /', vm: true  do
-          subject = '/C=SE/ST=Stockholm/L=SE/O=SE/OU=2/CN=testreg/emailAddress=agent@hops.io'
+          subject = "/C=SE/ST=Stockholm/L=#{@locality}/O=SE/OU=2/CN=testreg/emailAddress=agent@hops.io"
           post "#{ENV['HOPSWORKS_CA']}/certificate/host", {csr: generate_csr(subject)}
           expect_status(200)
 
           # Check that the certificate is on the local fs. this assumes you are running the
           # tests on a proper vm
-          check_certificate_exists(@certs_dir + "/intermediate/", "testreg__2", subject)
+          check_certificate_exists(@certs_dir + "/intermediate/", "testreg__#{@locality}__2", subject)
         end
       end
     end
@@ -163,6 +186,7 @@ describe "On #{ENV['OS']}" do
 
       context 'with Agent login' do
         before :all do
+          @locality = "SE"
           with_agent_session
         end
 
@@ -207,6 +231,7 @@ describe "On #{ENV['OS']}" do
     describe "# Project certificates" do
       context 'with User login' do
         before :all do
+          @locality = "SE"
           with_valid_project
         end
 
@@ -218,6 +243,7 @@ describe "On #{ENV['OS']}" do
 
       context 'with Agent login' do
         before :all do
+          @locality = "SE"
           with_agent_session
         end
 
@@ -254,6 +280,20 @@ describe "On #{ENV['OS']}" do
         it 'should return no-content if the revokation is triggered twice' do
           delete "#{ENV['HOPSWORKS_CA']}/certificate/project?certId=test"
           expect_status(204)
+        end
+      end
+    end
+
+    describe "# CA CRL" do
+      context "# Not authenticated" do
+        before :all do
+          reset_session
+        end
+        
+        it "should be able to download intermediate CA CRL" do
+          get "#{ENV['HOPSWORKS_CA']}/certificate/crl/intermediate"
+          expect_status(200)
+          expect(headers['content_type']).to eq("application/octet-stream")
         end
       end
     end

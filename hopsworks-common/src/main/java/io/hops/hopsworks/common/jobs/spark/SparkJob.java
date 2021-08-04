@@ -38,16 +38,15 @@
  */
 package io.hops.hopsworks.common.jobs.spark;
 
-import io.hops.hopsworks.common.dao.jobs.description.Jobs;
-import io.hops.hopsworks.common.dao.user.Users;
-import io.hops.hopsworks.common.hdfs.DistributedFileSystemOps;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.JobType;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.spark.SparkJobConfiguration;
+import io.hops.hopsworks.persistence.entity.jobs.description.Jobs;
+import io.hops.hopsworks.persistence.entity.user.Users;
 import io.hops.hopsworks.common.hdfs.Utils;
+import io.hops.hopsworks.common.hosts.ServiceDiscoveryController;
 import io.hops.hopsworks.common.jobs.AsynchronousJobExecutor;
 import io.hops.hopsworks.common.jobs.yarn.YarnJob;
-import io.hops.hopsworks.common.jobs.yarn.YarnJobsMonitor;
 import io.hops.hopsworks.common.util.Settings;
-import io.hops.hopsworks.exceptions.JobException;
-import org.apache.hadoop.yarn.client.api.YarnClient;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -64,10 +63,11 @@ public class SparkJob extends YarnJob {
   private static final Logger LOG = Logger.getLogger(SparkJob.class.getName());
   private SparkYarnRunnerBuilder runnerbuilder;
 
-  SparkJob(Jobs job, AsynchronousJobExecutor services,
-    Users user, final String hadoopDir,
-    String jobUser, YarnJobsMonitor jobsMonitor, Settings settings) {
-    super(job, services, user, jobUser, hadoopDir, jobsMonitor, settings);
+  SparkJob(Jobs job, AsynchronousJobExecutor services, Users user, final String hadoopDir,
+           String jobUser, Settings settings, String kafkaBrokersString, String hopsworksRestEndpoint,
+           ServiceDiscoveryController serviceDiscoveryController) {
+    super(job, services, user, jobUser, hadoopDir, settings, kafkaBrokersString, hopsworksRestEndpoint,
+        serviceDiscoveryController);
     if (!(job.getJobConfig() instanceof SparkJobConfiguration)) {
       throw new IllegalArgumentException(
           "JobDescription must contain a SparkJobConfiguration object. Received: "
@@ -76,8 +76,7 @@ public class SparkJob extends YarnJob {
   }
 
   @Override
-  protected boolean setupJob(DistributedFileSystemOps dfso, YarnClient yarnClient) throws JobException {
-    super.setupJob(dfso, yarnClient);
+  protected boolean setupJob() {
     SparkJobConfiguration jobconfig = (SparkJobConfiguration) jobs.getJobConfig();
     //Then: actually get to running.
     if (jobconfig.getAppName() == null || jobconfig.getAppName().isEmpty()) {
@@ -87,14 +86,7 @@ public class SparkJob extends YarnJob {
     if (runnerbuilder == null) {
       runnerbuilder = new SparkYarnRunnerBuilder(jobs);
       runnerbuilder.setJobName(jobconfig.getAppName());
-      //Check if the user provided application arguments
-      if (jobconfig.getArgs() != null && !jobconfig.getArgs().isEmpty()) {
-        String[] jobArgs = jobconfig.getArgs().trim().split(" ");
-        runnerbuilder.addAllJobArgs(jobArgs);
-      }
     }
-    //Set Kafka params
-    runnerbuilder.setServiceProps(serviceProps);
     if(jobconfig.getLocalResources() != null) {
       runnerbuilder.addExtraFiles(Arrays.asList(jobconfig.getLocalResources()));
     }
@@ -108,31 +100,17 @@ public class SparkJob extends YarnJob {
       }
     }
 
-    String stdOutFinalDestination = Utils.getProjectPath(jobs.getProject().getName())
-        + Settings.SPARK_DEFAULT_OUTPUT_PATH;
-    String stdErrFinalDestination = Utils.getProjectPath(jobs.getProject().getName())
-        + Settings.SPARK_DEFAULT_OUTPUT_PATH;
-    setStdOutFinalDestination(stdOutFinalDestination);
-    setStdErrFinalDestination(stdErrFinalDestination);
+    String stdFinalDestination = Utils.getProjectPath(jobs.getProject().getName())
+        + Settings.BaseDataset.LOGS.getName() + "/" + JobType.SPARK.getName();
+    setStdOutFinalDestination(stdFinalDestination);
+    setStdErrFinalDestination(stdFinalDestination);
 
     try {
-
-      String firstName = user.getFname();
-      String lastName = user.getLname();
-      String usersFullName = null;
-      if(firstName != null && !firstName.isEmpty()) {
-        usersFullName = firstName;
-      }
-      if(lastName != null && !lastName.isEmpty()) {
-        usersFullName += " " + lastName;
-        usersFullName = usersFullName.trim();
-      }
-
       runner = runnerbuilder.
           getYarnRunner(jobs.getProject(),
-              jobUser, usersFullName,
-              services, services.getFileOperations(hdfsUser.getUserName()), yarnClient, settings);
-
+              jobUser,
+              services, services.getFileOperations(hdfsUser.getUserName()), yarnClient,
+              settings, kafkaBrokersString, hopsworksRestEndpoint, serviceDiscoveryController);
     } catch (Exception e) {
       LOG.log(Level.WARNING,
           "Failed to create YarnRunner.", e);

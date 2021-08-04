@@ -17,8 +17,8 @@ package io.hops.hopsworks.api.jobs.executions;
 
 import io.hops.hopsworks.api.user.UserDTO;
 import io.hops.hopsworks.common.api.RestDTO;
-import io.hops.hopsworks.common.jobs.jobhistory.JobFinalStatus;
-import io.hops.hopsworks.common.jobs.jobhistory.JobState;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.history.JobFinalStatus;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.history.JobState;
 
 import javax.xml.bind.annotation.XmlRootElement;
 import java.util.Date;
@@ -34,6 +34,7 @@ public class ExecutionDTO extends RestDTO<ExecutionDTO> {
   private String stderrPath;
   private String appId;
   private String hdfsUser;
+  private String args;
   private JobFinalStatus finalStatus;
   private Float progress;
   private UserDTO user;
@@ -98,6 +99,14 @@ public class ExecutionDTO extends RestDTO<ExecutionDTO> {
   
   public void setHdfsUser(String hdfsUser) {
     this.hdfsUser = hdfsUser;
+  }
+  
+  public String getArgs() {
+    return args;
+  }
+  
+  public void setArgs(String args) {
+    this.args = args;
   }
   
   public JobFinalStatus getFinalStatus() {

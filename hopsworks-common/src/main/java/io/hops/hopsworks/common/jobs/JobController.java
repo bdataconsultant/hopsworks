@@ -41,28 +41,34 @@ package io.hops.hopsworks.common.jobs;
 
 import com.google.common.base.Strings;
 import io.hops.hopsworks.common.dao.jobs.description.JobFacade;
-import io.hops.hopsworks.common.dao.jobs.description.Jobs;
-import io.hops.hopsworks.common.dao.project.Project;
-import io.hops.hopsworks.common.dao.user.Users;
+import io.hops.hopsworks.common.util.Settings;
+import io.hops.hopsworks.common.util.SparkConfigurationUtil;
+import io.hops.hopsworks.persistence.entity.jobs.description.Jobs;
+import io.hops.hopsworks.persistence.entity.project.Project;
+import io.hops.hopsworks.persistence.entity.user.Users;
 import io.hops.hopsworks.common.dao.user.activity.ActivityFacade;
-import io.hops.hopsworks.common.dao.user.activity.ActivityFlag;
+import io.hops.hopsworks.persistence.entity.user.activity.ActivityFlag;
 import io.hops.hopsworks.common.hdfs.DistributedFileSystemOps;
 import io.hops.hopsworks.common.hdfs.DistributedFsService;
 import io.hops.hopsworks.common.hdfs.HdfsUsersController;
-import io.hops.hopsworks.common.jobs.configuration.JobConfiguration;
-import io.hops.hopsworks.common.jobs.configuration.JobType;
-import io.hops.hopsworks.common.jobs.configuration.ScheduleDTO;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.JobConfiguration;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.JobType;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.ScheduleDTO;
 import io.hops.hopsworks.common.jobs.execution.ExecutionController;
 import io.hops.hopsworks.common.jobs.spark.SparkController;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.spark.SparkJobConfiguration;
 import io.hops.hopsworks.exceptions.JobException;
 import io.hops.hopsworks.restutils.RESTCodes;
+import org.apache.hadoop.fs.Path;
 import org.eclipse.persistence.exceptions.DatabaseException;
 
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
+import javax.inject.Inject;
 import javax.xml.bind.JAXBException;
+import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -83,14 +89,22 @@ public class JobController {
   private DistributedFsService dfs;
   @EJB
   private SparkController sparkController;
-  @EJB
+  @Inject
   private ExecutionController executionController;
+  @EJB
+  private HdfsUsersController hdfsUsersController;
+  @EJB
+  private Settings settings;
 
-  
   private static final Logger LOGGER = Logger.getLogger(JobController.class.getName());
   
   public Jobs putJob(Users user, Project project, Jobs job, JobConfiguration config) throws JobException {
     try {
+      if(config.getJobType() == JobType.SPARK || config.getJobType() == JobType.PYSPARK) {
+        SparkConfigurationUtil sparkConfigurationUtil = new SparkConfigurationUtil();
+        SparkJobConfiguration sparkJobConfiguration = (SparkJobConfiguration)config;
+        sparkConfigurationUtil.validateExecutorMemory(sparkJobConfiguration.getExecutorMemory(), settings);
+      }
       job = jobFacade.put(user, project, config, job);
     } catch (IllegalStateException ise) {
       if (ise.getCause() instanceof JAXBException) {
@@ -109,6 +123,7 @@ public class JobController {
       ActivityFlag.JOB);
     return job;
   }
+
   @TransactionAttribute(TransactionAttributeType.NEVER)
   public void updateSchedule(Project project, Jobs job, ScheduleDTO schedule, Users user) throws JobException {
     boolean isScheduleUpdated = jobFacade.updateJobSchedule(job.getId(), schedule);
@@ -172,14 +187,15 @@ public class JobController {
     try {
       String username = hdfsUsersBean.getHdfsUserName(project, user);
       udfso = dfs.getDfsOps(username);
-      LOGGER.log(Level.INFO, "Inspecting executable job program by {0} at path: {1}", new Object[]{username, path});
-      if (Strings.isNullOrEmpty(path) || !(path.endsWith(".jar") || path.endsWith(".py")
-              || path.endsWith(".ipynb"))) {
-        throw new IllegalArgumentException("Path does not point to a .jar, .py or .ipynb file.");
-      }
+      LOGGER.log(Level.FINE, "Inspecting executable job program by {0} at path: {1}", new Object[]{username, path});
+
       switch (jobType){
         case SPARK:
         case PYSPARK:
+          if (Strings.isNullOrEmpty(path) || !(path.endsWith(".jar") || path.endsWith(".py")
+              || path.endsWith(".ipynb"))) {
+            throw new IllegalArgumentException("Path does not point to a .jar, .py or .ipynb file.");
+          }
           return sparkController.inspectProgram(path, udfso);
         default:
           throw new IllegalArgumentException("Job type not supported: " + jobType);
@@ -190,6 +206,30 @@ public class JobController {
       }
     }
   }
+
+  public void versionProgram(SparkJobConfiguration job, Project project, Users user, Path path)
+      throws JobException {
+    DistributedFileSystemOps udfso = null;
+    try {
+      String username = hdfsUsersController.getHdfsUserName(project, user);
+      udfso = dfs.getDfsOps(username);
+      versionProgram(job, udfso, path);
+    } finally {
+      if (udfso != null) {
+        dfs.closeDfsClient(udfso);
+      }
+    }
+  }
+  
+  public void versionProgram(SparkJobConfiguration job, DistributedFileSystemOps udfso, Path path) throws JobException {
+    try {
+      udfso.copyInHdfs(new Path(job.getAppPath()), path);
+    } catch (IOException ioe) {
+      throw new JobException(RESTCodes.JobErrorCode.JOB_PROGRAM_VERSIONING_FAILED, Level.FINEST, "path: " +
+        job.getAppPath(), "versioning failed", ioe);
+    }
+  }
+  
   
   private String getJobNameForActivity(String jobName) {
     String activityJobMsg = jobName;

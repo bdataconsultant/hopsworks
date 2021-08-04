@@ -38,13 +38,13 @@
 =end
 
 describe "On #{ENV['OS']}" do
+  after(:all) {clean_all_test_projects(spec: "conda")}
   describe '#Conda basic operations'  do
-    after (:all){clean_projects}
 
     let(:num_hosts) {Host.count}
     let(:conda_channel) {Variables.find_by(id: "conda_default_repo").value}
-    let(:python_version) {'2.7'}
-    let(:python_version_2) {'3.6'}
+    let(:python_version) {'3.7'}
+    let(:python_version_2) {'3.8'}
 
     describe "#create" do
       context 'without authentication' do
@@ -53,7 +53,7 @@ describe "On #{ENV['OS']}" do
           reset_session
         end
         it "not authenticated" do
-          create_env(@project, python_version, true)
+          create_env(@project, python_version)
           expect_json(errorCode: 200003)
           expect_status(401)
         end
@@ -66,54 +66,60 @@ describe "On #{ENV['OS']}" do
 
         context 'conda not enabled' do
           it 'should fail to list envs' do
+            @env = get_project_env_by_id(@project[:id])
             @project = get_project_by_name(@project[:projectname])
-            if !@project[:python_version].nil? and !@project[:python_version].empty?
-              delete_env(@project[:id], @project[:python_version])
+            if !@env.nil?
+              delete_env(@project[:id], python_version)
             end
             list_envs(@project[:id])
             expect_status(404)
           end
 
           it 'should fail to get env commands' do
+            @env = get_project_env_by_id(@project[:id])
             @project = get_project_by_name(@project[:projectname])
-            if !@project[:python_version].nil? and !@project[:python_version].empty?
-              delete_env(@project[:id], @project[:python_version])
+            if !@env.nil?
+              delete_env(@project[:id], python_version)
             end
             get_env_commands(@project[:id], python_version)
             expect_status(404)
           end
 
           it 'should fail to list libraries' do
+            @env = get_project_env_by_id(@project[:id])
             @project = get_project_by_name(@project[:projectname])
-            if !@project[:python_version].nil? and !@project[:python_version].empty?
-              delete_env(@project[:id], @project[:python_version])
+            if !@env.nil?
+              delete_env(@project[:id], python_version)
             end
             list_libraries(@project[:id], python_version)
             expect_status(404)
           end
 
           it 'should fail to list library commands' do
+            @env = get_project_env_by_id(@project[:id])
             @project = get_project_by_name(@project[:projectname])
-            if !@project[:python_version].nil? and !@project[:python_version].empty?
-              delete_env(@project[:id], @project[:python_version])
+            if !@env.nil?
+              delete_env(@project[:id], python_version)
             end
             get_library_commands(@project[:id], python_version, 'numpy')
             expect_status(404)
           end
 
           it 'should fail to install library' do
+            @env = get_project_env_by_id(@project[:id])
             @project = get_project_by_name(@project[:projectname])
-            if !@project[:python_version].nil? and !@project[:python_version].empty?
-              delete_env(@project[:id], @project[:python_version])
+            if !@env.nil?
+              delete_env(@project[:id], python_version)
             end
-            install_library(@project[:id], python_version, 'requests', 'conda', '2.20.0', 'CPU', conda_channel)
+            install_library(@project[:id], python_version, 'requests', 'CONDA', '2.20.0', conda_channel)
             expect_status(404)
           end
 
           it 'should fail to search for a library' do
+            @env = get_project_env_by_id(@project[:id])
             @project = get_project_by_name(@project[:projectname])
-            if !@project[:python_version].nil? and !@project[:python_version].empty?
-              delete_env(@project[:id], @project[:python_version])
+            if !@env.nil?
+              delete_env(@project[:id], python_version)
             end
             search_library(@project[:id], python_version, 'conda', 'dropbox', conda_channel)
             expect_status(404)
@@ -122,55 +128,69 @@ describe "On #{ENV['OS']}" do
 
         context 'conda enabled' do
           it 'enable anaconda' do
-            @project = create_env_and_update_project(@project, python_version, true)
+            @project = create_env_and_update_project(@project, python_version)
 
-            if not conda_exists
+            if not conda_exists(python_version)
               skip "Anaconda is not installed in the machine or test is run locally"
             end
 
             # Enabling anaconda will not create an environment yet
-            expect(check_if_env_exists_locally(@project[:projectname])).to be false
+            expect(check_if_img_exists_locally(@project[:projectname].downcase + ":" + getVar('hopsworks_version').value + ".0")).to be false
+
             # There should be no CondaCommands in the database
-            expect(CondaCommands.find_by(proj: @project[:projectname])).to be nil
+            expect(CondaCommands.find_by(project_id: @project[:id])).to be nil
 
             # Install a library to create the new environment
-            install_library(@project[:id], @project[:python_version], 'requests', 'conda', '2.20.0', 'CPU', conda_channel)
+            install_library(@project[:id], python_version, 'beautifulsoup4', 'CONDA', '4.9.0', conda_channel)
             expect_status(201)
-            es_index_date_suffix = Time.now.strftime("%Y.%m.%d")
 
-            get_env_commands(@project[:id], @project[:python_version])
+            get_env_commands(@project[:id], python_version)
             expect_status(200)
             expect(json_body[:count]).to be > 0
             expect(json_body[:count]).to be <= num_hosts
 
             wait_for do
-              CondaCommands.find_by(proj: @project[:projectname]).nil?
+              CondaCommands.find_by(project_id: @project[:id]).nil?
             end
 
-            get_env_commands(@project[:id], @project[:python_version])
+            get_env_commands(@project[:id], python_version)
             expect_status(200)
             expect(json_body[:count]).to be == 0
 
-            expect(check_if_env_exists_locally(@project[:projectname])).to be true
+            # Need to get the latest image of the project from DB
+            base_python_project_image=@project.docker_image
+            @project = get_project_by_name(@project[:projectname])
+            non_versioned_project_image = @project.docker_image.rpartition('.').first
+            expect(check_if_img_exists_locally(non_versioned_project_image + ".0")).to be true
+            expect(check_if_img_exists_locally(non_versioned_project_image + ".1")).to be true
+            expect(check_if_img_exists_locally(non_versioned_project_image + ".2")).to be false
+            expect(check_if_img_exists_locally(base_python_project_image)).to be true
 
-            Airborne.configure do |config|
-              config.base_url = ''
-            end
-
-            # Elasticsearch index should have been created for this project
-            index_name = "#{@project[:projectname].downcase}_kagent-#{es_index_date_suffix}"
-            head "#{ENV['ELASTIC_API']}/#{index_name}"
-
-            Airborne.configure do |config|
-              config.base_url = "https://#{ENV['WEB_HOST']}:#{ENV['WEB_PORT']}"
-            end
-
-            expect_status(200)
           end
 
-          it 'search libraries' do
-            @project = create_env_and_update_project(@project, python_version, true)
-            search_library(@project[:id], @project[:python_version], 'conda', 'dropbox', conda_channel)
+          it 'export environment' do
+            delete_env(@project[:id], python_version)
+            @project = create_env_and_update_project(@project, python_version)
+            export_env(@project[:id], python_version)
+            expect_status(200)
+
+            wait_for do
+              CondaCommands.find_by(project_id: @project[:id]).nil?
+            end
+          end
+
+          it 'search library (conda)' do
+            @project = create_env_and_update_project(@project, python_version)
+            search_library(@project[:id], python_version, 'conda', 'dropbox', conda_channel)
+            expect_status(200)
+            expect(json_body.count).to be >= 1
+            dropbox = json_body[:items].detect { |library| library[:library] == "dropbox" }
+            expect(dropbox[:versions].count).to be >= 1
+          end
+          
+          it 'search library (pip)' do
+            @project = create_env_and_update_project(@project, python_version)
+            search_library(@project[:id], python_version, 'pip', 'dropbox')
             expect_status(200)
             expect(json_body.count).to be >= 1
             dropbox = json_body[:items].detect { |library| library[:library] == "dropbox" }
@@ -178,20 +198,20 @@ describe "On #{ENV['OS']}" do
           end
 
           it 'should not fail if library is not found (conda)' do
-            @project = create_env_and_update_project(@project, python_version, true)
-            search_library(@project[:id], @project[:python_version], 'conda', 'pretty-sure-not-to-exist', conda_channel)
+            @project = create_env_and_update_project(@project, python_version)
+            search_library(@project[:id], python_version, 'conda', 'pretty-sure-not-to-exist', conda_channel)
             expect_status(204)
           end
 
           it 'should not fail if library is not found (pip)' do
-            @project = create_env_and_update_project(@project, python_version, true)
-            search_library(@project[:id], @project[:python_version], 'pip', 'pretty-sure-not-to-exist', conda_channel)
+            @project = create_env_and_update_project(@project, python_version)
+            search_library(@project[:id], python_version, 'pip', 'pretty-sure-not-to-exist')
             expect_status(204)
           end
 
           it 'should not fail if library starts with number' do
-            @project = create_env_and_update_project(@project, python_version, true)
-            search_library(@project[:id], @project[:python_version], 'conda', '4ti2', 'conda-forge')
+            @project = create_env_and_update_project(@project, python_version)
+            search_library(@project[:id], python_version, 'conda', '4ti2', 'conda-forge')
             expect_status(200)
             expect(json_body.count).to be >= 1
             lib_name = json_body[:items].detect { |library| library[:library] == "4ti2" }
@@ -199,387 +219,454 @@ describe "On #{ENV['OS']}" do
           end
 
           it 'should fail to search if library contains forbidden chars - conda' do
-            @project = create_env_and_update_project(@project, python_version, true)
-            search_library(@project[:id], @project[:python_version], 'conda', '`touch /tmp/hello`', 'defaults')
+            @project = create_env_and_update_project(@project, python_version)
+            search_library(@project[:id], python_version, 'conda', '`touch /tmp/hello`', 'defaults')
             expect_status(422)
           end
 
           it 'should fail to search if library contains forbidden chars - pip' do
-            @project = create_env_and_update_project(@project, python_version, true)
-            search_library(@project[:id], @project[:python_version], 'pip', '`touch /tmp/hello`')
+            @project = create_env_and_update_project(@project, python_version)
+            search_library(@project[:id], python_version, 'pip', '`touch /tmp/hello`')
             expect_status(422)
           end
 
           it 'should fail to search if package manager contains forbidden chars' do
-            @project = create_env_and_update_project(@project, python_version, true)
-            search_library(@project[:id], @project[:python_version], 'pip&', 'hello')
+            @project = create_env_and_update_project(@project, python_version)
+            search_library(@project[:id], python_version, 'pip&', 'hello')
             expect_status(422)
           end
 
           it 'should fail to search if channel contains forbidden chars' do
-            @project = create_env_and_update_project(@project, python_version, true)
-            search_library(@project[:id], @project[:python_version], 'conda', 'hello', 'https%3A%2F%2Fhello.com%2F%20%26test')
+            @project = create_env_and_update_project(@project, python_version)
+            search_library(@project[:id], python_version, 'conda', 'hello', 'https%3A%2F%2Fhello.com%2F%20%26test')
             expect_status(422)
           end
 
           it 'should fail to install library if package manager not set' do
-            @project = create_env_and_update_project(@project, python_version, true)
-            install_library(@project[:id], @project[:python_version], 'dropbox', '', '9.0.0', 'CPU', conda_channel)
-            expect_status(400)
-          end
-
-          it 'should fail to install library if version not set' do
-            @project = create_env_and_update_project(@project, python_version, true)
-            install_library(@project[:id], @project[:python_version], 'dropbox', 'conda', '', 'CPU', conda_channel)
-            expect_status(400)
-          end
-
-          it 'should fail to install library if machine type not set' do
-            @project = create_env_and_update_project(@project, python_version, true)
-            install_library(@project[:id], @project[:python_version], 'dropbox', 'conda', '9.0.0', '', conda_channel)
+            @project = create_env_and_update_project(@project, python_version)
+            install_library(@project[:id], python_version, 'dropbox', '', '9.0.0', conda_channel)
             expect_status(400)
           end
 
           it 'should fail to install library if env version wrong' do
-            @project = create_env_and_update_project(@project, python_version, true)
-            install_library(@project[:id], python_version_2, 'dropbox', 'conda', '9.0.0', 'CPU', conda_channel)
+            @project = create_env_and_update_project(@project, python_version)
+            install_library(@project[:id], python_version_2, 'dropbox', 'CONDA', '9.0.0', conda_channel)
             expect_status(404)
           end
 
           it 'should fail to install library if library contains forbidden chars url encoded' do
-            @project = create_env_and_update_project(@project, python_version, true)
-            install_library(@project[:id], @project[:python_version], '%26%20touch%20%2Ftmp%2Ftest', 'conda', '9.0.0', 'CPU', conda_channel)
+            @project = create_env_and_update_project(@project, python_version)
+            install_library(@project[:id], python_version, '%26%20touch%20%2Ftmp%2Ftest', 'CONDA', '9.0.0', conda_channel)
             expect_status(422)
           end
 
           it 'should fail to install library if version number contains forbidden chars' do
-            @project = create_env_and_update_project(@project, python_version, true)
-            install_library(@project[:id], @project[:python_version], 'dropbox', 'conda', 'rm -rf *', 'CPU', conda_channel)
+            @project = create_env_and_update_project(@project, python_version)
+            install_library(@project[:id], python_version, 'dropbox', 'CONDA', 'rm -rf *', conda_channel)
             expect_status(422)
           end
 
           it 'should fail to install library if conda channel contains forbidden chars' do
-            @project = create_env_and_update_project(@project, python_version, true)
-            install_library(@project[:id], @project[:python_version], 'dropbox', 'conda',
-                            '9.0.0', 'CPU', 'https%3A%2F%2Fhello.com%2F%20%26test')
+            @project = create_env_and_update_project(@project, python_version)
+            install_library(@project[:id], python_version, 'dropbox', 'CONDA',
+                            '9.0.0', 'https%3A%2F%2Fhello.com%2F%20%26test')
             expect_status(422)
           end
 
-          it 'should fail if you try to use another package manager' do
-            @project = create_env_and_update_project(@project, python_version, true)
-            install_library(@project[:id], python_version_2, 'dropbox', 'cargo', '9.0.0', 'CPU', conda_channel)
-            expect_status(404)
+          it 'should fail if you try to use another package source' do
+            @project = create_env_and_update_project(@project, python_version)
+            install_library(@project[:id], python_version, 'dropbox', 'CARGO', '9.0.0', conda_channel)
+            expect_status(400)
           end
 
-          it 'install libraries' do
-            @project = create_env_and_update_project(@project, python_version, true)
-            install_library(@project[:id], @project[:python_version], 'imageio', 'conda', '2.2.0', 'CPU', conda_channel)
-            expect_status(201)
+          it 'should fail to install same library with upper and lower case variation' do
+            @project = create_env_and_update_project(@project, python_version)
+            install_library(@project[:id], python_version, 'scipy', 'PIP', '1.2.2', conda_channel)
+            expect_status(409) #scipy is in the base env
+            install_library(@project[:id], python_version, 'SCIPY', 'PIP', '1.2.2', conda_channel)
+            expect_status(409)
+          end
 
-            get_library_commands(@project[:id], @project[:python_version], 'imageio')
-            expect_status(200)
-            expect(json_body[:count]).to be > 0
-            expect(json_body[:count]).to be <= num_hosts
+          it 'should be possible to install same library if uninstall operation is ongoing for the same library' do
+            @project = create_env_and_update_project(@project, python_version)
+
+            uninstall_library(@project[:id], python_version, 'hops')
+            expect_status(204)
+
+            install_library(@project[:id], python_version, 'hops', 'PIP', '2.1.0', conda_channel)
+            expect_status(201) #scipy is in the base env
 
             wait_for do
-              CondaCommands.find_by(proj: @project[:projectname]).nil?
+              CondaCommands.find_by(project_id: @project[:id]).nil?
+            end
+          end
+
+          it 'install versioned libraries' do
+            @project = create_env_and_update_project(@project, python_version)
+
+            install_library(@project[:id], python_version, 'tflearn', 'PIP', '0.3.2', conda_channel)
+            expect_status(201)
+
+            install_library(@project[:id], python_version, 'imageio', 'CONDA', '2.9.0', conda_channel)
+            expect_status(201)
+
+            get_library_commands(@project[:id], python_version, 'tflearn')
+            expect_status(200)
+            expect(json_body[:count]).to be == 1
+
+            get_library_commands(@project[:id], python_version, 'imageio')
+            expect_status(200)
+            expect(json_body[:count]).to be == 1
+
+            wait_for do
+              CondaCommands.find_by(project_id: @project[:id]).nil?
             end
 
-            get_library_commands(@project[:id], @project[:python_version], 'imageio')
+            get_library_commands(@project[:id], python_version, 'tflearn')
             expect_status(200)
             expect(json_body[:count]).to be == 0
 
-            install_library(@project[:id], @project[:python_version], 'tflearn', 'pip', '0.3.2', 'ALL', conda_channel)
+            get_library_commands(@project[:id], python_version, 'imageio')
+            expect_status(200)
+            expect(json_body[:count]).to be == 0
+
+            list_libraries(@project[:id], python_version)
+
+            tflearn_library = json_body[:items].detect { |library| library[:library] == "tflearn" }
+            imageio_library = json_body[:items].detect { |library| library[:library] == "imageio" }
+
+            expect(tflearn_library[:packageSource]).to eq ("PIP")
+            expect(tflearn_library[:version]).to eq ("0.3.2")
+
+            expect(imageio_library[:packageSource]).to eq("CONDA")
+            expect(imageio_library[:version]).to eq ("2.9.0")
+
+            delete_env(@project[:id], python_version)
+            
+            wait_for do
+              CondaCommands.find_by(project_id: @project[:id]).nil?
+            end
+          end
+
+          it 'install latest library version' do
+            @project = create_env_and_update_project(@project, python_version)
+
+            install_library(@project[:id], python_version, 'folium', 'PIP', nil, conda_channel)
+            expect_status(201)
+            install_library(@project[:id], python_version, 'rapidjson', 'CONDA', nil, conda_channel)
             expect_status(201)
 
+            get_library_commands(@project[:id], python_version, 'folium')
+            expect_status(200)
+            expect(json_body[:count]).to be == 1
+            get_library_commands(@project[:id], python_version, 'rapidjson')
+            expect_status(200)
+            expect(json_body[:count]).to be == 1
+
             wait_for do
-              CondaCommands.find_by(proj: @project[:projectname]).nil?
+              CondaCommands.find_by(project_id: @project[:id]).nil?
             end
+
+            get_library_commands(@project[:id], python_version, 'folium')
+            expect_status(200)
+            expect(json_body[:count]).to be == 0
+            get_library_commands(@project[:id], python_version, 'rapidjson')
+            expect_status(200)
+            expect(json_body[:count]).to be == 0
+
+            list_libraries(@project[:id], python_version)
+
+            folium_library = json_body[:items].detect { |library| library[:library] == "folium" }
+            rapidjson_library = json_body[:items].detect { |library| library[:library] == "rapidjson" }
+
+            expect(folium_library[:packageSource]).to eq ("PIP")
+            expect(rapidjson_library[:packageSource]).to eq("CONDA")
+
+            delete_env(@project[:id], python_version)
+
+            wait_for do
+              CondaCommands.find_by(project_id: @project[:id]).nil?
+            end
+          end
+
+          it 'install from git' do
+            @project = create_env_and_update_project(@project, python_version)
+            uninstall_library(@project[:id], python_version, 'hops')
+            expect_status(204)
+
+            wait_for do
+              CondaCommands.find_by(project_id: @project[:id]).nil?
+            end
+
+            install_library(@project[:id], python_version, 'hops-util-py.git@branch-1.0', 'GIT', nil, 'git', 'https://github.com/logicalclocks/hops-util-py.git@branch-1.0')
+
+            wait_for do
+              CondaCommands.find_by(project_id: @project[:id]).nil?
+            end
+
+            list_libraries(@project[:id], python_version)
+
+            hops_library = json_body[:items].detect { |library| library[:library] == "hops" }
+            expect(hops_library[:version]).to eq "1.0.0.4"
 
           end
 
-          it 'list libraries' do
-            @project = create_env_and_update_project(@project, python_version, true)
-            list_libraries(@project[:id], @project[:python_version])
+          it 'install from wheel' do
 
-            tflearn_library = json_body[:items].detect { |library| library[:library] == "tflearn" }
-            serving_library = json_body[:items].detect { |library| library[:library] == "tensorflow-serving-api" }
-            hops_library = json_body[:items].detect { |library| library[:library] == "hops" }
+            @project = create_env_and_update_project(@project, python_version)
+
+            upload_wheel
+            install_library(@project[:id], python_version, 'lark_parser-0.10.1-py2.py3-none-any.whl', 'WHEEL', nil, 'wheel', "/Projects/#{@project[:projectname]}/Resources/lark_parser-0.10.1-py2.py3-none-any.whl")
+
+            wait_for do
+              CondaCommands.find_by(project_id: @project[:id]).nil?
+            end
+
+            list_libraries(@project[:id], python_version)
+
+            lark_library = json_body[:items].detect { |library| library[:library] == "lark-parser" }
+            expect(lark_library[:version]).to eq "0.10.1"
+
+          end
+
+          it 'install from environment.yml' do
+
+            @project = create_env_and_update_project(@project, python_version)
+
+            upload_environment
+            install_library(@project[:id], python_version, 'environment.yml', 'ENVIRONMENT_YAML', nil, 'environment', "/Projects/#{@project[:projectname]}/Resources/environment.yml")
+
+            wait_for do
+              CondaCommands.find_by(project_id: @project[:id]).nil?
+            end
+
+            list_libraries(@project[:id], python_version)
+            dropbox_library = json_body[:items].detect { |library| library[:library] == "dropbox" }
+            expect(dropbox_library[:packageSource]).to eq("CONDA")
+            expect(dropbox_library[:version]).to eq ("10.10.0")
+
+          end
+
+          it 'install from requirements.txt' do
+
+            @project = create_env_and_update_project(@project, python_version)
+
+            upload_requirements
+            install_library(@project[:id], python_version, 'requirements.txt', 'REQUIREMENTS_TXT', nil, 'requirements', "/Projects/#{@project[:projectname]}/Resources/requirements.txt")
+
+            wait_for do
+              CondaCommands.find_by(project_id: @project[:id]).nil?
+            end
+
+            list_libraries(@project[:id], python_version)
             imageio_library = json_body[:items].detect { |library| library[:library] == "imageio" }
-
-            expect(serving_library[:machine]).to eq ("ALL")
-
-            expect(tflearn_library[:machine]).to eq ("ALL")
-            expect(tflearn_library[:packageManager]).to eq ("PIP")
-            expect(tflearn_library[:version]).to eq ("0.3.2")
-
-            expect(hops_library[:machine]).to eq ("ALL")
-            expect(hops_library[:packageManager]).to eq ("PIP")
-
-            expect(imageio_library[:machine]).to eq("CPU")
-            expect(imageio_library[:packageManager]).to eq("CONDA")
+            expect(imageio_library[:packageSource]).to eq("PIP")
             expect(imageio_library[:version]).to eq ("2.2.0")
 
           end
 
           it 'uninstall libraries' do
-            @project = create_env_and_update_project(@project, python_version, true)
-            uninstall_library(@project[:id], @project[:python_version], 'imageio')
+            @project = create_env_and_update_project(@project, python_version)
+            uninstall_library(@project[:id], python_version, 'imageio')
             expect_status(204)
 
             wait_for do
-              CondaCommands.find_by(proj: @project[:projectname]).nil?
+              CondaCommands.find_by(project_id: @project[:id]).nil?
             end
-          end
 
-          it 'export environment' do
-            @project = create_env_and_update_project(@project, python_version, true)
-            export_env(@project[:id], @project[:python_version])
-            expect_status(200)
+            list_libraries(@project[:id], python_version)
+            imageio_library = json_body[:items].detect { |library| library[:library] == "imageio" }
+            expect(imageio_library).to eq nil
           end
 
           it 'remove env' do
-            @project = create_env_and_update_project(@project, python_version, true)
-            delete_env(@project[:id], @project[:python_version])
+            if not conda_exists(python_version)
+              skip "Anaconda is not installed in the machine or test is run locally"
+            end
+            @project = create_env_and_update_project(@project, python_version)
+            # Install a library to create the new environment
+            install_library(@project[:id], python_version, 'htmlmin', 'CONDA', '0.1.12', conda_channel)
+            expect_status(201)
+            # Wait until library is installed
+            wait_for do
+              CondaCommands.find_by(project_id: @project[:id]).nil?
+            end
+            @project = get_project_by_name(@project[:projectname])
+            non_versioned_project_image = @project.docker_image.rpartition('.').first
+            delete_env(@project[:id], python_version)
             expect_status(204)
 
             wait_for do
-              CondaCommands.find_by(proj: @project[:projectname]).nil?
+              CondaCommands.find_by(project_id: @project[:id]).nil?
             end
+            # Sleep so that kagent has enough time to process system command to cleanup the docker images
+            sleep(15)
+            # Check if project docker images were removed by kagent
+            expect(check_if_img_exists_locally(non_versioned_project_image + ".0")).to be false
+            expect(check_if_img_exists_locally(non_versioned_project_image + ".1")).to be false
 
-            Airborne.configure do |config|
-              config.base_url = ''
-            end
-
-            # Elasticsearch index should have been deleted
-            index_name = "#{@project[:projectname]}_kagent-*"
-            response = head "#{ENV['ELASTIC_API']}/_cat/indices/#{index_name}"
-
-            Airborne.configure do |config|
-              config.base_url = "https://#{ENV['WEB_HOST']}:#{ENV['WEB_PORT']}"
-            end
-
-            expect(response).to  eq("")
-
-            if not conda_exists
-              skip "Anaconda is not installed in the machine or test is run locally"
-            end
-            expect(check_if_env_exists_locally(@project[:projectname])).to be false
+            # Check that docker registry does not contain the image tags
+            expect(image_in_registry(@project.projectname.downcase, non_versioned_project_image.split(":")[1])).to be false
           end
 
-          it 'destroy anaconda should not delete base environments' do
-            create_env(@project, python_version, true)
+          it 'clean up env of deleted project' do
+            if not conda_exists(python_version)
+              skip "Anaconda is not installed in the machine or test is run locally"
+            end
+            projectname = "project_#{short_random_id}"
+            project = create_project_by_name(projectname)
+            project = create_env_and_update_project(project, python_version)      
+
+            wait_for do
+              CondaCommands.where(["project_id = ? and op = ?", project[:id], "SYNC_BASE_ENV"]).empty?
+            end
+
+            install_library(project[:id], python_version, 'dropbox', 'CONDA', '10.2.0', conda_channel)
             expect_status(201)
-            if not conda_exists
+            project = get_project_by_name(project[:projectname])
+            non_versioned_project_image = project.docker_image.rpartition('.').first
+            wait_for do
+              CondaCommands.find_by(project_id: project[:id]).nil?
+            end
+            delete_project(project)
+            # Wait for garbage collection
+            sleep(20)
+            wait_for do
+              CondaCommands.find_by(project_id: project[:id]).nil?
+            end
+            # Check if project docker images were removed by kagent
+            expect(check_if_img_exists_locally(non_versioned_project_image + ".0")).to be false
+            expect(check_if_img_exists_locally(non_versioned_project_image + ".1")).to be false
+
+            # Check that docker registry does not contain the image tags
+            expect(image_in_registry(project.projectname.downcase, non_versioned_project_image.split(":")[1])).to be false
+          end
+
+          it 'destroy anaconda should not delete base docker image' do
+            create_env(@project, python_version)
+            expect_status(201)
+            if not conda_exists(python_version)
               skip "Anaconda is not installed in the machine or test is run locally"
             end
 
             # Enabling anaconda will not create an environment yet
-            expect(check_if_env_exists_locally(@project[:projectname])).to be false
+            expect(check_if_img_exists_locally("python37:" + getVar('hopsworks_version').value)).to be true
 
             delete_env(@project[:id], python_version)
             expect_status(204)
             wait_for do
-              CondaCommands.find_by(proj: @project[:projectname]).nil?
+              CondaCommands.find_by(project_id: @project[:id]).nil?
             end
-            expect(check_if_env_exists_locally("python27")).to be true
-            expect(check_if_env_exists_locally("python36")).to be true
+            expect(check_if_img_exists_locally("python37:" + getVar('hopsworks_version').value)).to be true
           end
 
-          it 'enable environment from yml' do
-            create_env_yml(@project[:id], true, "/Projects/#{@project[:projectname]}/Resources/environment_cpu.yml", '', '')
+          it 'create environment from yml with jupyter install true' do
+            upload_yml
+            delete_env(@project[:id], python_version)
+            create_env_from_file(@project[:id], "/Projects/#{@project[:projectname]}/Resources/environment_cpu.yml", true)
             expect_status(201)
 
             wait_for do
-              CondaCommands.find_by(proj: @project[:projectname]).nil?
+              CondaCommands.find_by(project_id: @project[:id]).nil?
             end
+
+            @project = get_project_by_name(@project[:projectname])
+            expect(python_version).to eq "3.7"
           end
 
-          it 'GC stale Conda env' do
-            if not conda_exists
-              skip "Anaconda is not installed in the machine or test is run locally"
-            end
-
-            @project = get_project_by_name(@project[:projectname]) #
-            delete_env(@project[:id], @project[:python_version])
-
-            wait_for do
-              CondaCommands.find_by(proj: @project[:projectname]).nil?
-            end
-
-            # Create a second project with Anaconda enabled
-            project2 = create_project
-            project2 = create_env_and_update_project(project2, python_version, true)
+          it 'create environment from yml with jupyter install false' do
+            delete_env(@project[:id], python_version)
+            create_env_from_file(@project[:id], "/Projects/#{@project[:projectname]}/Resources/environment_cpu.yml", false)
             expect_status(201)
 
-            # Install a library to create the new environment
-            install_library(project2[:id], project2[:python_version], 'paramiko', 'conda', '2.4.2', 'CPU', conda_channel)
+            wait_for do
+              CondaCommands.find_by(project_id: @project[:id]).nil?
+            end
+
+            @project = get_project_by_name(@project[:projectname])
+            expect(python_version).to eq "3.7"
+          end
+
+          it 'create environment from requirements.txt with jupyter install true' do
+            delete_env(@project[:id], python_version)
+            create_env_from_file(@project[:id], "/Projects/#{@project[:projectname]}/Resources/requirements.txt", true)
             expect_status(201)
-            wait_for do
-              CondaCommands.find_by(proj: project2[:projectname]).nil?
-            end
-            expect(check_if_env_exists_locally(project2[:projectname])).to be true
-
-            # Disable Anaconda for project2 directly in the database
-            # so it does not send a command to kagent
-            tmp_proj = Project.find_by(id: project2[:id])
-            tmp_proj.conda = 0
-            tmp_proj.save
 
             wait_for do
-              CondaCommands.find_by(proj: project2[:projectname]).nil?
+              CondaCommands.find_by(project_id: @project[:id]).nil?
             end
 
-            trigger_conda_gc
+            @project = get_project_by_name(@project[:projectname])
+            expect(python_version).to eq "3.7"
 
-            wait_for do
-              check_if_env_exists_locally(project2[:projectname]) == false
-            end
-
-            expect(check_if_env_exists_locally(project2[:projectname])).to be false
-          end
-        end
-      end
-    end
-
-    describe "#Creation not executed on non-conda hosts" do
-      context 'with admin rights' do
-        before :each do
-          with_valid_project
-        end
-
-        it 'should be able to disable conda on a host' do
-          with_admin_session
-          if num_hosts > 1
-            # In case we have multi vms disable the one on which Hopsworks is not running
-            put "#{ENV['HOPSWORKS_API']}/admin/hosts", {hostname: "hopsworks1.logicalclocks.com", condaEnabled: "false"}
-          else
-            put "#{ENV['HOPSWORKS_API']}/admin/hosts", {hostname: "hopsworks0.logicalclocks.com", condaEnabled: "false"}
-          end
-          expect_status(204)
-        end
-
-        it 'should fail to create an environment on the local machine - single vm' do
-          if num_hosts > 1
-            skip "Multi vm setup."
+            list_libraries(@project[:id], python_version)
+            imageio_library = json_body[:items].detect { |library| library[:library] == "imageio" }
+            expect(imageio_library[:packageSource]).to eq("PIP")
+            expect(imageio_library[:version]).to eq ("2.2.0")
           end
 
-          create_session(@user[:email], "Pass123")
-          create_env(@project, python_version, true)
-          expect_status(503)
-        end
-
-        it 'should not have created any conda_commands in the db - single vm' do
-          if num_hosts > 1
-            skip "Multi vm setup."
-          end
-
-          expect(CondaCommands.find_by(proj: @project[:projectname])).to be nil
-        end
-
-        it 'should create an environment on the other machines - multi vm' do
-          if num_hosts == 1
-            skip "Single vm setup"
-          end
-
-          create_session(@user[:email], "Pass123")
-          create_env(@project, python_version, true)
-          expect_status(201)
-        end
-
-        it 'should delete the environment from the other machines - multi vm' do
-          if num_hosts == 1
-            skip "Singe vm setup"
-          end
-
-          delete_env(@project[:id], python_version)
-          expect_status(204)
-        end
-
-        it 'should be able to re-enable conda on a host' do
-          with_admin_session
-          if num_hosts > 1
-            # In case we have multi vms disable the one on which Hopsworks is not running
-            put "#{ENV['HOPSWORKS_API']}/admin/hosts", {hostname: "hopsworks1.logicalclocks.com", condaEnabled: "true"}
-          else
-            put "#{ENV['HOPSWORKS_API']}/admin/hosts", {hostname: "hopsworks0.logicalclocks.com", condaEnabled: "true"}
-          end
-          expect_status(204)
-        end
-
-        it 'should be able to create an environment' do
-          create_session(@user[:email], "Pass123")
-          create_env(@project, python_version, true)
-          expect_status(201)
-        end
-      end
-    end
-
-    describe "#Library installation not executed on non-conda hosts" do
-      context 'with admin rights' do
-        before :all do
-          with_valid_project
-        end
-
-        it 'should create an environment ' do
-          @project = create_env_and_update_project(@project, python_version, true)
-        end
-
-        it 'should be able to disable conda on a host' do
-          with_admin_session
-          if num_hosts > 1
-            # In case we have multi vms disable the one on which Hopsworks is not running
-            put "#{ENV['HOPSWORKS_API']}/admin/hosts", {hostname: "hopsworks1.logicalclocks.com", condaEnabled: "false"}
-          else
-            put "#{ENV['HOPSWORKS_API']}/admin/hosts", {hostname: "hopsworks0.logicalclocks.com", condaEnabled: "false"}
-          end
-          expect_status(204)
-        end
-
-        it 'should fail to install a library' do
-          create_session(@user[:email], "Pass123")
-          @project = create_env_and_update_project(@project, python_version, true)
-          install_library(@project[:id], @project[:python_version], 'imageio', 'conda', '2.2.0', 'CPU', conda_channel)
-          if num_hosts == 1
-            #  If single VM there are no hosts on which to install the library. Hopsworks returns 412
-            expect_status(503)
-          else
-            # If it is a multi vm there are hosts to install the library.
+          it 'create environment from requirements.txt with jupyter install false' do
+            delete_env(@project[:id], python_version)
+            create_env_from_file(@project[:id], "/Projects/#{@project[:projectname]}/Resources/requirements.txt", false)
             expect_status(201)
+
+            wait_for do
+              CondaCommands.find_by(project_id: @project[:id]).nil?
+            end
+
+            @project = get_project_by_name(@project[:projectname])
+            expect(python_version).to eq "3.7"
+
+            list_libraries(@project[:id], python_version)
+            imageio_library = json_body[:items].detect { |library| library[:library] == "imageio" }
+            expect(imageio_library[:packageSource]).to eq("PIP")
+            expect(imageio_library[:version]).to eq ("2.2.0")
           end
-        end
 
-        it 'should not have created any conda_commands in the db' do
-          if num_hosts == 1
-            # For single vm, there should not be any command in the db
-            expect(CondaCommands.find_by(proj: @project[:projectname])).to be nil
-          else
-            # For multi vm setup there should be (num_hosts - 1) * 2 commands.
-            # For each library installation there will be one command for the
-            # environment creation and one for the installation.
-            expect(CondaCommands.where(proj: @project[:projectname]).count).to eq((num_hosts - 1) * 2)
+          it 'check conflicts are empty' do
+            delete_env(@project[:id], python_version)
+            @project = create_env_and_update_project(@project, python_version)
+
+            get_env_conflicts(@project[:id], python_version)
+            expect_status(200)
+            expect(json_body[:items]).to eq(nil)
+            expect(json_body[:count]).to eq(nil)
           end
-        end
 
-        it 'should be able to re-enable conda on a host' do
-          with_admin_session
-          if num_hosts > 1
-            # In case we have multi vms disable the one on which Hopsworks is not running
-            put "#{ENV['HOPSWORKS_API']}/admin/hosts", {hostname: "hopsworks1.logicalclocks.com", condaEnabled: "true"}
-          else
-            put "#{ENV['HOPSWORKS_API']}/admin/hosts", {hostname: "hopsworks0.logicalclocks.com", condaEnabled: "true"}
+          it 'check conflicts are not empty' do
+            delete_env(@project[:id], python_version)
+            @project = create_env_and_update_project(@project, python_version)
+
+            uninstall_library(@project[:id], python_version, 'tensorboard')
+
+            wait_for do
+              CondaCommands.find_by(project_id: @project[:id]).nil?
+            end
+
+            get_env_conflicts(@project[:id], python_version)
+            expect_status(200)
+            expect(json_body[:count]).to be > 0
           end
-          expect_status(204)
-        end
 
-        it 'should be able to install a library' do
-          create_session(@user[:email], "Pass123")
-          @project = create_env_and_update_project(@project, python_version, true)
-          install_library(@project[:id], @project[:python_version], 'dropbox', 'conda', '9.0.0', 'CPU', conda_channel)
-          expect_status(201)
+          it 'check jupyter conflicts' do
+            delete_env(@project[:id], python_version)
+            @project = create_env_and_update_project(@project, python_version)
 
-          # Check that the command has been register into the table and it will be eventually sent to the agent
-          expect(CondaCommands.find_by(proj: @project[:projectname])).not_to be nil
+            get_env_conflicts(@project[:id], python_version, "?filter_by=service:JUPYTER")
+            expect_status(200)
+            expect(json_body[:items]).to eq(nil)
+            expect(json_body[:count]).to eq(nil)
+
+            uninstall_library(@project[:id], python_version, 'notebook')
+
+            wait_for do
+              CondaCommands.find_by(project_id: @project[:id]).nil?
+            end
+
+            get_env_conflicts(@project[:id], python_version, "?filter_by=service:JUPYTER")
+            expect_status(200)
+            expect(json_body[:count]).to be > 0
+          end
         end
       end
     end

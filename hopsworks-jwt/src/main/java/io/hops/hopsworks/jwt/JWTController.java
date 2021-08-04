@@ -21,9 +21,9 @@ import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import io.hops.hopsworks.jwt.dao.InvalidJwt;
+import io.hops.hopsworks.persistence.entity.jwt.InvalidJwt;
 import io.hops.hopsworks.jwt.dao.InvalidJwtFacade;
-import io.hops.hopsworks.jwt.dao.JwtSigningKey;
+import io.hops.hopsworks.persistence.entity.jwt.JwtSigningKey;
 import io.hops.hopsworks.jwt.dao.JwtSigningKeyFacade;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
@@ -737,5 +737,32 @@ public class JWTController {
       jwtSigningKeyFacade.remove(jwtSigningKey);
     }
   }
-
+  
+  /**
+   * Get the ELK signing key, create a new one if doesn't exists then returns
+   * it.
+   * @param alg
+   * @return
+   * @throws NoSuchAlgorithmException
+   */
+  public String getSigningKeyForELK(SignatureAlgorithm alg) throws NoSuchAlgorithmException {
+    return getOrCreateSigningKey(Constants.ELK_SIGNING_KEY_NAME, alg).getSecret();
+  }
+  
+  /**
+   * Creare a token with the ELK signing key.
+   * @return
+   * @throws DuplicateSigningKeyException
+   * @throws NoSuchAlgorithmException
+   * @throws SigningKeyNotFoundException
+   */
+  public String createTokenForELK(String subjectName, String issuer,
+      Map<String, Object> claims, Date expiresAt, SignatureAlgorithm alg)
+      throws DuplicateSigningKeyException, NoSuchAlgorithmException,
+      SigningKeyNotFoundException {
+    
+    return createToken(Constants.ELK_SIGNING_KEY_NAME,
+        false, issuer, null, expiresAt, null, subjectName.toLowerCase(),
+        claims, alg);
+  }
 }

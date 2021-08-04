@@ -39,14 +39,14 @@
 
 package io.hops.hopsworks.common.util;
 
-import io.hops.hopsworks.common.dao.certificates.UserCerts;
-import io.hops.hopsworks.common.dao.hdfs.inode.Inode;
-import io.hops.hopsworks.common.dao.project.Project;
+import io.hops.hopsworks.persistence.entity.certificates.UserCerts;
+import io.hops.hopsworks.persistence.entity.hdfs.inode.Inode;
+import io.hops.hopsworks.persistence.entity.project.Project;
 import io.hops.hopsworks.common.hdfs.DistributedFileSystemOps;
 import io.hops.hopsworks.common.hdfs.FsPermissions;
 import io.hops.hopsworks.common.hdfs.HdfsUsersController;
-import io.hops.hopsworks.common.jobs.configuration.JobType;
-import io.hops.hopsworks.common.jobs.yarn.LocalResourceDTO;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.JobType;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.yarn.LocalResourceDTO;
 import io.hops.hopsworks.common.security.CertificateMaterializer;
 import io.hops.hopsworks.common.util.templates.AppendConfigReplacementPolicy;
 import io.hops.hopsworks.common.util.templates.ConfigProperty;
@@ -56,7 +56,6 @@ import io.hops.hopsworks.common.util.templates.OverwriteConfigReplacementPolicy;
 import io.hops.hopsworks.exceptions.CryptoPasswordNotFoundException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
-import org.apache.commons.net.util.Base64;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
@@ -83,6 +82,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.apache.commons.codec.binary.Base64;
 
 /**
  * Utility methods.
@@ -165,14 +165,6 @@ public class HopsUtils {
     return project + HdfsUsersController.USER_NAME_DELIMITER + user + "__cert.key";
   }
   
-  public static void copyProjectUserCerts(Project project, String username,
-                                          String localTmpDir, String remoteTmpDir, CertificateMaterializer
-      certMat, boolean isRpcTlsEnabled) {
-    copyProjectUserCerts(project, username, localTmpDir, remoteTmpDir,
-        null, null, null, null, null, null, certMat, isRpcTlsEnabled);
-  }
-
-
   /**
    * Remote user certificates materialized both from the local
    * filesystem and from HDFS
@@ -258,17 +250,14 @@ public class HopsUtils {
    * @param jobType
    * @param dfso
    * @param projectLocalResources
-   * @param jobSystemProperties
-   * @param flinkCertsDir
    * @param applicationId
    */
   public static void copyProjectUserCerts(Project project, String username,
-      String localTmpDir, String remoteTmpDir, JobType jobType,
-      DistributedFileSystemOps dfso,
-      List<LocalResourceDTO> projectLocalResources,
-      Map<String, String> jobSystemProperties,
-      String flinkCertsDir, String applicationId, CertificateMaterializer
-      certMat, boolean isRpcTlsEnabled) {
+                                          String localTmpDir, String remoteTmpDir, JobType jobType,
+                                          DistributedFileSystemOps dfso,
+                                          List<LocalResourceDTO> projectLocalResources,
+                                          String applicationId,
+                                          CertificateMaterializer certMat) {
   
     // Let the Certificate Materializer handle the certificates
     UserCerts userCert = new UserCerts(project.getName(), username);
@@ -685,5 +674,14 @@ public class HopsUtils {
     }
     return exists;
   }
+  
+  //====================================================================================================================
+  // Jupyter
+  //====================================================================================================================
+  
+  public static String getJupyterLogName(String hdfsUser, Integer port) {
+    return (hdfsUser + "-" + port + ".log").toLowerCase();
+  }
+  
   
 }

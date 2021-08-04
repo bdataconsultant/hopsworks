@@ -15,6 +15,7 @@
 =end
 
 describe "On #{ENV['OS']}" do
+  after(:all) {clean_all_test_projects(spec: "users")}
   describe "users" do
     describe "username_generation" do
       it 'username should only contain alfanumeric chars no matter the user email' do
@@ -37,14 +38,34 @@ describe "On #{ENV['OS']}" do
         expect(user[:username]).to match(/^[a-z0-9]{8}$/)
       end
 
-      it 'should fail to register user with capital letters in the email' do
+      it 'should not fail to register user with capital letters in the email' do
         user_params = {}
         email = "TOLOWER#{random_id}@hopsworks.se"
         user_params[:email] = email
         register_user(user_params)
 
-        user = User.find_by(email: email)
-        expect(user).to be nil
+        user = User.find_by(email: email.downcase)
+        expect(user).not_to be_nil
+      end
+
+      it 'should fail to register user with same email different collate' do
+        user_params = {}
+        email = "TOLOWER@hopsworks.se"
+        user_params[:email] = email
+        register_user(user_params)
+
+        user = User.find_by(email: email.downcase)
+        expect(user).not_to be_nil
+
+        email = "tolower@hopsworks.se"
+        user_params[:email] = email
+        register_user(user_params)
+        expect_json(errorCode: 160003)
+
+        email = "ToLower@hopsworks.se"
+        user_params[:email] = email
+        register_user(user_params)
+        expect_json(errorCode: 160003)
       end
 
       it 'should handle multiple users with similar emails' do

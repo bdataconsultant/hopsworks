@@ -117,7 +117,7 @@ public abstract class AbstractFacade<T> {
   }
   
   public String OrderBy(SortBy sortBy) {
-    return sortBy.getSql() + sortBy.getParam().getSql();
+    return sortBy.getSql() + " " +  sortBy.getParam().getSql();
   }
   
   public String buildQuery(String query, Set<? extends AbstractFacade.FilterBy> filters,
@@ -134,7 +134,7 @@ public abstract class AbstractFacade<T> {
     if (!sort.hasNext()) {
       return "";
     }
-    StringBuilder c = new StringBuilder("ORDER BY " + OrderBy(sort.next()));
+    StringBuilder c = new StringBuilder(" ORDER BY " + OrderBy(sort.next()));
     for (;sort.hasNext();) {
       c.append(", ").append(OrderBy(sort.next()));
     }
@@ -151,20 +151,34 @@ public abstract class AbstractFacade<T> {
     if (!filterBy.hasNext()) {
       return s;
     }
-    StringBuilder c = new StringBuilder("WHERE " + filterBy.next().getSql());
+    StringBuilder c = new StringBuilder(" WHERE " + filterBy.next().getSql());
     for (;filterBy.hasNext();) {
-      c.append("AND ").append(filterBy.next().getSql());
+      c.append(" AND ").append(filterBy.next().getSql());
     }
-    return c.append(more == null || more.isEmpty()? "": "AND " + more).toString();
+    return c.append(more == null || more.isEmpty()? "": " AND " + more).toString();
   }
   
   public Date getDate(String field, String value) {
-    SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
-    try {
-      return formatter.parse(value);
-    } catch (ParseException e) {
+    String[] formats = {"yyyy-MM-dd'T'HH:mm:ss.SSSX", "yyyy-MM-dd'T'HH:mm:ss.SSSZ", "yyyy-MM-dd'T'HH:mm:ssX",
+      "yyyy-MM-dd'T'HH:mm:ssZ", "yyyy-MM-dd"};
+    Date date = null;
+    for (int i = 0; i < formats.length && date == null; i++ ) {
+      date = getDateByFormat(value, formats[i]);
+    }
+    if (date == null) {
       throw new InvalidQueryException(
-        "Filter value for " + field + " needs to set valid format. Expected:yyyy-mm-dd hh:mm:ss but found: " + value);
+        "Filter value for " + field + " needs to set valid format. Expected:yyyy-MM-dd hh:mm:ss.SSSX but found: " +
+          value);
+    }
+    return date;
+  }
+
+  private Date getDateByFormat(String value, String format) {
+    SimpleDateFormat sdf = new SimpleDateFormat(format);
+    try {
+      return sdf.parse(value);
+    } catch (ParseException e) {
+      return null;
     }
   }
   
@@ -180,6 +194,14 @@ public abstract class AbstractFacade<T> {
       throw new InvalidQueryException("Filter value for " + field + " needs to set an Integer, but found: " + value);
     }
     return val;
+  }
+  
+  public Long getLongValue(String field, String value) {
+    try {
+      return Long.parseLong(value);
+    } catch (NumberFormatException e) {
+      throw new InvalidQueryException("Filter value for " + field + " needs to set a Long, but found: " + value);
+    }
   }
   
   public List<Integer> getIntValues(FilterBy filterBy) {
@@ -265,11 +287,11 @@ public abstract class AbstractFacade<T> {
 
   }
   
-  public class CollectionInfo {
+  public static class CollectionInfo<A> {
     private Long count;
-    private List<T> items;
+    private List<A> items;
   
-    public CollectionInfo(Long count, List<T> items) {
+    public CollectionInfo(Long count, List<A> items) {
       this.count = count;
       this.items = items;
     }
@@ -278,11 +300,11 @@ public abstract class AbstractFacade<T> {
       return count;
     }
     
-    public List<T> getItems() {
+    public List<A> getItems() {
       return items;
     }
     
-    public void setItems(List<T> items) {
+    public void setItems(List<A> items) {
       this.items = items;
     }
     

@@ -66,10 +66,10 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.net.HopsSSLSocketFactory;
 import org.apache.hadoop.security.UserGroupInformation;
-import io.hops.hopsworks.common.dao.hdfs.inode.Inode;
-import io.hops.hopsworks.common.dao.hdfs.inode.InodeFacade;
+import io.hops.hopsworks.persistence.entity.hdfs.inode.Inode;
+import io.hops.hopsworks.common.hdfs.inode.InodeController;
 import io.hops.hopsworks.common.dao.hdfsUser.HdfsUsersFacade;
-import io.hops.hopsworks.common.dao.hdfsUser.HdfsGroups;
+import io.hops.hopsworks.persistence.entity.hdfs.user.HdfsGroups;
 
 @Stateless
 public class DistributedFsService {
@@ -79,7 +79,7 @@ public class DistributedFsService {
           getName());
   
   @EJB
-  private InodeFacade inodes;
+  private InodeController inodeController;
   @EJB
   private UserGroupInformationService ugiService;
   @EJB
@@ -94,12 +94,19 @@ public class DistributedFsService {
   private Configuration conf;
   private String hadoopConfDir;
   private String transientDir;
+  private UserGroupInformation loginUser;
 
   public DistributedFsService() {
   }
   
   @PostConstruct
   public void init() {
+    try {
+      loginUser = UserGroupInformation.getLoginUser();
+    } catch (IOException ex) {
+      logger.log(Level.SEVERE, "Could not get login user", ex);
+      throw new IllegalStateException(ex);
+    }
     System.setProperty("hadoop.home.dir", settings.getHadoopSymbolicLinkDir());
     hadoopConfDir = settings.getHadoopConfDir();
     //Get the configuration file at found path
@@ -123,7 +130,7 @@ public class DistributedFsService {
     conf = new Configuration();
     conf.addResource(hadoopPath);
     conf.addResource(hdfsPath);
-    conf.set(CommonConfigurationKeys.FS_PERMISSIONS_UMASK_KEY, "0027");
+    conf.set(CommonConfigurationKeys.FS_PERMISSIONS_UMASK_KEY, "0007");
     conf.setStrings("dfs.namenode.rpc-address", hdfsLeDescriptorsFacade.getRPCEndpoint());
     if (settings.getHopsRpcTls()) {
       transientDir = settings.getHopsworksTmpCertDir();
@@ -154,12 +161,10 @@ public class DistributedFsService {
           truststorePath, truststorePass, newConf);
       
       return new DistributedFileSystemOps(
-          UserGroupInformation.createRemoteUser(settings.getHdfsSuperUser()),
-          newConf);
+          UserGroupInformation.createRemoteUser(loginUser.getUserName()), newConf);
     }
   
-    return new DistributedFileSystemOps(UserGroupInformation.createRemoteUser(
-        settings.getHdfsSuperUser()), conf);
+    return new DistributedFileSystemOps(UserGroupInformation.createRemoteUser(loginUser.getUserName()), conf);
   }
   
   public DistributedFileSystemOps getDfsOps(URI uri) {
@@ -175,12 +180,10 @@ public class DistributedFsService {
           truststorePath, truststorePass, newConf);
       
       return new DistributedFileSystemOps(
-          UserGroupInformation.createRemoteUser(settings.getHdfsSuperUser()),
-          newConf, uri);
+          UserGroupInformation.createRemoteUser(loginUser.getUserName()), newConf, uri);
     }
     
-    return new DistributedFileSystemOps(UserGroupInformation.createRemoteUser
-        (settings.getHdfsSuperUser()), conf, uri);
+    return new DistributedFileSystemOps(UserGroupInformation.createRemoteUser(loginUser.getUserName()), conf, uri);
   }
   
   /**
@@ -224,7 +227,7 @@ public class DistributedFsService {
   public void closeDfsClient(DistributedFileSystemOps udfso) {
     if (null != udfso) {
       if (settings.getHopsRpcTls()
-          && !udfso.getEffectiveUser().equals(settings.getHdfsSuperUser())) {
+          && !udfso.getEffectiveUser().equals(loginUser.getUserName())) {
         bhcs.removeNonSuperUserCertificate(udfso.getEffectiveUser());
       }
       udfso.close();
@@ -298,6 +301,14 @@ public class DistributedFsService {
   }
 
   /**
+   * Get the login user which acts as HDFS superuser
+   *
+   * @return UGI of login user
+   */
+  public UserGroupInformation getLoginUser() {
+    return loginUser;
+  }
+  /**
    * Check if the inode at the given path is a directory.
    * <p/>
    * @param path
@@ -305,7 +316,7 @@ public class DistributedFsService {
    */
   @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
   public boolean isDir(String path) {
-    Inode i = inodes.getInodeAtPath(path);
+    Inode i = inodeController.getInodeAtPath(path);
     if (i != null) {
       return i.isDir();
     }
@@ -320,7 +331,7 @@ public class DistributedFsService {
    */
   @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
   public Inode getInode(String path) {
-    Inode i = inodes.getInodeAtPath(path);
+    Inode i = inodeController.getInodeAtPath(path);
     return i;
   }
 
@@ -334,9 +345,9 @@ public class DistributedFsService {
    */
   @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
   public List<String> getChildNames(String path) {
-    Inode inode = inodes.getInodeAtPath(path);
+    Inode inode = inodeController.getInodeAtPath(path);
     if (inode.isDir()) {
-      List<Inode> inodekids = inodes.getChildren(inode);
+      List<Inode> inodekids = inodeController.getChildren(inode);
       ArrayList<String> retList = new ArrayList<>(inodekids.size());
       for (Inode i : inodekids) {
         if (!i.isDir()) {
@@ -356,9 +367,9 @@ public class DistributedFsService {
    * @return
    */
   public List<Inode> getChildInodes(String path) {
-    Inode inode = inodes.getInodeAtPath(path);
+    Inode inode = inodeController.getInodeAtPath(path);
     if (inode.isDir()) {
-      return inodes.getChildren(inode);
+      return inodeController.getChildren(inode);
     } else {
       return Collections.EMPTY_LIST;
     }

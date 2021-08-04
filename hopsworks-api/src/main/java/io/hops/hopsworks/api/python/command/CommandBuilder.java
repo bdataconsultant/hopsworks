@@ -17,10 +17,10 @@ package io.hops.hopsworks.api.python.command;
 
 import io.hops.hopsworks.common.api.ResourceRequest;
 import io.hops.hopsworks.common.dao.AbstractFacade;
-import io.hops.hopsworks.common.dao.project.Project;
 import io.hops.hopsworks.common.dao.python.CondaCommandFacade;
-import io.hops.hopsworks.common.dao.python.CondaCommands;
 import io.hops.hopsworks.exceptions.PythonException;
+import io.hops.hopsworks.persistence.entity.project.Project;
+import io.hops.hopsworks.persistence.entity.python.CondaCommands;
 import io.hops.hopsworks.restutils.RESTCodes;
 
 import javax.ejb.EJB;
@@ -53,7 +53,7 @@ public class CommandBuilder {
       .path(ResourceRequest.Name.PROJECT.toString())
       .path(project.getId().toString())
       .path(ResourceRequest.Name.ENVIRONMENTS.toString())
-      .path(project.getPythonVersion())
+      .path(project.getPythonEnvironment().getPythonVersion())
       .path(ResourceRequest.Name.COMMANDS.toString())
       .build());
     return dto;
@@ -64,7 +64,7 @@ public class CommandBuilder {
       .path(ResourceRequest.Name.PROJECT.toString())
       .path(project.getId().toString())
       .path(ResourceRequest.Name.ENVIRONMENTS.toString())
-      .path(project.getPythonVersion())
+      .path(project.getPythonEnvironment().getPythonVersion())
       .path(ResourceRequest.Name.COMMANDS.toString())
       .path(Integer.toString(command.getId()))
       .build());
@@ -76,7 +76,7 @@ public class CommandBuilder {
       .path(ResourceRequest.Name.PROJECT.toString())
       .path(project.getId().toString())
       .path(ResourceRequest.Name.ENVIRONMENTS.toString())
-      .path(project.getPythonVersion())
+      .path(project.getPythonEnvironment().getPythonVersion())
       .path(ResourceRequest.Name.LIBRARIES.toString())
       .path(libName)
       .path(ResourceRequest.Name.COMMANDS.toString())
@@ -89,7 +89,7 @@ public class CommandBuilder {
       .path(ResourceRequest.Name.PROJECT.toString())
       .path(project.getId().toString())
       .path(ResourceRequest.Name.ENVIRONMENTS.toString())
-      .path(project.getPythonVersion())
+      .path(project.getPythonEnvironment().getPythonVersion())
       .path(ResourceRequest.Name.LIBRARIES.toString())
       .path(libName)
       .path(ResourceRequest.Name.COMMANDS.toString())
@@ -112,7 +112,8 @@ public class CommandBuilder {
     if (dto.isExpand()) {
       dto.setStatus(command.getStatus().name());
       dto.setOp(command.getOp().name());
-      dto.setHost(command.getHostId().getHostname());
+      dto.setInstallType(command.getInstallType().name());
+      dto.setErrorMessage(command.getErrorMsg());
     }
     return dto;
   }
@@ -125,7 +126,8 @@ public class CommandBuilder {
     if (dto.isExpand()) {
       dto.setStatus(command.getStatus().name());
       dto.setOp(command.getOp().name());
-      dto.setHost(command.getHostId().getHostname());
+      dto.setInstallType(command.getInstallType().name());
+      dto.setErrorMessage(command.getErrorMsg());
     }
     return dto;
   }
@@ -138,7 +140,8 @@ public class CommandBuilder {
     if (dto.isExpand()) {
       dto.setStatus(command.getStatus().name());
       dto.setOp(command.getOp().name());
-      dto.setHost(command.getHostId().getHostname());
+      dto.setInstallType(command.getInstallType().name());
+      dto.setErrorMessage(command.getErrorMsg());
     }
     return dto;
   }

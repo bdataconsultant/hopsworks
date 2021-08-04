@@ -39,6 +39,7 @@
 =end
 
 describe "On #{ENV['OS']}" do
+  after(:all) {clean_all_test_projects(spec: "project")}
   describe 'projects' do
     describe "#create" do
       context 'without authentication' do
@@ -76,16 +77,16 @@ describe "On #{ENV['OS']}" do
           expect_status(201)
           get "#{ENV['HOPSWORKS_API']}/project/getProjectInfo/#{projectname}"
           project_id = json_body[:projectId]
-          get "#{ENV['HOPSWORKS_API']}/project/#{project_id}/dataset/getContent"
+          get "#{ENV['HOPSWORKS_API']}/project/#{project_id}/dataset/?action=listing&expand=inodes"
           expect_status(200)
-          logs = json_body.detect { |e| e[:name] == "Logs" }
-          resources = json_body.detect { |e| e[:name] == "Resources" }
+          logs = json_body[:items].detect { |e| e[:name] == "Logs" }
+          resources = json_body[:items].detect { |e| e[:name] == "Resources" }
           expect(logs[:description]).to eq ("Contains the logs for jobs that have been run through the Hopsworks platform.")
-          expect(logs[:permission]).to eq ("rwxrwx--T")
-          expect(logs[:owner]).to eq ("#{@user[:fname]} #{@user[:lname]}")
+          expect(logs[:attributes][:permission]).to eq ("rwxrwx---")
+          expect(logs[:attributes][:owner]).to eq ("#{@user[:fname]} #{@user[:lname]}")
           expect(resources[:description]).to eq ("Contains resources used by jobs, for example, jar files.")
-          expect(resources[:permission]).to eq ("rwxrwx--T")
-          expect(resources[:owner]).to eq ("#{@user[:fname]} #{@user[:lname]}")
+          expect(resources[:attributes][:permission]).to eq ("rwxrwx---")
+          expect(resources[:attributes][:owner]).to eq ("#{@user[:fname]} #{@user[:lname]}")
         end
 
         it 'should create JUPYTER dataset with right permissions and owner' do
@@ -95,12 +96,12 @@ describe "On #{ENV['OS']}" do
           expect_status(201)
           get "#{ENV['HOPSWORKS_API']}/project/getProjectInfo/#{projectname}"
           project_id = json_body[:projectId]
-          get "#{ENV['HOPSWORKS_API']}/project/#{project_id}/dataset/getContent"
+          get "#{ENV['HOPSWORKS_API']}/project/#{project_id}/dataset/?action=listing&expand=inodes"
           expect_status(200)
-          notebook = json_body.detect { |e| e[:name] == "Jupyter" }
+          notebook = json_body[:items].detect { |e| e[:name] == "Jupyter" }
           expect(notebook[:description]).to eq("Contains Jupyter notebooks.")
-          expect(notebook[:permission]).to eq("rwxrwx---")
-          expect(notebook[:owner]).to eq("#{@user[:fname]} #{@user[:lname]}")
+          expect(notebook[:attributes][:permission]).to eq("rwxrwx---")
+          expect(notebook[:attributes][:owner]).to eq("#{@user[:fname]} #{@user[:lname]}")
         end
 
         it 'should fail to create a project with an existing name' do
@@ -140,19 +141,19 @@ describe "On #{ENV['OS']}" do
           projectname = "project_#{short_random_id}"
           project = create_project_by_name(projectname)
           dsname = "dataset_#{short_random_id}"
-          create_dataset_by_name(project, dsname)
+          create_dataset_by_name_checked(project, dsname, permission: "READ_ONLY")
           delete_project(project)
 
-          sleep(10)
+          sleep(15)
 
           project = create_project_by_name(projectname)
-          create_dataset_by_name(project, dsname)
+          create_dataset_by_name_checked(project, dsname, permission: "READ_ONLY")
 
-          get "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/dataset/getContent/#{dsname}"
+          get "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/dataset/#{dsname}?action=listing&expand=inodes"
           expect_status(200)
-          get "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/dataset/getContent"
-          ds = json_body.detect { |d| d[:name] == dsname }
-          expect(ds[:owner]).to eq ("#{@user[:fname]} #{@user[:lname]}")
+          get "#{ENV['HOPSWORKS_API']}/project/#{project[:id]}/dataset/?action=listing&expand=inodes"
+          ds = json_body[:items].detect { |d| d[:name] == dsname }
+          expect(ds[:attributes][:owner]).to eq ("#{@user[:fname]} #{@user[:lname]}")
         end
 
         it 'should create a project given only name' do
@@ -194,28 +195,28 @@ describe "On #{ENV['OS']}" do
 
       context "project creation failure" do
         before :all do
-          @failed_service = "elasticsearch"
-          @service_host = ENV['ELASTIC_API'].split(":").map(&:strip)[0]
+          @failed_service = "kibana"
+          @service_host = ENV['KIBANA_API'].split(":").map(&:strip)[0]
           with_valid_session
         end
         
         after :all do
           # Make sure we bring back the service
           execute_remotely @service_host, "sudo systemctl start #{@failed_service}"
-          sleep 40
+          sleep 60
         end
         
         it "Should be able to create a Project after a failed attempt" do
           # First shutdown the service
           execute_remotely @service_host, "sudo systemctl stop #{@failed_service}"
-          project_name = "doomed2fail_#{Time.now.to_i}"
+          project_name = "ProJect_doomed2fail#{random_id_len(2)}"
           post "#{ENV['HOPSWORKS_API']}/project", {projectName: project_name,
                                                   services: ["JOBS","JUPYTER"]}
           expect_status(500)
           # Now bring back service and try again
           execute_remotely @service_host, "sudo systemctl start #{@failed_service}"
           # Give it some time to become ready
-          sleep 40
+          sleep 60
           post "#{ENV['HOPSWORKS_API']}/project", {projectName: project_name,
                                                    services: ["JOBS","JUPYTER"]}
           expect_status(201)
@@ -291,7 +292,7 @@ describe "On #{ENV['OS']}" do
         end
         it "should delete project" do
           # Start Jupyter to put X.509 to HDFS
-          @project = create_env_and_update_project(@project, "3.6", true)
+          @project = create_env_and_update_project(@project, "3.7")
           get "#{ENV['HOPSWORKS_API']}/project/#{@project[:id]}/jupyter/settings"
           expect_status(200)
           settings = json_body
@@ -313,33 +314,46 @@ describe "On #{ENV['OS']}" do
         it "should delete and recreate spark tour" do
           project = create_project_tour("spark")
           delete_project(project)
+          sleep(15)
           project = create_project_tour("spark")
           delete_project(project)
         end
         it "should delete and recreate kafka tour" do
           project = create_project_tour("kafka")
           delete_project(project)
+          sleep(15)
           project = create_project_tour("kafka")
           delete_project(project)
         end
         it "should delete and recreate deep_learning tour" do
-          project = create_project_tour("deep_learning")
+          project = create_project_tour("ml")
           delete_project(project)
-          project = create_project_tour("deep_learning")
+          sleep(15)
+          project = create_project_tour("ml")
           delete_project(project)
         end
         it "should delete and recreate featurestore tour" do
-          project = create_project_tour("featurestore")
+          project = create_project_tour("fs")
           job_name = "featurestore_tour_job"
-          wait_for_execution do
+          wait_result = wait_for_me_time do
             get_executions(project[:id], job_name, "")
             execution_id = json_body[:items][0][:id]
-            stop_execution(project[:id], job_name)
+            stop_execution(project[:id], job_name, execution_id)
             get_execution(project[:id], job_name, execution_id)
-            json_body[:state].eql? "KILLED"
+            { 'success' => (json_body[:state].eql? "KILLED"), 'msg' => "expected:KILLED, found:#{json_body[:state]}" }
           end
+          expect(wait_result["success"]).to be(true), wait_result["msg"]
           delete_project(project)
-          project = create_project_tour("featurestore")
+          sleep(15)
+          project = create_project_tour("fs")
+          wait_result = wait_for_me_time do
+            get_executions(project[:id], job_name, "")
+            execution_id = json_body[:items][0][:id]
+            stop_execution(project[:id], job_name, execution_id)
+            get_execution(project[:id], job_name, execution_id)
+            { 'success' => (json_body[:state].eql? "KILLED"), 'msg' => "expected:KILLED, found:#{json_body[:state]}" }
+          end
+          expect(wait_result["success"]).to be(true), wait_result["msg"]
           delete_project(project)
         end
       end

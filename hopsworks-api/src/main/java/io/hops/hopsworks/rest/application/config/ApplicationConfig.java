@@ -39,6 +39,7 @@
 
 package io.hops.hopsworks.rest.application.config;
 
+import io.hops.hopsworks.api.admin.UsersAdminResource;
 import io.swagger.annotations.Api;
 import org.glassfish.jersey.server.ResourceConfig;
 
@@ -63,10 +64,8 @@ public class ApplicationConfig extends ResourceConfig {
     register(io.hops.hopsworks.api.jupyter.JupyterService.class);
     register(io.hops.hopsworks.api.serving.ServingService.class);
     register(io.hops.hopsworks.api.serving.inference.InferenceResource.class);
-    register(io.hops.hopsworks.api.jobs.KafkaService.class);
-    register(io.hops.hopsworks.api.project.DataSetService.class);
+    register(io.hops.hopsworks.api.kafka.KafkaResource.class);
     register(io.hops.hopsworks.api.project.MessageService.class);
-    register(io.hops.hopsworks.api.project.MetadataService.class);
     register(io.hops.hopsworks.api.project.ProjectMembersService.class);
     register(io.hops.hopsworks.api.project.ProjectService.class);
     register(io.hops.hopsworks.api.project.RequestService.class);
@@ -80,31 +79,38 @@ public class ApplicationConfig extends ResourceConfig {
     register(io.hops.hopsworks.api.airflow.AirflowService.class);
     register(io.hops.hopsworks.api.user.UsersResource.class);
     register(io.hops.hopsworks.api.user.apiKey.ApiKeyResource.class);
+    register(io.hops.hopsworks.api.metadata.XAttrsResource.class);
     
     register(io.hops.hopsworks.api.util.BannerService.class);
     register(io.hops.hopsworks.api.util.ClusterUtilisationService.class);
     register(io.hops.hopsworks.api.util.DownloadService.class);
     register(io.hops.hopsworks.api.util.EndpointService.class);
-    register(io.hops.hopsworks.api.util.LocalFsService.class);
     register(io.hops.hopsworks.api.util.UploadService.class);
     register(io.hops.hopsworks.api.util.VariablesService.class);
     register(io.hops.hopsworks.api.cluster.Monitor.class);
     register(io.hops.hopsworks.api.serving.ServingConfResource.class);
     register(io.hops.hopsworks.api.featurestore.FeaturestoreService.class);
-    register(io.hops.hopsworks.api.host.machine.MachineTypeResource.class);
+    register(io.hops.hopsworks.api.tags.TagSchemasResource.class);
+    register(io.hops.hopsworks.api.featurestore.datavalidation.rules.RulesResource.class);
+    register(io.hops.hopsworks.api.featurestore.datavalidation.validations.FeatureGroupValidationsResource.class);
+    register(io.hops.hopsworks.api.featurestore.datavalidation.expectations.fs.FeatureStoreExpectationsResource.class);
+    register(io.hops.hopsworks.api.featurestore.datavalidation.expectations.fg.FeatureGroupExpectationsResource.class);
+    register(io.hops.hopsworks.api.tags.TagSchemasResource.class);
 
     // admin
-    register(io.hops.hopsworks.api.admin.UsersAdmin.class);
+    register(UsersAdminResource.class);
     register(io.hops.hopsworks.api.admin.SystemAdminService.class);
     register(io.hops.hopsworks.api.admin.ProjectsAdmin.class);
-    register(io.hops.hopsworks.api.admin.llap.LlapAdmin.class);
-    register(io.hops.hopsworks.api.admin.CertificateMaterializerAdmin.class);
+    register(io.hops.hopsworks.api.admin.hosts.HostsAdminResource.class);
+    register(io.hops.hopsworks.api.admin.security.CertificateMaterializerAdmin.class);
+    register(io.hops.hopsworks.api.admin.security.CredentialsResource.class);
+    register(io.hops.hopsworks.api.admin.security.X509Resource.class);
+    register(io.hops.hopsworks.api.admin.services.ServicesResource.class);
 
     register(org.glassfish.jersey.media.multipart.MultiPartFeature.class);
 
     //dela
     register(io.hops.hopsworks.api.dela.DelaClusterService.class);
-    register(io.hops.hopsworks.api.dela.DelaClusterProjectService.class);
     register(io.hops.hopsworks.api.dela.DelaService.class);
     register(io.hops.hopsworks.api.dela.DelaProjectService.class);
     register(io.hops.hopsworks.api.dela.RemoteDelaService.class);
@@ -114,6 +120,15 @@ public class ApplicationConfig extends ResourceConfig {
 
     //maggy
     register(io.hops.hopsworks.api.maggy.MaggyService.class);
+
+    //provenance
+    register(io.hops.hopsworks.api.provenance.ProjectProvenanceResource.class);
+    
+    //search
+    register(io.hops.hopsworks.api.elastic.ElasticResource.class);
+
+    //uncomment to allow Cross-Origin Resource Sharing
+    //register(io.hops.hopsworks.api.filter.AllowCORSFilter.class);
 
     //swagger
     register(io.swagger.jaxrs.listing.ApiListingResource.class);

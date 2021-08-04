@@ -17,12 +17,14 @@
 package io.hops.hopsworks.common.serving.util;
 
 import io.hops.hopsworks.common.dao.kafka.AclDTO;
-import io.hops.hopsworks.common.dao.kafka.KafkaFacade;
-import io.hops.hopsworks.common.dao.kafka.ProjectTopics;
-import io.hops.hopsworks.common.dao.kafka.SchemaTopics;
+import io.hops.hopsworks.common.kafka.KafkaBrokers;
+import io.hops.hopsworks.persistence.entity.kafka.ProjectTopics;
+import io.hops.hopsworks.common.dao.kafka.ProjectTopicsFacade;
 import io.hops.hopsworks.common.dao.kafka.TopicDTO;
-import io.hops.hopsworks.common.dao.project.Project;
-import io.hops.hopsworks.common.dao.serving.Serving;
+import io.hops.hopsworks.persistence.entity.project.Project;
+import io.hops.hopsworks.persistence.entity.project.team.ProjectTeam;
+import io.hops.hopsworks.persistence.entity.serving.Serving;
+import io.hops.hopsworks.common.kafka.KafkaController;
 import io.hops.hopsworks.exceptions.ServingException;
 import io.hops.hopsworks.common.serving.ServingWrapper;
 import io.hops.hopsworks.common.util.Settings;
@@ -34,26 +36,27 @@ import io.hops.hopsworks.restutils.RESTCodes;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.zookeeper.KeeperException;
 
-import javax.annotation.PostConstruct;
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
+import javax.ejb.TransactionAttribute;
+import javax.ejb.TransactionAttributeType;
 import java.io.IOException;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 
 @Stateless
+@TransactionAttribute(TransactionAttributeType.NEVER)
 public class KafkaServingHelper {
   
   @EJB
-  private KafkaFacade kafkaFacade;
-  @EJB
   private Settings settings;
+  @EJB
+  private KafkaController kafkaController;
+  @EJB
+  private ProjectTopicsFacade projectTopicsFacade;
+  @EJB
+  private KafkaBrokers kafkaBrokers;
 
-  private SchemaTopics schemaTopics = null;
-
-  @PostConstruct
-  public void init() {
-    schemaTopics = kafkaFacade.getSchema(Settings.INFERENCE_SCHEMANAME, Settings.INFERENCE_SCHEMAVERSION);
-  }
   
   /**
    * Sets up the kafka topic for logging inference requests for models being served on Hopsworks. This kafka topic
@@ -72,7 +75,8 @@ public class KafkaServingHelper {
    */
   public void setupKafkaServingTopic(Project project, ServingWrapper servingWrapper,
                                      Serving newDbServing, Serving oldDbServing)
-      throws KafkaException, ProjectException, UserException, ServiceException, ServingException {
+      throws KafkaException, ProjectException, UserException, ServingException,
+    InterruptedException, ExecutionException {
 
     if (servingWrapper.getKafkaTopicDTO() != null &&
         servingWrapper.getKafkaTopicDTO().getName() != null &&
@@ -118,18 +122,23 @@ public class KafkaServingHelper {
     if (serving.getKafkaTopic() == null) {
       return null;
     }
+    
+    ProjectTopics topic = serving.getKafkaTopic();
 
-    return new TopicDTO(serving.getKafkaTopic().getTopicName());
+    return new TopicDTO(topic.getTopicName(),
+      topic.getSubjects().getSubject(),
+      topic.getSubjects().getVersion(),
+      topic.getSubjects().getSchema().getSchema());
   }
 
-  private ProjectTopics setupKafkaTopic(Project project, ServingWrapper servingWrapper) throws KafkaException,
-      ServiceException, UserException, ProjectException {
+  private ProjectTopics setupKafkaTopic(Project project, ServingWrapper servingWrapper) throws
+    KafkaException, UserException, ProjectException, InterruptedException, ExecutionException {
 
     try {
       // Check that the user is not trying to create a topic with  more replicas than brokers.
       if (servingWrapper.getKafkaTopicDTO().getNumOfReplicas() != null &&
           (servingWrapper.getKafkaTopicDTO().getNumOfReplicas() <= 0 ||
-              servingWrapper.getKafkaTopicDTO().getNumOfReplicas() > settings.getBrokerEndpoints().size())) {
+              servingWrapper.getKafkaTopicDTO().getNumOfReplicas() > kafkaBrokers.getBrokerEndpoints().size())) {
         throw new KafkaException(RESTCodes.KafkaErrorCode.TOPIC_REPLICATION_ERROR, Level.FINE);
 
       } else if (servingWrapper.getKafkaTopicDTO().getNumOfReplicas() == null) {
@@ -159,31 +168,29 @@ public class KafkaServingHelper {
         servingWrapper.getKafkaTopicDTO().getNumOfPartitions(), Settings.INFERENCE_SCHEMANAME,
       Settings.INFERENCE_SCHEMAVERSION);
 
-    ProjectTopics pt = null;
-    pt = kafkaFacade.createTopicInProject(project, topicDTO);
-
+    ProjectTopics pt = kafkaController.createTopicInProject(project, topicDTO);
+  
     // Add the ACLs for this topic. By default all users should be able to do everything
-    AclDTO aclDto = new AclDTO(project.getName(),
-        Settings.KAFKA_ACL_WILDCARD,
+    for (ProjectTeam projectTeam : project.getProjectTeamCollection()) {
+      AclDTO aclDto = new AclDTO(project.getName(),
+        projectTeam.getUser().getEmail(),
         "allow", Settings.KAFKA_ACL_WILDCARD, Settings.KAFKA_ACL_WILDCARD,
         Settings.KAFKA_ACL_WILDCARD);
-
-    kafkaFacade.addAclsToTopic(topicDTO.getName(), project.getId(), aclDto);
+      kafkaController.addAclsToTopic(topicDTO.getName(), project.getId(), aclDto);
+    }
 
     return pt;
   }
 
   private ProjectTopics checkSchemaRequirements(Project project, ServingWrapper servingWrapper)
       throws KafkaException, ServingException {
-    ProjectTopics topic = kafkaFacade.findTopicByNameAndProject(project, servingWrapper.getKafkaTopicDTO().getName());
+    ProjectTopics topic =
+      projectTopicsFacade.findTopicByNameAndProject(project, servingWrapper.getKafkaTopicDTO().getName())
+        .orElseThrow(() ->
+        new KafkaException(RESTCodes.KafkaErrorCode.TOPIC_NOT_FOUND, Level.FINE,
+          "name: " + servingWrapper.getKafkaTopicDTO().getName()));
 
-    if (topic == null) {
-       // The requested topic does not exists.
-      throw new KafkaException(RESTCodes.KafkaErrorCode.TOPIC_NOT_FOUND, Level.FINE,
-          "name: " + servingWrapper.getKafkaTopicDTO().getName());
-    }
-
-    if (!topic.getSchemaTopics().getSchemaTopicsPK().getName().equalsIgnoreCase(Settings.INFERENCE_SCHEMANAME)) {
+    if (!topic.getSubjects().getSubject().equalsIgnoreCase(Settings.INFERENCE_SCHEMANAME)) {
 
       throw new ServingException(RESTCodes.ServingErrorCode.BAD_TOPIC, Level.INFO,
         Settings.INFERENCE_SCHEMANAME + " required");

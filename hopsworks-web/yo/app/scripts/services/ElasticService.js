@@ -44,7 +44,10 @@
 
 angular.module('hopsWorksApp')
         .factory('ElasticService', ['$http', function ($http) {
-            return function () {
+              var getQuery = function (query, queryName, first) {
+                var c = typeof first === "undefined" || first === false? '&' : '?';
+                return typeof query === "undefined"? '' : c + queryName + '=' + query;
+              };
               var services = {
                 /**
                  * Do a global search hitting two indices: 'project' and 'datasets'
@@ -54,6 +57,26 @@ angular.module('hopsWorksApp')
                  */
                 globalSearch: function (searchTerm) {
                   return $http.get('/api/elastic/globalsearch/' + searchTerm);
+                },
+                /**
+                 * Do a global search hitting featurestore index
+                 */
+                globalfeaturestore: function (searchTerm, docType, limit, offset) {
+                  var docType = getQuery(docType || 'ALL', 'docType', true);
+                  var from = getQuery(offset, 'from');
+                  var size = getQuery(limit, 'size');
+                  var query = docType + from + size;
+                  return $http.get('/api/elastic/featurestore/' + searchTerm + query);
+                },
+                /**
+                 * Search under a project hitting featurestore index
+                 */
+                localFeaturestoreSearch: function (projectId, searchTerm, docType, limit, offset) {
+                  var docType = getQuery(docType || 'ALL', 'docType', true);
+                  var from = getQuery(offset, 'from');
+                  var size = getQuery(limit, 'size');
+                  var query = docType + from + size;
+                  return $http.get('/api/project/' + projectId + '/elastic/featurestore/' + searchTerm + query);
                 },
                 /**
                  * Search under a project hitting hitting 'project' index
@@ -75,9 +98,15 @@ angular.module('hopsWorksApp')
                  */
                 datasetSearch: function (projectId, datasetName, searchTerm) {
                   return $http.get('/api/elastic/datasetsearch/' + projectId + '/' + datasetName + '/' + searchTerm);
+                },
+                /**
+                 Get Jwt Token for the user in the project to access Kibana and
+                 Elasticsearch.
+                */
+                getJwtToken : function(projectId){
+                  return $http.get('/api/elastic/jwt/' + projectId);
                 }
               };
               return services;
-            };
           }]);
 

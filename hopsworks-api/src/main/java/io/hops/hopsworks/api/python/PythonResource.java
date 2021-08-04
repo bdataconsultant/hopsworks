@@ -38,11 +38,9 @@
  */
 package io.hops.hopsworks.api.python;
 
-import io.hops.hopsworks.common.dao.project.Project;
-import io.hops.hopsworks.common.dao.project.ProjectFacade;
-
 import io.hops.hopsworks.api.python.environment.EnvironmentResource;
-
+import io.hops.hopsworks.common.dao.project.ProjectFacade;
+import io.hops.hopsworks.persistence.entity.project.Project;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 
@@ -52,7 +50,6 @@ import javax.ejb.TransactionAttributeType;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.ws.rs.Path;
-
 
 @Api(value = "Python")
 @RequestScoped
@@ -66,7 +63,7 @@ public class PythonResource {
   private ProjectFacade projectFacade;
 
   private Project project;
-
+  
   public void setProjectId(Integer projectId) {
     this.project = projectFacade.find(projectId);
   }

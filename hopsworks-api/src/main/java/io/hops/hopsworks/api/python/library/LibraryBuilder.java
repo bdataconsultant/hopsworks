@@ -19,8 +19,11 @@ import io.hops.hopsworks.api.python.command.CommandBuilder;
 import io.hops.hopsworks.common.api.ResourceRequest;
 import io.hops.hopsworks.common.dao.AbstractFacade;
 import io.hops.hopsworks.common.dao.python.LibraryFacade;
-import io.hops.hopsworks.common.dao.project.Project;
-import io.hops.hopsworks.common.dao.python.PythonDep;
+import io.hops.hopsworks.common.python.library.PackageSource;
+import io.hops.hopsworks.common.python.updates.LibraryUpdatesMonitor;
+import io.hops.hopsworks.persistence.entity.project.Project;
+import io.hops.hopsworks.persistence.entity.python.CondaInstallType;
+import io.hops.hopsworks.persistence.entity.python.PythonDep;
 
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
@@ -28,6 +31,7 @@ import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
 import javax.ws.rs.core.UriInfo;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Logger;
 
 @Stateless
@@ -39,6 +43,8 @@ public class LibraryBuilder {
   private CommandBuilder commandBuilder;
   @EJB
   private LibraryFacade libraryFacade;
+  @EJB
+  private LibraryUpdatesMonitor libraryUpdatesMonitor;
 
   /**
    * @param dto
@@ -63,7 +69,7 @@ public class LibraryBuilder {
       .path(ResourceRequest.Name.PROJECT.toString())
       .path(project.getId().toString())
       .path(ResourceRequest.Name.ENVIRONMENTS.toString())
-      .path(project.getPythonVersion())
+      .path(project.getPythonEnvironment().getPythonVersion())
       .path(ResourceRequest.Name.LIBRARIES.toString())
       .build());
     return dto;
@@ -74,7 +80,7 @@ public class LibraryBuilder {
       .path(ResourceRequest.Name.PROJECT.toString())
       .path(project.getId().toString())
       .path(ResourceRequest.Name.ENVIRONMENTS.toString())
-      .path(project.getPythonVersion())
+      .path(project.getPythonEnvironment().getPythonVersion())
       .path(ResourceRequest.Name.LIBRARIES.toString())
       .path(dep.getDependency())
       .build());
@@ -142,13 +148,16 @@ public class LibraryBuilder {
   private LibraryDTO buildDTO(LibraryDTO dto, UriInfo uriInfo, ResourceRequest resourceRequest, PythonDep dep,
     Project project) {
     expand(dto, resourceRequest);
+    Set<String> monitoredLibraries = libraryUpdatesMonitor.getMonitoredLibraries();
+    String libraryName = dep.getDependency();
     if (dto.isExpand()) {
-      dto.setLibrary(dep.getDependency());
+      dto.setLibrary(libraryName);
       dto.setVersion(dep.getVersion());
+      if(monitoredLibraries.contains(libraryName) && dep.getInstallType().equals(CondaInstallType.PIP)) {
+        dto.setLatestVersion(libraryUpdatesMonitor.getLatestVersion(libraryName));
+      }
       dto.setChannel(dep.getRepoUrl().getUrl());
-      dto.setPackageManager(LibraryDTO.PackageManager.valueOf(dep.getInstallType().name()));
-      //dto.setStatus(dep.getStatus());
-      dto.setMachine(dep.getMachineType());
+      dto.setPackageSource(PackageSource.valueOf(dep.getInstallType().name()));
       dto.setPreinstalled(Boolean.toString(dep.isPreinstalled()));
       dto.setCommands(commandBuilder.buildItems(uriInfo, resourceRequest.get(ResourceRequest.Name.COMMANDS), project,
         dep.getDependency()));

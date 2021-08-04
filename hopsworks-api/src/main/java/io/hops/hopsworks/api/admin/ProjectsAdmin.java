@@ -42,27 +42,33 @@ import io.hops.hopsworks.api.admin.dto.ProjectAdminInfoDTO;
 import io.hops.hopsworks.api.admin.dto.ProjectDeletionLog;
 import io.hops.hopsworks.api.filter.Audience;
 import io.hops.hopsworks.api.filter.NoCacheResponse;
+import io.hops.hopsworks.api.filter.apiKey.ApiKeyRequired;
 import io.hops.hopsworks.api.jwt.JWTHelper;
+import io.hops.hopsworks.api.project.ProjectRestDTO;
 import io.hops.hopsworks.api.util.RESTApiJsonResponse;
 import io.hops.hopsworks.common.constants.message.ResponseMessages;
-import io.hops.hopsworks.common.dao.project.Project;
 import io.hops.hopsworks.common.dao.project.ProjectFacade;
 import io.hops.hopsworks.common.dao.user.UserFacade;
-import io.hops.hopsworks.common.dao.user.Users;
-import io.hops.hopsworks.exceptions.FeaturestoreException;
-import io.hops.hopsworks.exceptions.DatasetException;
-import io.hops.hopsworks.exceptions.GenericException;
-import io.hops.hopsworks.exceptions.HopsSecurityException;
-import io.hops.hopsworks.exceptions.KafkaException;
-import io.hops.hopsworks.exceptions.ProjectException;
-import io.hops.hopsworks.restutils.RESTCodes;
-import io.hops.hopsworks.exceptions.ServiceException;
-import io.hops.hopsworks.exceptions.UserException;
+import io.hops.hopsworks.common.dataset.acl.PermissionsCleaner;
 import io.hops.hopsworks.common.project.ProjectController;
 import io.hops.hopsworks.common.project.ProjectDTO;
 import io.hops.hopsworks.common.project.QuotasDTO;
 import io.hops.hopsworks.common.util.Settings;
+import io.hops.hopsworks.exceptions.DatasetException;
+import io.hops.hopsworks.exceptions.ElasticException;
+import io.hops.hopsworks.exceptions.FeaturestoreException;
+import io.hops.hopsworks.exceptions.GenericException;
+import io.hops.hopsworks.exceptions.HopsSecurityException;
+import io.hops.hopsworks.exceptions.KafkaException;
+import io.hops.hopsworks.exceptions.ProjectException;
+import io.hops.hopsworks.exceptions.SchemaException;
+import io.hops.hopsworks.exceptions.ServiceException;
+import io.hops.hopsworks.exceptions.UserException;
 import io.hops.hopsworks.jwt.annotation.JWTRequired;
+import io.hops.hopsworks.persistence.entity.project.Project;
+import io.hops.hopsworks.persistence.entity.user.Users;
+import io.hops.hopsworks.persistence.entity.user.security.apiKey.ApiScope;
+import io.hops.hopsworks.restutils.RESTCodes;
 import io.swagger.annotations.Api;
 
 import javax.ejb.EJB;
@@ -83,6 +89,8 @@ import javax.ws.rs.core.GenericEntity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
+import javax.ws.rs.core.UriInfo;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -90,8 +98,8 @@ import java.util.logging.Logger;
 
 @Path("/admin")
 @Stateless
-@JWTRequired(acceptedTokens = {Audience.API},
-    allowedUserRoles = {"HOPS_ADMIN"})
+@JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN"})
+@ApiKeyRequired(acceptedScopes = {ApiScope.ADMIN}, allowedUserRoles = {"HOPS_ADMIN"})
 @Api(value = "Admin")
 @TransactionAttribute(TransactionAttributeType.NEVER)
 public class ProjectsAdmin {
@@ -110,6 +118,8 @@ public class ProjectsAdmin {
   private Settings settings;
   @EJB
   private JWTHelper jWTHelper;
+  @EJB
+  private PermissionsCleaner permissionsCleaner;
 
   @DELETE
   @Produces(MediaType.APPLICATION_JSON)
@@ -136,36 +146,30 @@ public class ProjectsAdmin {
   @Path("/projects/createas")
   public Response createProjectAsUser(@Context HttpServletRequest request, @Context SecurityContext sc,
       ProjectDTO projectDTO) throws DatasetException, GenericException, KafkaException, ProjectException, UserException,
-      ServiceException, HopsSecurityException, FeaturestoreException {
+    ServiceException, HopsSecurityException, FeaturestoreException, ElasticException, SchemaException, IOException {
     Users user = jWTHelper.getUserPrincipal(sc);
-    if (user == null || !user.getEmail().equals(settings.getAdminEmail())) {
+    if (user == null) {
       throw new UserException(RESTCodes.UserErrorCode.AUTHENTICATION_FAILURE, Level.WARNING,
           "Unauthorized or unknown user tried to create a Project as another user");
     }
 
-    String ownerEmail = projectDTO.getOwner();
-    if (ownerEmail == null) {
+    String username = projectDTO.getOwner();
+    if (username == null) {
       LOGGER.log(Level.WARNING, "Owner username is null");
       throw new IllegalArgumentException("Owner email cannot be null");
     }
 
-    Users owner = userFacade.findByEmail(ownerEmail);
+    Users owner = userFacade.findByUsername(username);
     if (owner == null) {
-      throw new UserException(RESTCodes.UserErrorCode.USER_DOES_NOT_EXIST, Level.FINE, "user:" + ownerEmail);
+      throw new UserException(RESTCodes.UserErrorCode.USER_DOES_NOT_EXIST, Level.FINE, "user:" + username);
     }
-
-    List<String> failedMembers = null;
-    projectController.createProject(projectDTO, owner, failedMembers, request.getSession().getId());
+    
+    projectController.createProject(projectDTO, owner, request.getSession().getId());
 
     RESTApiJsonResponse response = new RESTApiJsonResponse();
     response.setSuccessMessage(ResponseMessages.PROJECT_CREATED);
 
-    if (failedMembers != null && !failedMembers.isEmpty()) {
-      response.setFieldErrors(failedMembers);
-    }
-
-    return noCacheResponse.getNoCacheResponseBuilder(Response.Status.CREATED)
-        .entity(response).build();
+    return noCacheResponse.getNoCacheResponseBuilder(Response.Status.CREATED).entity(response).build();
   }
 
   /**
@@ -176,7 +180,7 @@ public class ProjectsAdmin {
   @GET
   @Produces(MediaType.APPLICATION_JSON)
   @Path("/projects")
-  public Response getProjectsAdminInfo() {
+  public Response getProjectsAdminInfo(@Context SecurityContext sc) {
 
     List<Project> projects = projectFacade.findAll();
     List<ProjectAdminInfoDTO> projectAdminInfoDTOList = new ArrayList<>();
@@ -201,7 +205,8 @@ public class ProjectsAdmin {
   @GET
   @Produces(MediaType.APPLICATION_JSON)
   @Path("/projects/{id}")
-  public Response getProjectAdminInfo(@PathParam("id") Integer projectId) throws ProjectException {
+  public Response getProjectAdminInfo(@PathParam("id") Integer projectId, @Context SecurityContext sc)
+    throws ProjectException {
     Project project = projectFacade.find(projectId);
     if (project == null) {
       throw new ProjectException(RESTCodes.ProjectErrorCode.PROJECT_NOT_FOUND, Level.FINE, "projectId: " + projectId);
@@ -218,7 +223,8 @@ public class ProjectsAdmin {
   @PUT
   @Consumes(MediaType.APPLICATION_JSON)
   @Path("/projects")
-  public Response setProjectAdminInfo(ProjectAdminInfoDTO projectAdminInfoDTO) throws ProjectException {
+  public Response setProjectAdminInfo(ProjectAdminInfoDTO projectAdminInfoDTO, @Context SecurityContext sc)
+    throws ProjectException {
     // for changes in space quotas we need to check that both space and ns options are not null
     QuotasDTO quotasDTO = projectAdminInfoDTO.getProjectQuotas();
     if (quotasDTO != null && (((quotasDTO.getHdfsQuotaInBytes() == null) != (quotasDTO.getHdfsNsQuota() == null))
@@ -252,4 +258,51 @@ public class ProjectsAdmin {
     };
     return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).entity(response).build();
   }
+
+  @POST
+  @Path("/projects/{id}/fix-permission")
+  @Produces(MediaType.APPLICATION_JSON)
+  public Response forcePermissionFix(@PathParam("id") Integer projectId, @Context SecurityContext sc)
+    throws ProjectException {
+    Project project = projectFacade.find(projectId);
+    if (project == null) {
+      throw new ProjectException(RESTCodes.ProjectErrorCode.PROJECT_NOT_FOUND, Level.FINE, "projectId: " + projectId);
+    }
+    permissionsCleaner.fixPermissions(project);
+    return Response.noContent().build();
+  }
+
+  @POST
+  @Path("/projects/fix-permission")
+  @Produces(MediaType.APPLICATION_JSON)
+  public Response forcePermissionFix(@Context SecurityContext sc) {
+    permissionsCleaner.fixPermissions();
+    return Response.accepted().build();
+  }
+  
+  @GET
+  @Produces(MediaType.APPLICATION_JSON)
+  @Path("/projects/user/{id: [0-9]*}")
+  public Response getProjectsAdminInfo(@PathParam("id") Integer id, @Context UriInfo uriInfo,
+    @Context SecurityContext sc) throws UserException {
+    Users users = userFacade.find(id);
+    if (users == null) {
+      throw new UserException(RESTCodes.UserErrorCode.USER_WAS_NOT_FOUND, Level.FINE);
+    }
+    ProjectRestDTO dto = builder(users, uriInfo);
+    return Response.ok(dto).build();
+  }
+  
+  private ProjectRestDTO builder(Users users, UriInfo uriInfo) {
+    List<Project> projects = projectFacade.findByUser(users);
+    ProjectRestDTO dto = new ProjectRestDTO(uriInfo.getAbsolutePathBuilder().build());
+    projects.forEach(project -> dto.addItem(
+      new ProjectRestDTO(uriInfo.getBaseUriBuilder()
+        .path("admin")
+        .path("projects")
+        .path(project.getId().toString())
+        .build(), project.getId(), project.getName(), project.getCreated())));
+    return dto;
+  }
+  
 }

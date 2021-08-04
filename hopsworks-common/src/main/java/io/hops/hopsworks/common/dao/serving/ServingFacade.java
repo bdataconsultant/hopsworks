@@ -16,7 +16,8 @@
 
 package io.hops.hopsworks.common.dao.serving;
 
-import io.hops.hopsworks.common.dao.project.Project;
+import io.hops.hopsworks.persistence.entity.project.Project;
+import io.hops.hopsworks.persistence.entity.serving.Serving;
 import io.hops.hopsworks.restutils.RESTCodes;
 import io.hops.hopsworks.exceptions.ServingException;
 
@@ -103,8 +104,8 @@ public class ServingFacade {
 
     dbServing.setKafkaTopic(newServing.getKafkaTopic());
 
-    if (newServing.getLocalPid() != null) {
-      dbServing.setLocalPid(newServing.getLocalPid());
+    if (newServing.getCid() != null) {
+      dbServing.setCid(newServing.getCid());
     }
     if (newServing.getLocalDir() != null) {
       dbServing.setLocalDir(newServing.getLocalDir());
@@ -117,8 +118,12 @@ public class ServingFacade {
       dbServing.setBatchingEnabled(newServing.isBatchingEnabled());
     }
 
-    if (newServing.getServingType() != null && newServing.getServingType() != dbServing.getServingType()) {
+    if (newServing.getModelServer() != null && newServing.getModelServer() != dbServing.getModelServer()) {
       throw new ServingException(RESTCodes.ServingErrorCode.UPDATE_SERVING_TYPE_ERROR, Level.FINE);
+    }
+
+    if (newServing.getServingTool() != null) {
+      dbServing.setServingTool(newServing.getServingTool());
     }
 
     return merge(dbServing);

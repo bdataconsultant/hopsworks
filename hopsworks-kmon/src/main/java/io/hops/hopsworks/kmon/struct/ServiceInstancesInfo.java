@@ -39,15 +39,16 @@
 
 package io.hops.hopsworks.kmon.struct;
 
-import io.hops.hopsworks.common.dao.host.Status;
-import io.hops.hopsworks.common.dao.host.Health;
+import io.hops.hopsworks.persistence.entity.host.Health;
+import io.hops.hopsworks.persistence.entity.host.ServiceStatus;
+
 import java.util.SortedMap;
 import java.util.TreeMap;
 
 public class ServiceInstancesInfo {
 
   private String serviceName;
-  private SortedMap<Status, Integer> statusMap = new TreeMap<>();
+  private SortedMap<ServiceStatus, Integer> statusMap = new TreeMap<>();
   private SortedMap<Health, Integer> healthMap = new TreeMap<>();
 
   public ServiceInstancesInfo(String service) {
@@ -65,7 +66,7 @@ public class ServiceInstancesInfo {
     return Health.Bad;
   }
 
-  public SortedMap<Status, Integer> getStatusMap() {
+  public SortedMap<ServiceStatus, Integer> getStatusMap() {
     return statusMap;
   }
 
@@ -73,7 +74,7 @@ public class ServiceInstancesInfo {
     return healthMap;
   }
 
-  public void addInstanceInfo(Status status, Health health) {
+  public void addInstanceInfo(ServiceStatus status, Health health) {
     if (statusMap.containsKey(status)) {
       statusMap.put(status, statusMap.get(status) + 1);
     } else {

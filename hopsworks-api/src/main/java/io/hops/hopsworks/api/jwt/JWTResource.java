@@ -19,8 +19,8 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import io.hops.hopsworks.api.filter.Audience;
 import io.hops.hopsworks.api.user.ServiceJWTDTO;
-import io.hops.hopsworks.common.dao.user.Users;
 import io.hops.hopsworks.common.util.Settings;
+import io.hops.hopsworks.exceptions.ElasticException;
 import io.hops.hopsworks.exceptions.HopsSecurityException;
 import io.hops.hopsworks.jwt.annotation.JWTRequired;
 import io.hops.hopsworks.jwt.exception.DuplicateSigningKeyException;
@@ -28,15 +28,12 @@ import io.hops.hopsworks.jwt.exception.InvalidationException;
 import io.hops.hopsworks.jwt.exception.JWTException;
 import io.hops.hopsworks.jwt.exception.NotRenewableException;
 import io.hops.hopsworks.jwt.exception.SigningKeyNotFoundException;
+import io.hops.hopsworks.persistence.entity.user.Users;
 import io.hops.hopsworks.restutils.RESTCodes;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 
-import java.security.NoSuchAlgorithmException;
-import java.util.HashMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
 import javax.ejb.TransactionAttribute;
@@ -44,6 +41,7 @@ import javax.ejb.TransactionAttributeType;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -52,6 +50,11 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.SecurityContext;
+import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @Path("/jwt")
 @Stateless
@@ -71,16 +74,16 @@ public class JWTResource {
 
   @POST
   @ApiOperation(value = "Create application token", response = JWTResponseDTO.class)
-  public Response createToken(JWTRequestDTO jWTRequestDTO) throws NoSuchAlgorithmException, SigningKeyNotFoundException,
-      DuplicateSigningKeyException {
+  public Response createToken(JWTRequestDTO jWTRequestDTO, @Context SecurityContext sc) throws NoSuchAlgorithmException,
+    SigningKeyNotFoundException, DuplicateSigningKeyException {
     JWTResponseDTO jWTResponseDTO = jWTHelper.createToken(jWTRequestDTO, settings.getJWTIssuer());
     return Response.ok().entity(jWTResponseDTO).build();
   }
 
   @PUT
   @ApiOperation(value = "Renew application token", response = JWTResponseDTO.class)
-  public Response renewToken(JsonWebTokenDTO jsonWebTokenDTO) throws SigningKeyNotFoundException, NotRenewableException,
-      InvalidationException {
+  public Response renewToken(JsonWebTokenDTO jsonWebTokenDTO, @Context SecurityContext sc)
+    throws SigningKeyNotFoundException, NotRenewableException, InvalidationException {
     JWTResponseDTO jWTResponseDTO = jWTHelper.renewToken(jsonWebTokenDTO, true, new HashMap<>(3));
     return Response.ok().entity(jWTResponseDTO).build();
   }
@@ -90,7 +93,7 @@ public class JWTResource {
   @ApiOperation(value = "Invalidate application token")
   public Response invalidateToken(
       @ApiParam(value = "Token to invalidate", required = true)
-      @PathParam("token") String token) throws InvalidationException {
+      @PathParam("token") String token, @Context SecurityContext sc) throws InvalidationException {
     jWTHelper.invalidateToken(token);
     return Response.ok().build();
   }
@@ -100,7 +103,7 @@ public class JWTResource {
   @ApiOperation(value = "Delete a JWT signing key")
   public Response removeSigingKey(
       @ApiParam(value = "Name of the signing key to remove", required = true)
-      @PathParam("keyName") String keyName) {
+      @PathParam("keyName") String keyName, @Context SecurityContext sc) {
     jWTHelper.deleteSigningKeyByName(keyName);
     return Response.ok().build();
   }
@@ -152,5 +155,28 @@ public class JWTResource {
     jWTHelper.invalidateServiceToken(token);
     
     return Response.ok().build();
+  }
+  
+  @GET
+  @Path("/elk/key")
+  @ApiOperation(value = "Get the signing key for ELK if exists otherwise " +
+      "create a new one and return")
+  public Response getSigningKeyforELK(@Context SecurityContext sc) throws ElasticException {
+    String signingKey = jWTHelper.getSigningKeyForELK();
+    return Response.ok().entity(signingKey).build();
+  }
+  
+  @GET
+  @Path("/elk/token/{projectId}")
+  @ApiOperation(value = "Create elastic jwt token for the provided project as" +
+      " Data Owner.")
+  public Response createELKTokenAsDataOwner(@PathParam(
+      "projectId") Integer projectId, @Context SecurityContext sc) throws ElasticException {
+    if (projectId == null) {
+      throw new IllegalArgumentException("projectId was not provided.");
+    }
+    ElasticJWTResponseDTO
+        jWTResponseDTO = jWTHelper.createTokenForELKAsDataOwner(projectId);
+    return Response.ok().entity(jWTResponseDTO).build();
   }
 }

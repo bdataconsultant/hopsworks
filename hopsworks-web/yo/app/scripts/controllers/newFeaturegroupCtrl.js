@@ -31,10 +31,9 @@ angular.module('hopsWorksApp')
             self.projectName = StorageService.get("projectName");
             self.featuregroupOperation = StorageService.get("featuregroup_operation");
             self.featuregroup = StorageService.get(self.projectId + "_featuregroup");
+            self.version = StorageService.get(self.projectId + "_featuregroup_version");
             self.storageConnectors = StorageService.get(self.projectId + "_storageconnectors")
-            self.jdbcConnectors = []
             self.settings = StorageService.get(self.projectId + "_fssettings")
-            self.newJobName = self.projectId + "_newjob";
 
             //State
             self.configureJob = true;
@@ -44,23 +43,18 @@ angular.module('hopsWorksApp')
             self.onDemandFgWorking = false;
             self.enableServingWorking = false;
             self.disableServingWorking = false;
-            self.version = 1;
             self.onlineFg = false;
 
             //User Input values for Cached Feature Groups
             self.cachedFeaturegroupName = ""
             self.cachedFeaturegroupDoc = "";
             self.cachedFeaturegroupFeatures = []
-            self.cachedFeaturegroupjdbcConnection = null;
-            self.cachedSqlType = 0;
-            self.cachedSqlQuery = ""
-            self.cachedHiveDbName = ""
 
             //User Input values for OnDemand Feature Groups
             self.onDemandFeaturegroupName = ""
             self.onDemandFeaturegroupDoc = "";
             self.onDemandFeaturegroupFeatures = []
-            self.onDemandFeaturegroupjdbcConnection = null;
+            self.onDemandFeaturegroupStorageConnector = null;
             self.onDemandSqlQuery = ""
 
             /**
@@ -79,10 +73,6 @@ angular.module('hopsWorksApp')
             self.cachedFeaturegroupFeaturesTypeWrongValue = [];
             self.cachedFeaturegroupFeaturesOnlineTypeWrongValue = [];
             self.cachedFeaturegroupFeaturesDocWrongValue = [];
-            //SQL Flags
-            self.cachedFeaturegroupSqlWrongValue = 1
-            self.cachedFeaturegroupHiveDbWrongValue = 1;
-            self.cachedFeaturegroupJdbcConnectorWrongValue = 1;
 
             /**
              * Input validation for On Demand feature Groups
@@ -106,88 +96,63 @@ angular.module('hopsWorksApp')
             self.onDemandFeaturegroupSqlQueryWrongValue = 1
 
             //Constants
-            self.hiveDatabases = [self.featurestore.featurestoreName, self.projectName]
+            self.hiveDatabases = [self.featurestore.featurestoreName, self.projectName.toLowerCase()]
             self.hiveRegexp = self.settings.featurestoreRegex;
-            self.cachedFeaturegroupNameMaxLength = self.settings.cachedFeaturegroupFeatureNameMaxLength
-            self.cachedFeaturegroupDescriptionMaxLength = self.settings.cachedFeaturegroupFeatureDescriptionMaxLength
-            self.cachedFeaturegroupFeatureNameMaxLength = self.settings.cachedFeaturegroupFeatureNameMaxLength
-            self.cachedFeaturegroupFeatureDescriptionMaxLength = self.settings.cachedFeaturegroupFeatureDescriptionMaxLength
-            self.onDemandFeaturegroupNameMaxLength = self.settings.onDemandFeaturegroupNameMaxLength
-            self.onDemandFeaturegroupDescriptionMaxLength = self.settings.onDemandFeaturegroupDescriptionMaxLength
-            self.onDemandFeaturegroupFeatureNameMaxLength = self.settings.onDemandFeaturegroupFeatureNameMaxLength
-            self.onDemandFeaturegroupFeatureDescriptionMaxLength = self.settings.onDemandFeaturegroupFeatureDescriptionMaxLength
-            self.onDemandFeaturegroupType = self.settings.onDemandFeaturegroupType
-            self.cachedFeaturegroupType = self.settings.cachedFeaturegroupType
+            self.featurestoreEntityNameMaxLength = self.settings.featurestoreEntityNameMaxLength
+            self.featurestoreEntityDescriptionMaxLength = self.settings.featurestoreEntityDescriptionMaxLength
             self.onDemandFeaturegroupSqlQueryMaxLength = self.settings.onDemandFeaturegroupSqlQueryMaxLength
-            self.jdbcConnectorType = self.settings.jdbcConnectorType
             self.cachedFeaturegroupDTOType = self.settings.cachedFeaturegroupDtoType
             self.onDemandFeaturegroupDTOType = self.settings.onDemandFeaturegroupDtoType
-            self.featurestoreUtil4jMainClass = self.settings.featurestoreUtil4jMainClass
-            self.featurestoreUtilPythonMainClass = self.settings.featurestoreUtilPythonMainClass
-            self.featurestoreUtil4JExecutable = self.settings.featurestoreUtil4jExecutable
-            self.featurestoreUtilPythonExecutable = self.settings.featurestoreUtilPythonExecutable
-            self.sparkJobType = "SPARK"
-            self.pySparkJobType = "PYSPARK"
 
             //front-end variables
             self.cached_fg_accordion1 = {
                 "isOpen": true,
-                "visible": true,
                 "value": "",
                 "title": "Feature Group Name"
             };
             self.cached_fg_accordion2 = {
-                "isOpen": false,
-                "visible": false,
+                "isOpen": true,
                 "value": "",
                 "title": "Feature Group Description"
             };
             self.cached_fg_accordion3 = {
                 "isOpen": false,
-                "visible": false,
                 "value": "",
                 "title": "Feature Group Schema (Optional)"
             };
             self.cached_fg_accordion4 = {
                 "isOpen": false,
-                "visible": false,
                 "value": "",
                 "title": "SQL Query (Optional)"
             };
             self.cached_fg_accordion5 = {
-                "isOpen": false,
-                "visible": false,
+                "isOpen": true,
                 "value": "",
                 "title": "Create"
             };
 
             self.on_demand_fg_accordion1 = {
                 "isOpen": true,
-                "visible": true,
                 "value": "",
                 "title": "Feature Group Name"
             };
             self.on_demand_fg_accordion2 = {
-                "isOpen": false,
-                "visible": false,
+                "isOpen": true,
                 "value": "",
                 "title": "Feature Group Description"
             };
             self.on_demand_fg_accordion3 = {
                 "isOpen": false,
-                "visible": false,
                 "value": "",
                 "title": "Feature Group Schema (Optional)"
             };
             self.on_demand_fg_accordion4 = {
                 "isOpen": false,
-                "visible": false,
                 "value": "",
                 "title": "SQL Query"
             };
             self.on_demand_fg_accordion5 = {
-                "isOpen": false,
-                "visible": false,
+                "isOpen": true,
                 "value": "",
                 "title": "Create"
             };
@@ -200,7 +165,6 @@ angular.module('hopsWorksApp')
                     self.cachedFeaturegroupHeading = 'Create Cached Feature Group'
                     self.onDemandFeaturegroupHeading = 'Create On-Demand Feature Group'
                     self.activeTab = 0
-                    self.cachedHiveDbName = self.hiveDatabases[0]
                     return;
                 }
                 if (self.featuregroup != null && self.featuregroupOperation === 'UPDATE') {
@@ -211,42 +175,31 @@ angular.module('hopsWorksApp')
                     self.onDemandFeaturegroupDoc = self.featuregroup.description
                     self.cachedFeaturegroupDoc = self.featuregroup.description
                     self.onDemandSqlQuery = self.featuregroup.query
-                    self.cachedSqlQuery = self.featuregroup.query
+                    self.onDemandFeaturegroupStorageConnector = self.featuregroup.storageConnector
                     self.onDemandFeaturegroupFeatures = self.featuregroup.features
                     self.cachedFeaturegroupFeatures = self.featuregroup.features
-                    self.version = self.featuregroup.version;
                     self.oldFeaturegroupId = self.featuregroup.id
-                    if (self.featuregroup.featuregroupType === self.onDemandFeaturegroupType) {
+                    if (self.featuregroup.type === 'onDemandFeaturegroupDTO') {
                         self.activeTab = 1
                     }
-                    if (self.featuregroup.featuregroupType === self.cachedFeaturegroupType) {
+                    if (self.featuregroup.type === 'cachedFeaturegroupDTO') {
                         self.activeTab = 0
-                        if(self.featuregroup.onlineFeaturegroupEnabled != null){
-                            self.onlineFg = self.featuregroup.onlineFeaturegroupEnabled
+                        if(self.featuregroup.onlineEnabled != null){
+                            self.onlineFg = self.featuregroup.onlineEnabled
                         }
                     }
                     self.cached_fg_accordion1.isOpen = true
-                    self.cached_fg_accordion1.visible = true
                     self.cached_fg_accordion2.isOpen = false
-                    self.cached_fg_accordion2.visible = true
                     self.cached_fg_accordion3.isOpen = false
-                    self.cached_fg_accordion3.visible = true
                     self.cached_fg_accordion4.isOpen = false
-                    self.cached_fg_accordion4.visible = true
                     self.cached_fg_accordion5.isOpen = true
-                    self.cached_fg_accordion5.visible = true
                     self.cached_fg_accordion5.title = "Update"
 
                     self.on_demand_fg_accordion1.isOpen = true
-                    self.on_demand_fg_accordion1.visible = true
                     self.on_demand_fg_accordion2.isOpen = false
-                    self.on_demand_fg_accordion2.visible = true
                     self.on_demand_fg_accordion3.isOpen = false
-                    self.on_demand_fg_accordion3.visible = true
                     self.on_demand_fg_accordion4.isOpen = false
-                    self.on_demand_fg_accordion4.visible = true
                     self.on_demand_fg_accordion5.isOpen = true
-                    self.on_demand_fg_accordion5.visible = true
                     self.on_demand_fg_accordion5.title = "Update"
                 }
                 if (self.featuregroup != null && self.featuregroupOperation === 'NEW_VERSION') {
@@ -255,93 +208,33 @@ angular.module('hopsWorksApp')
                     self.onDemandFeaturegroupDoc = self.featuregroup.description
                     self.cachedFeaturegroupDoc = self.featuregroup.description
                     self.onDemandSqlQuery = self.featuregroup.query
-                    self.cachedSqlQuery = self.featuregroup.query
                     self.onDemandFeaturegroupFeatures = self.featuregroup.features
                     self.cachedFeaturegroupFeatures = self.featuregroup.features
-                    self.version = self.featuregroup.version + 1
                     self.oldFeaturegroupId = self.featuregroup.id
-                    if (self.featuregroup.featuregroupType === self.onDemandFeaturegroupType) {
+                    if (self.featuregroup.type === 'onDemandFeaturegroupDTO') {
                         self.activeTab = 1
                     }
-                    if (self.featuregroup.featuregroupType === self.cachedFeaturegroupType) {
+                    if (self.featuregroup.type === 'cachedFeaturegroupDTO') {
                         self.activeTab = 0
                     }
                     self.onDemandFeaturegroupHeading = 'Create New Version of On-Demand Feature Group'
                     self.cachedFeaturegroupHeading = 'Create New Version of Cached Feature Group'
 
                     self.cached_fg_accordion1.isOpen = true
-                    self.cached_fg_accordion1.visible = true
                     self.cached_fg_accordion2.isOpen = false
-                    self.cached_fg_accordion2.visible = true
                     self.cached_fg_accordion3.isOpen = false
-                    self.cached_fg_accordion3.visible = true
                     self.cached_fg_accordion4.isOpen = false
-                    self.cached_fg_accordion4.visible = true
                     self.cached_fg_accordion5.isOpen = true
-                    self.cached_fg_accordion5.visible = true
                     self.cached_fg_accordion5.title = "Create New Version"
 
                     self.on_demand_fg_accordion1.isOpen = true
-                    self.on_demand_fg_accordion1.visible = true
                     self.on_demand_fg_accordion2.isOpen = false
-                    self.on_demand_fg_accordion2.visible = true
                     self.on_demand_fg_accordion3.isOpen = false
-                    self.on_demand_fg_accordion3.visible = true
                     self.on_demand_fg_accordion4.isOpen = false
-                    self.on_demand_fg_accordion4.visible = true
                     self.on_demand_fg_accordion5.isOpen = true
-                    self.on_demand_fg_accordion5.visible = true
                     self.on_demand_fg_accordion5.title = "Create New Version"
                 }
             }
-
-            /**
-             * Pre-process the JDBC connectors for the forms in the UI to also have an editable value field.
-             */
-            self.preProcessConnectors = function () {
-                self.jdbcConnectors = []
-                for (var i = 0; i < self.storageConnectors.length; i++) {
-                    if(self.storageConnectors[i].storageConnectorType == self.jdbcConnectorType){
-                        var args = self.storageConnectors[i].arguments
-                        args = args + ''
-                        var argsList = args.split(",")
-                        var newArgs = []
-                        for (var j = 0; j < argsList.length; j++) {
-                            var argValue = argsList[j].split("=")
-                            newArgs.push({
-                                "name": argValue[0],
-                                "value": argValue.length > 1 ? argValue[1] : "DEFAULT"
-                            })
-                        }
-                        self.jdbcConnectors.push({
-                            "name": self.storageConnectors[i].name,
-                            "arguments": newArgs,
-                            "connectionString": self.storageConnectors[i].connectionString,
-                            "id": self.storageConnectors[i].id
-                        })
-                    }
-                }
-
-                if (self.featuregroupOperation === 'CREATE' && self.jdbcConnectors.length > 0) {
-                    self.cachedFeaturegroupjdbcConnection = self.jdbcConnectors[0];
-                    self.onDemandFeaturegroupjdbcConnection = self.jdbcConnectors[0];
-                }
-                if ((self.featuregroupOperation === 'UPDATE' || self.featuregroupOperation === 'NEW_VERSION') && self.jdbcConnectors.length > 0) {
-                    if (self.featuregroup.jdbcConnectorId == null) {
-                        self.cachedFeaturegroupjdbcConnection = self.jdbcConnectors[0];
-                        self.onDemandFeaturegroupjdbcConnection = self.jdbcConnectors[0];
-                    } else {
-                        var i;
-                        for (i = 0; i < self.jdbcConnectors.length; i++) {
-                            if (self.jdbcConnectors[i].id === self.featuregroup.jdbcConnectorId) {
-                                self.cachedFeaturegroupjdbcConnection = self.jdbcConnectors[i];
-                                self.onDemandFeaturegroupjdbcConnection = self.jdbcConnectors[i];
-                            }
-                        }
-                    }
-                }
-            }
-
 
             /**
              * Callback method for when the user filled in a featuregroup name. Will then
@@ -356,7 +249,6 @@ angular.module('hopsWorksApp')
                         }
                         self.cachedPhase = 1;
                         self.cached_fg_accordion2.isOpen = true; //Open description selection
-                        self.cached_fg_accordion2.visible = true; //Display description selection
                     }
                     self.cached_fg_accordion1.value = " - " + self.cachedFeaturegroupName; //Edit panel title
                 }
@@ -375,7 +267,6 @@ angular.module('hopsWorksApp')
                         }
                         self.onDemandPhase = 1;
                         self.on_demand_fg_accordion2.isOpen = true; //Open description selection
-                        self.on_demand_fg_accordion2.visible = true; //Display description selection
                     }
                     self.on_demand_fg_accordion1.value = " - " + self.onDemandFeaturegroupName; //Edit panel title
                 }
@@ -393,9 +284,6 @@ angular.module('hopsWorksApp')
                             self.cachedFeaturegroupDoc = "-";
                         }
                         self.cachedPhase = 2;
-                        self.cached_fg_accordion3.visible = true;
-                        self.cached_fg_accordion4.visible = true;
-                        self.cached_fg_accordion5.visible = true;
                         self.cached_fg_accordion5.isOpen = true;
                     }
                     self.cached_fg_accordion2.value = " - " + self.cachedFeaturegroupDoc; //Edit panel title
@@ -414,9 +302,6 @@ angular.module('hopsWorksApp')
                             self.onDemandFeaturegroupDoc = "-";
                         }
                         self.onDemandPhase = 2;
-                        self.on_demand_fg_accordion3.visible = true;
-                        self.on_demand_fg_accordion4.visible = true;
-                        self.on_demand_fg_accordion5.visible = true;
                         self.on_demand_fg_accordion5.isOpen = true;
                     }
                     self.on_demand_fg_accordion2.value = " - " + self.onDemandFeaturegroupDoc; //Edit panel title
@@ -486,7 +371,7 @@ angular.module('hopsWorksApp')
              * @param feature the feature to define the type for
              */
             self.selectFeatureType = function (feature) {
-                ModalService.selectFeatureType('lg', self.settings).then(
+                ModalService.selectFeatureType('lg', false, self.settings).then(
                     function (success) {
                         feature.type = success
                     },
@@ -502,7 +387,7 @@ angular.module('hopsWorksApp')
              * @param feature the feature to define the type for
              */
             self.selectOnlineFeatureType = function (feature) {
-                ModalService.selectFeatureType('lg', self.settings).then(
+                ModalService.selectFeatureType('lg', true, self.settings).then(
                     function (success) {
                         feature.onlineType = success
                     },
@@ -519,14 +404,6 @@ angular.module('hopsWorksApp')
                 $location.path('project/' + self.projectId + '/featurestore');
             };
 
-            /**
-             * Update the sql type  for a cached feature group
-             *
-             * @param sqlType the new type
-             */
-            self.setCachedSqlType = function (sqlType) {
-                self.cachedSqlType = sqlType
-            }
 
             /**
              * Validates user input for creating new 'On-Demand' Feature Groups
@@ -558,8 +435,7 @@ angular.module('hopsWorksApp')
                 }
 
                 //Validate Name and Description
-                if (!self.onDemandFeaturegroupName || self.onDemandFeaturegroupName.search(self.hiveRegexp) == -1
-                    || self.onDemandFeaturegroupName.length > self.onDemandFeaturegroupNameMaxLength) {
+                if (!self.onDemandFeaturegroupName || self.onDemandFeaturegroupName.search(self.hiveRegexp) == -1) {
                     self.onDemandFeaturegroupNameWrongValue = -1;
                     self.onDemandFeaturegroupWrong_values = -1;
                 } else {
@@ -568,7 +444,7 @@ angular.module('hopsWorksApp')
                 if (!self.onDemandFeaturegroupDoc || self.onDemandFeaturegroupDoc == undefined) {
                     self.onDemandFeaturegroupDoc = ""
                 }
-                if (self.onDemandFeaturegroupDoc && self.onDemandFeaturegroupDoc.length > self.onDemandFeaturegroupDescriptionMaxLength) {
+                if (self.onDemandFeaturegroupDoc && self.onDemandFeaturegroupDoc.length > self.featurestoreEntityDescriptionMaxLength) {
                     self.onDemandFeaturegroupDocWrongValue = -1;
                     self.onDemandFeaturegroupWrong_values = -1;
                 } else {
@@ -581,8 +457,7 @@ angular.module('hopsWorksApp')
                 var numberOfPrimary = 0
                 for (i = 0; i < self.onDemandFeaturegroupFeatures.length; i++) {
                     featureNames.push(self.onDemandFeaturegroupFeatures[i].name)
-                    if (self.onDemandFeaturegroupFeatures[i].name === "" || self.onDemandFeaturegroupFeatures[i].name.search(self.hiveRegexp) == -1 ||
-                        self.onDemandFeaturegroupFeatures[i].name.length > self.onDemandFeaturegroupFeatureNameMaxLength) {
+                    if (self.onDemandFeaturegroupFeatures[i].name.search(self.hiveRegexp) == -1) {
                         self.onDemandFeaturegroupFeaturesNameWrongValue[i] = -1
                         self.onDemandFeaturegroupWrong_values = -1;
                         self.onDemandFeaturegroupFeaturesWrongValue = -1;
@@ -593,7 +468,7 @@ angular.module('hopsWorksApp')
                         self.onDemandFeaturegroupFeaturesWrongValue = -1;
                     }
                     if (self.onDemandFeaturegroupFeatures[i].description && self.onDemandFeaturegroupFeatures[i].description.length >
-                        self.onDemandFeaturegroupFeatureDescriptionMaxLength) {
+                        self.featurestoreEntityDescriptionMaxLength) {
                         self.onDemandFeaturegroupFeaturesDocWrongValue[i] = -1
                         self.onDemandFeaturegroupWrong_values = -1;
                         self.onDemandFeaturegroupFeaturesWrongValue = -1;
@@ -608,7 +483,7 @@ angular.module('hopsWorksApp')
                     }
                 }
                 if (self.onDemandFeaturegroupFeatures.length > 0) {
-                    if (numberOfPrimary != 1) {
+                    if (numberOfPrimary == 0) {
                         self.onDemandFeaturegroupPrimaryKeyWrongValue = -1
                         self.onDemandFeaturegroupWrong_values = -1;
                         self.onDemandFeaturegroupFeaturesWrongValue = -1;
@@ -626,6 +501,8 @@ angular.module('hopsWorksApp')
                             self.onDemandFeaturegroupFeatures[i].description = "-"
                         }
                     }
+                } else {
+                    self.onDemandFeaturegroupFeaturesWrongValue = -1;
                 }
 
                 //Validate SQL Query
@@ -636,8 +513,9 @@ angular.module('hopsWorksApp')
                     self.onDemandFeaturegroupWrong_values = -1;
                 }
 
-                if (self.onDemandFeaturegroupjdbcConnection == null || !self.onDemandFeaturegroupjdbcConnection
-                    || self.onDemandFeaturegroupjdbcConnection == undefined) {
+                if (self.onDemandFeaturegroupStorageConnector == null 
+                    || !self.onDemandFeaturegroupStorageConnector
+                    || self.onDemandFeaturegroupStorageConnector == undefined) {
                     self.onDemandFeaturegroupSqlWrongValue = -1
                     self.onDemandFeaturegroupJdbcConnectorWrongValue = -1;
                     self.onDemandFeaturegroupWrong_values = -1;
@@ -657,9 +535,6 @@ angular.module('hopsWorksApp')
                 self.cachedFeaturegroupPartitionKeyWrongValue = 1;
                 self.cachedSqlQueryWrongValue = 1
                 self.cachedFeaturegroupFeaturesWrongValue = 1;
-                self.cachedFeaturegroupSqlWrongValue = 1
-                self.cachedFeaturegroupHiveDbWrongValue = 1;
-                self.cachedFeaturegroupJdbcConnectorWrongValue = 1;
                 if(!self.enableServingWorking){
                     self.cachedFgWorking = true;
                 }
@@ -680,8 +555,7 @@ angular.module('hopsWorksApp')
                 }
 
                 //Validate Name and Description
-                if (!self.cachedFeaturegroupName || self.cachedFeaturegroupName.search(self.hiveRegexp) == -1
-                    || self.cachedFeaturegroupName.length > self.cachedFeaturegroupNameMaxLength) {
+                if (!self.cachedFeaturegroupName || self.cachedFeaturegroupName.search(self.hiveRegexp) == -1) {
                     self.cachedFeaturegroupNameWrongValue = -1;
                     self.cachedFeaturegroupWrong_values = -1;
                 } else {
@@ -690,7 +564,7 @@ angular.module('hopsWorksApp')
                 if (!self.cachedFeaturegroupDoc || self.cachedFeaturegroupDoc == undefined) {
                     self.cachedFeaturegroupDoc = ""
                 }
-                if (self.cachedFeaturegroupDoc && self.cachedFeaturegroupDoc.length > self.cachedFeaturegroupDescriptionMaxLength) {
+                if (self.cachedFeaturegroupDoc && self.cachedFeaturegroupDoc.length > self.featurestoreEntityDescriptionMaxLength) {
                     self.cachedFeaturegroupDocWrongValue = -1;
                     self.cachedFeaturegroupWrong_values = -1;
                 } else {
@@ -703,8 +577,7 @@ angular.module('hopsWorksApp')
                 var numberOfPrimary = 0
                 for (i = 0; i < self.cachedFeaturegroupFeatures.length; i++) {
                     featureNames.push(self.cachedFeaturegroupFeatures[i].name)
-                    if (self.cachedFeaturegroupFeatures[i].name === "" || self.cachedFeaturegroupFeatures[i].name.search(self.hiveRegexp) == -1 ||
-                        self.cachedFeaturegroupFeatures[i].name.length > self.cachedFeaturegroupFeatureNameMaxLength) {
+                    if (self.cachedFeaturegroupFeatures[i].name.search(self.hiveRegexp) == -1 ) {
                         self.cachedFeaturegroupFeaturesNameWrongValue[i] = -1
                         self.cachedFeaturegroupWrong_values = -1;
                         self.cachedFeaturegroupFeaturesWrongValue = -1;
@@ -722,7 +595,7 @@ angular.module('hopsWorksApp')
                         self.cachedFeaturegroupFeaturesWrongValue = -1;
                     }
                     if (self.cachedFeaturegroupFeatures[i].description && self.cachedFeaturegroupFeatures[i].description.length >
-                        self.cachedFeaturegroupFeatureDescriptionMaxLength) {
+                        self.featurestoreEntityDescriptionMaxLength) {
                         self.cachedFeaturegroupFeaturesDocWrongValue[i] = -1
                         self.cachedFeaturegroupWrong_values = -1;
                         self.cachedFeaturegroupFeaturesWrongValue = -1;
@@ -737,7 +610,7 @@ angular.module('hopsWorksApp')
                     }
                 }
                 if (self.cachedFeaturegroupFeatures.length > 0) {
-                    if (numberOfPrimary != 1) {
+                    if (numberOfPrimary == 0) {
                         self.cachedFeaturegroupPrimaryKeyWrongValue = -1
                         self.cachedFeaturegroupWrong_values = -1;
                         self.cachedFeaturegroupFeaturesWrongValue = -1;
@@ -753,26 +626,6 @@ angular.module('hopsWorksApp')
                     for (i = 0; i < self.cachedFeaturegroupFeatures.length; i++) {
                         if (!self.cachedFeaturegroupFeatures[i].description || self.cachedFeaturegroupFeatures[i].description.length == 0) {
                             self.cachedFeaturegroupFeatures[i].description = "-"
-                        }
-                    }
-                }
-
-                //Validate SQL Query
-                if (self.featuregroupOperation === "CREATE" && self.cachedSqlQuery && self.cachedSqlQuery != undefined &&
-                    self.cachedSqlQuery != null) {
-                    if (self.cachedSqlType == 0) {
-                        if (self.cachedHiveDbName == null || !self.cachedHiveDbName || self.cachedHiveDbName == undefined) {
-                            self.cachedFeaturegroupSqlWrongValue = -1
-                            self.cachedFeaturegroupHiveDbWrongValue = -1;
-                            self.cachedFeaturegroupWrong_values = -1;
-                        }
-                    }
-                    if (self.cachedSqlType == 1) {
-                        if (self.cachedFeaturegroupjdbcConnection == null || !self.cachedFeaturegroupjdbcConnection
-                            || self.cachedFeaturegroupjdbcConnection == undefined) {
-                            self.cachedFeaturegroupSqlWrongValue = -1
-                            self.cachedFeaturegroupJdbcConnectorWrongValue = -1;
-                            self.cachedFeaturegroupWrong_values = -1;
                         }
                     }
                 }
@@ -794,8 +647,7 @@ angular.module('hopsWorksApp')
                     "description": self.onDemandFeaturegroupDoc,
                     "features": self.onDemandFeaturegroupFeatures,
                     "version": self.version,
-                    "featuregroupType": self.onDemandFeaturegroupType,
-                    "jdbcConnectorId": self.onDemandFeaturegroupjdbcConnection.id,
+                    "storageConnector": self.onDemandFeaturegroupStorageConnector,
                     "query": self.onDemandSqlQuery,
                     "type": self.onDemandFeaturegroupDTOType,
                     "jobs": []
@@ -834,8 +686,7 @@ angular.module('hopsWorksApp')
                     "description": self.onDemandFeaturegroupDoc,
                     "features": self.onDemandFeaturegroupFeatures,
                     "version": self.version,
-                    "featuregroupType": self.onDemandFeaturegroupType,
-                    "jdbcConnectorId": self.onDemandFeaturegroupjdbcConnection.id,
+                    "storageConnector": self.onDemandFeaturegroupStorageConnector,
                     "query": self.onDemandSqlQuery,
                     "type": self.onDemandFeaturegroupDTOType,
                     "jobs": []
@@ -871,10 +722,9 @@ angular.module('hopsWorksApp')
                     "description": self.cachedFeaturegroupDoc,
                     "features": self.cachedFeaturegroupFeatures,
                     "version": self.version,
-                    "featuregroupType": self.cachedFeaturegroupType,
                     "type": self.cachedFeaturegroupDTOType,
                     "jobs": [],
-                    "onlineFeaturegroupEnabled": self.onlineFg
+                    "onlineEnabled": self.onlineFg
                 }
                 FeaturestoreService.enableOnlineServing(self.projectId, self.featurestore,
                     self.oldFeaturegroupId, featuregroupJson).then(
@@ -904,10 +754,9 @@ angular.module('hopsWorksApp')
                     "description": self.cachedFeaturegroupDoc,
                     "features": self.cachedFeaturegroupFeatures,
                     "version": self.version,
-                    "featuregroupType": self.cachedFeaturegroupType,
                     "type": self.cachedFeaturegroupDTOType,
                     "jobs": [],
-                    "onlineFeaturegroupEnabled": self.onlineFg
+                    "onlineEnabled": self.onlineFg
                 }
                 FeaturestoreService.disableOnlineServing(self.projectId, self.featurestore,
                     self.oldFeaturegroupId, featuregroupJson).then(
@@ -942,12 +791,11 @@ angular.module('hopsWorksApp')
                     "description": self.cachedFeaturegroupDoc,
                     "features": self.cachedFeaturegroupFeatures,
                     "version": self.version,
-                    "featuregroupType": self.cachedFeaturegroupType,
                     "type": self.cachedFeaturegroupDTOType,
                     "jobs": [],
-                    "onlineFeaturegroupEnabled": self.onlineFg
+                    "onlineEnabled": self.onlineFg
                 }
-                ModalService.confirm('sm', 'This is a cached feature group, updating the feature group Hive/MySQL' +
+                ModalService.confirm('lg', 'This is a cached feature group, updating the feature group Hive/MySQL' +
                     ' metadata' +
                     ' (description, feature group name, and features schema) ' +
                     'will delete the existing data.',
@@ -1001,226 +849,25 @@ angular.module('hopsWorksApp')
                     "description": self.cachedFeaturegroupDoc,
                     "features": self.cachedFeaturegroupFeatures,
                     "version": self.version,
-                    "featuregroupType": self.cachedFeaturegroupType,
                     "type": self.cachedFeaturegroupDTOType,
                     "jobs": [],
-                    "onlineFeaturegroupEnabled": self.onlineFg
+                    "onlineEnabled": self.onlineFg
                 }
-                if (self.cachedSqlQuery != null && self.cachedSqlQuery && self.cachedSqlQuery != undefined
-                    && self.configureJob) {
-                    var jobName = "create_featuregroup_" + self.cachedFeaturegroupName + "_" + new Date().getTime()
-                    var operation = ""
-                    var hiveDatabase = ""
-                    var jdbcString = ""
-                    var jdbcArguments = []
-                    if (self.cachedSqlType != null && self.cachedSqlType === 0) {
-                        operation = "spark_sql_create_fg"
-                        hiveDatabase = self.cachedHiveDbName
-                    }
-                    if (self.cachedSqlType != null && self.cachedSqlType === 1) {
-                        jdbcString = self.cachedFeaturegroupjdbcConnection.connectionString
-                        for (var j = 0; j < self.cachedFeaturegroupjdbcConnection.arguments.length; j++) {
-                            var value = "DEFAULT"
-                            if (self.cachedFeaturegroupjdbcConnection.arguments[j].value != ""
-                                && self.cachedFeaturegroupjdbcConnection.arguments[j].value
-                                && self.cachedFeaturegroupjdbcConnection.arguments[j].value != null) {
-                                value = self.cachedFeaturegroupjdbcConnection.arguments[j].value
-                            }
-                            self.cachedFeaturegroupjdbcConnection.arguments[j].value = value
-                            jdbcArguments.push(self.cachedFeaturegroupjdbcConnection.arguments[j].name + "," +
-                                self.cachedFeaturegroupjdbcConnection.arguments[j].value)
-                        }
-                        operation = "jdbc_sql_create_fg"
-                    }
-                    var utilArgs = self.setupCreateCachedFeaturegroupJobArgs(jobName + "_args.json", operation,
-                        hiveDatabase, jdbcString, jdbcArguments)
-                    ModalService.confirm('sm', 'If a Feature Group with the same name and version already' +
-                        ' exists in the Feature Store, it will be overridden.')
-                        .then(function (success) {
-                            FeaturestoreService.writeUtilArgstoHdfs(self.projectId, utilArgs).then(
-                                function (success) {
-                                    growl.success("Featurestore util args written to HDFS", {title: 'Success', ttl: 1000});
-                                    var hdfsPath = success.data.successMessage
-                                    var runConfig = self.setupHopsworksCreateFgJob(jobName, hdfsPath)
-                                    FeaturestoreService.createFeaturegroup(self.projectId, featuregroupJson, self.featurestore).then(
-                                        function (success) {
-                                            self.cachedFgWorking = false;
-                                            growl.success("Feature group metadata created and SQL Job Configured.", {
-                                                title: 'Success',
-                                                ttl: 1000
-                                            });
-                                            var jobState = self.setupJobState(runConfig)
-                                            StorageService.store(self.newJobName, jobState);
-                                            self.goToUrl("newjob")
-                                        }, function (error) {
-                                            growl.error(error.data.errorMsg, {
-                                                title: 'Failed to create feature group',
-                                                ttl: 15000
-                                            });
-                                            self.cachedFgWorking = false;
-                                        });
-                                    growl.info("Creating feature group... wait", {title: 'Creating', ttl: 1000})
-                                }, function (error) {
-                                    growl.error(error.data.errorMsg, {
-                                        title: 'Failed to setup featurestore util job arguments',
-                                        ttl: 15000
-                                    });
-                                    self.cachedFgWorking = false;
-                                });
-                            growl.info("Settings up job arguments... wait", {title: 'Creating', ttl: 1000})
-                        }, function (error) {
-                            self.cachedFgWorking = false;
-                        });
-                } else {
-                    ModalService.confirm('sm', 'If a Feature Group with the same name and version already' +
-                        ' exists in the Feature Store, it will be overridden.')
-                        .then(function (success) {
-                            FeaturestoreService.createFeaturegroup(self.projectId, featuregroupJson, self.featurestore).then(
-                                function (success) {
-                                    self.cachedFgWorking = false;
-                                    self.exitToFeaturestore()
-                                    growl.success("Feature group created", {title: 'Success', ttl: 1000});
-                                }, function (error) {
-                                    growl.error(error.data.errorMsg, {
-                                        title: 'Failed to create feature group',
-                                        ttl: 15000
-                                    });
-                                    self.cachedFgWorking = false;
-                                });
-                            growl.info("Creating feature group... wait", {title: 'Creating', ttl: 1000})
-                        }, function (error) {
-                            self.cachedFgWorking = false;
-                        });
-                }
+
+                FeaturestoreService.createFeaturegroup(self.projectId, featuregroupJson, self.featurestore).then(
+                function (success) {
+                    self.cachedFgWorking = false;
+                    self.exitToFeaturestore()
+                    growl.success("Feature group created", {title: 'Success', ttl: 1000});
+                }, function (error) {
+                    growl.error(error.data.errorMsg, {
+                        title: 'Failed to create feature group',
+                        ttl: 15000
+                    });
+                    self.cachedFgWorking = false;
+                });
+                growl.info("Creating feature group... wait", {title: 'Creating', ttl: 1000})
             };
-
-            /**
-             * Configures the JSON for creating a new hopsworks job for creating a feature group
-             *
-             * @param jobName name of the job
-             * @param argsPath HDFS path to the input arguments to the job
-             * @returns the configured JSON
-             */
-            self.setupHopsworksCreateFgJob = function (jobName, argsPath) {
-                var path = self.featurestoreUtil4JExecutable
-                var mainClass = self.settings.featurestoreUtil4jMainClass
-                var jobType = self.sparkJobType
-                var runConfig = {
-                    type: "sparkJobConfiguration",
-                    appName: jobName,
-                    amQueue: "default",
-                    amMemory: 4000,
-                    amVCores: 1,
-                    jobType: jobType,
-                    appPath: path,
-                    mainClass: mainClass,
-                    args: "--input " + argsPath,
-                    "spark.blacklist.enabled": false,
-                    "spark.dynamicAllocation.enabled": true,
-                    "spark.dynamicAllocation.initialExecutors": 1,
-                    "spark.dynamicAllocation.maxExecutors": 10,
-                    "spark.dynamicAllocation.minExecutors": 1,
-                    "spark.executor.cores": 1,
-                    "spark.executor.gpus": 0,
-                    "spark.executor.instances": 1,
-                    "spark.executor.memory": 4000,
-                    "spark.tensorflow.num.ps": 0,
-                }
-                return runConfig
-            }
-
-            /**
-             * Setup jobState for redirecting to 'newjob' page
-             *
-             * @param runConfig the job runConfig
-             * @returns the jobState
-             */
-            self.setupJobState = function (runConfig) {
-                var jobState = {}
-                jobState.accordion1 = {//Contains the job name
-                    "isOpen": false,
-                    "visible": true,
-                    "value": "",
-                    "title": "Job name - " + runConfig.appName
-                };
-                jobState.accordion2 = {//Contains the job type
-                    "isOpen": false,
-                    "visible": true,
-                    "value": "",
-                    "title": "Job type - " + runConfig.jobType
-                };
-                if (runConfig.jobType === self.sparkJobType) {
-                    jobState.accordion3 = {// Contains the main execution file (jar, workflow,...)
-                        "isOpen": false,
-                        "visible": true,
-                        "value": "",
-                        "title": "App file (.jar, .py or .ipynb) - " + runConfig.path
-                    };
-                    jobState.jobtype = 1
-                }
-                if (runConfig.jobType === self.pySparkJobType) {
-                    jobState.accordion3 = {// Contains the main execution file (jar, workflow,...)
-                        "isOpen": false,
-                        "visible": true,
-                        "value": "",
-                        "title": "App file (.py or .ipynb) - " + runConfig.path
-                    };
-                    jobState.jobtype = 2
-                }
-                jobState.accordion4 = {// Contains the job setup (main class, input variables,...)
-                    "isOpen": false,
-                    "visible": true,
-                    "value": "",
-                    "title": "Job details"
-                };
-                jobState.accordion5 = {//Contains the configuration and creation
-                    "isOpen": true,
-                    "visible": true,
-                    "value": "",
-                    "title": "Configure and create"
-                };
-                jobState.phase = 5
-                jobState.jobname = runConfig.appName
-                jobState.runConfig = runConfig
-                jobState.sparkState = {
-                    "selectedJar": runConfig.path
-                }
-                return jobState
-            }
-
-            /**
-             * Configured the JSON input to a job for creating a new feature group using SQL, Spark,
-             * and the Featurestore API
-             *
-             * @param fileName name of the file to save the input arguments
-             * @param operation the operation the job will perform
-             * @param hiveDatabase the hive database to query
-             * @param jdbcString the jdbcConnectionString for the job
-             * @param jdbcArguments the jdbc connection string arguments
-             * @returns the configured JSON
-             */
-            self.setupCreateCachedFeaturegroupJobArgs = function(fileName, operation, hiveDatabase, jdbcString,
-                                                                 jdbcArguments) {
-                var argsJson = {
-                    "operation": operation,
-                    "featurestore": self.featurestore.featurestoreName,
-                    "featuregroup": self.cachedFeaturegroupName,
-                    "version": 1,
-                    "description": self.cachedFeaturegroupDoc,
-                    "sqlQuery": self.cachedSqlQuery,
-                    "hiveDatabase": hiveDatabase,
-                    "jdbcString": jdbcString,
-                    "jdbcArguments": jdbcArguments,
-                    "fileName": fileName,
-                    "descriptiveStats": false,
-                    "featureCorrelation": false,
-                    "clusterAnalysis": false,
-                    "featureHistograms": false,
-                    "statColumns": [],
-                    "online": self.onlineFg
-                }
-                return argsJson
-            }
 
             /**
              * Helper function for redirecting to another project page
@@ -1235,7 +882,6 @@ angular.module('hopsWorksApp')
              * Initialize controller
              */
             self.init = function () {
-                self.preProcessConnectors()
                 self.initVariables()
             }
 

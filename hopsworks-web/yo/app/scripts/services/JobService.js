@@ -45,7 +45,7 @@ angular.module('hopsWorksApp')
 
         .factory('JobService', ['$http', function ($http) {
             var service = {
-               jobFilter: "",
+               jobFilter: '',
 
                /**
                  * Get the jobFilter
@@ -53,7 +53,7 @@ angular.module('hopsWorksApp')
                  * @returns {string}
                  */
                getJobFilter: function() {
-                   return this.jobFilter
+                   return this.jobFilter;
                },
 
                /**
@@ -63,7 +63,7 @@ angular.module('hopsWorksApp')
                  * @param jobFilter
                 */
                setJobFilter: function(jobFilter) {
-                   this.jobFilter = jobFilter
+                   this.jobFilter = jobFilter;
                },
 
               /**
@@ -144,14 +144,34 @@ angular.module('hopsWorksApp')
               /**
                * Run the given job, creating a new Execution instance.
                * @param {type} projectId
-               * @param {type} jobId
+               * @param {type} name
+               * @param {type} args
                * @returns {undefined} The new Execution instance
                */
-              runJob: function (projectId, name) {
-                return $http.post('/api/project/' + projectId + '/jobs/' + name + '/executions?action=start', {});
+              runJob: function (projectId, name, args) {
+                  var req = {
+                      method: 'POST',
+                      url: '/api/project/' + projectId + '/jobs/' + name + '/executions',
+                      headers: {
+                          'Content-Type': 'text/plain'
+                      },
+                      data: args
+                  };
+                  return $http(req);
               },
-              stopJob: function (projectId, name) {
-                return $http.post('/api/project/' + projectId + '/jobs/' + name + '/executions?action=stop', {});
+              stopExecution: function (projectId, name, execId) {
+                  var req = {
+                      method: 'PUT',
+                      url: '/api/project/' + projectId + '/jobs/' + name + '/executions/' + execId + '/status',
+                      headers: {
+                          'Content-Type': 'application/json'
+                      },
+                      data: '{"state":"stopped"}'
+                  };
+                  return $http(req);
+              },
+              deleteExecution: function (projectId, name, execId) {
+                  return $http.delete('/api/project/' + projectId + '/jobs/' + name + '/executions/' + execId);
               },
               /**
                * Get the latest app Id of the given job.
@@ -198,24 +218,6 @@ angular.module('hopsWorksApp')
                */
               getTensorBoardUrls: function (projectId, appId) {
                 return $http.get('/api/project/' + projectId + '/jobs/' + appId + '/tensorboard');
-              },
-              /**
-               * Get the yarn ui of the given job.
-               * @param {type} projectId
-               * @param {type} appId
-               * @returns {unresolved} The address of the job ui.
-               */
-              getYarnUI: function (projectId, appId) {
-                return $http.get('/api/project/' + projectId + '/jobs/' + appId + '/yarnui');
-              },
-              /**
-               * Get the app infos.
-               * @param {type} projectId
-               * @param {type} appId
-               * @returns {unresolved} The app info.
-               */
-              getAppInfo: function (projectId, appId) {
-                return $http.get('/api/project/' + projectId + '/jobs/' + appId + '/appinfo');
               },
               /**
                * Get the content of log for the appId
@@ -273,7 +275,78 @@ angular.module('hopsWorksApp')
                * @returns {*}
                */
               getFlinkMaster: function (appId) {
-                return $http.get('/giotto-api/flinkmaster/' + appId +"/");
+                return $http.get('/hopsworks-api/flinkmaster/' + appId +"/");
+              },
+              /**
+               * Gets the state from the json configuration of the job
+               *
+               * @param jsonConfig
+              */
+              getJobState: function (job) {
+                  var jobType;
+                  switch (job.jobType.toUpperCase()) {
+                      case "SPARK":
+                          jobType = 1;
+                          break;
+                      case "PYSPARK":
+                          jobType = 2;
+                          break;
+                      case "FLINK":
+                          jobType = 3;
+                          break;
+                      case "PYTHON":
+                          jobType = 4;
+                          break;
+                      case "DOCKER":
+                          jobType = 5;
+                          break;
+                  }
+                  var mainFileTxt, mainFileVal, jobDetailsTxt, sparkState, flinkState;
+                  if (jobType === 1 || jobType === 2 || jobType === 4 ) {
+
+                      sparkState = {
+                          "selectedJar": getFileName(job.config.appPath),
+                          "runConfig": job.runConfig
+                      };
+                      mainFileTxt = "App file";
+                      mainFileVal = sparkState.selectedJar;
+                  }
+                  jobDetailsTxt = "Job details";
+                  var state = {
+                      "jobtype": jobType,
+                      "jobname": job.name,
+                      "localResources": job.config.localResources,
+                      "phase": 4,
+                      "runConfig": job.config,
+                      "sparkState": sparkState,
+                      "flinkState": flinkState,
+                      "accordion1": {//Contains the job name
+                          "isOpen": false,
+                          "visible": true,
+                          "value": " - " + job.name,
+                          "title": "Job name"},
+                      "accordion2": {//Contains the job type
+                          "isOpen": false,
+                          "visible": true,
+                          "value": " - " + job.jobType,
+                          "title": "Job type"},
+                      "accordion3": {// Contains the main execution file (jar, workflow,...)
+                          "isOpen": false,
+                          "visible": true,
+                          "value": " - " + mainFileVal,
+                          "title": mainFileTxt},
+                      "accordion4": {// Contains the job setup (main class, input variables,...)
+                          "isOpen": true,
+                          "visible": true,
+                          "value": "",
+                          "title": jobDetailsTxt},
+                      "accordion5": {//Contains the configuration and creation
+                          "isOpen": true,
+                          "visible": true,
+                          "value": "",
+                          "title": "Configure and create"}
+                  };
+                  return state
               }
 
             };

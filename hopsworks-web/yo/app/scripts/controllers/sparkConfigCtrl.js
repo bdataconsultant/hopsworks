@@ -14,16 +14,15 @@
  * If not, see <https://www.gnu.org/licenses/>.
  */
 
-/**
- * Controller for the serving page.
- */
 'use strict';
-
+/**
+ * Controller for configuring Spark jobs and notebooks.
+ */
 angular.module('hopsWorksApp')
     .controller('SparkConfigCtrl', ['$scope', '$routeParams', '$route',
-        'growl', 'ModalService', '$interval', 'JupyterService', 'StorageService', '$location', '$timeout',
+        'growl', 'ModalService', '$interval', 'JupyterService', 'StorageService', 'VariablesService', '$location', '$timeout',
         function($scope, $routeParams, $route, growl, ModalService, $interval, JupyterService,
-            StorageService, $location, $timeout) {
+            StorageService, VariablesService, $location, $timeout) {
 
             var self = this;
 
@@ -35,37 +34,79 @@ angular.module('hopsWorksApp')
 
             self.loc = $location.url().split('#')[0];
 
-            self.isJupyter = self.loc.endsWith('jupyter');
+            self.isJupyter = self.loc.endsWith('jupyter') || typeof $scope.notebookAttachedJupyterConfigInfoView !== 'undefined';
             self.isJobs = self.loc.endsWith('newJob');
             self.uneditableMode = false;
 
-            self.sparkType = "";
 
-            self.setAdvanced = function() {
-                self.settings.advanced = !self.settings.advanced;
-            };
+            self.experimentType = '';
+            $scope.indextab = 0;
 
-            $scope.$watch('jobConfig', function(jobConfig, oldConfig) {
-            if(jobConfig) {
-              self.jobConfig = jobConfig;
-              self.setConf();
-              }
+            self.executorMemoryWarning = "";
+            //just set some default
+            self.MIN_EXECUTOR_MEMORY = 1024;
+
+            self.init = function () {
+                VariablesService.getVariable('spark_executor_min_memory')
+                    .then(function (success) {
+                        self.MIN_EXECUTOR_MEMORY = parseInt(success.data.successMessage);
+                    });
+            }
+            self.init();
+
+            $scope.$watch('jobConfig', function (jobConfig, oldConfig) {
+                if (jobConfig) {
+                    self.jobConfig = jobConfig;
+                    self.setConf();
+                }
+            }, true);
+
+            $scope.$watch('notebookAttachedJupyterConfigInfoView', function (editMode, oldConfig) {
+                if (editMode) {
+                    self.uneditableMode = editMode;
+                }
+            }, true);
+
+            $scope.$watch('sparkConfigCtrl.sparkType', function(sparkType, oldSparkType) {
+                if (sparkType && typeof self.jobConfig !== "undefined") {
+                    self.setMode(sparkType);
+                }
+            });
+
+            $scope.$watch('sparkConfigCtrl.selectedType', function(newSelectedType, oldSelectedType) {
+                if (newSelectedType && typeof self.jobConfig !== "undefined") {
+                    self.setMode(newSelectedType);
+                }
             });
 
             $scope.$watch('settings', function(settings, oldSettings) {
-              self.settings = settings;
+                if(settings) {
+                      self.settings = settings;
+                      self.setConf();
+                }
             });
 
             self.setConf = function() {
-
-                if (self.jobConfig.experimentType) {
-                    self.jobConfig['spark.dynamicAllocation.enabled']=true;
+                if(self.isJupyter && self.settings) {
+                    if(self.settings.pythonKernel === true) {
+                        $scope.indextab = 0;
+                    }
+                } else if (self.jobConfig.experimentType) {
+                    self.jobConfig['spark.dynamicAllocation.enabled'] = true;
                     self.setMode(self.jobConfig.experimentType);
+                    self.selectedType = self.jobConfig.experimentType;
+                    $scope.indextab = 1;
                 } else if (self.jobConfig['spark.dynamicAllocation.enabled'] && self.jobConfig['spark.dynamicAllocation.enabled'] === true) {
                     self.setMode('SPARK_DYNAMIC');
+                    self.sparkType = 'SPARK_DYNAMIC';
+                    self.selectedType = 'SPARK_DYNAMIC';
+                    $scope.indextab = 2;
                 } else {
                     self.setMode('SPARK_STATIC');
-                    self.jobConfig['spark.dynamicAllocation.enabled']=false;
+                    self.sparkType = 'SPARK_STATIC';
+                    self.selectedType = 'SPARK_STATIC';
+                    self.jobConfig['spark.dynamicAllocation.enabled'] = false;
+                    $scope.indextab = 2;
                 }
 
                 if (self.jobConfig.distributionStrategy) {
@@ -125,10 +166,53 @@ angular.module('hopsWorksApp')
                         }
                     }
                 }
+
+                if(self.jobConfig["spark.executor.memory"]) {
+                    self.validateExecutorMemory();
+                }
+            };
+
+            var saveExperimentType = function () {
+                if (typeof self.jobConfig.experimentType !== "undefined") {
+                    self.experimentType = self.jobConfig.experimentType;
+                } else {
+                    self.experimentType = 'EXPERIMENT';
+                }
+            };
+
+            self.changeTab = function (tab) {
+                switch (tab) {
+                    case 'PYTHON':
+                        saveExperimentType();
+                        break;
+                    case 'EXPERIMENT':
+                        if (typeof self.jobConfig.experimentType !== "undefined") {
+                            saveExperimentType();
+                        } else {
+                            if (self.experimentType) {
+                                self.setMode(self.experimentType);
+                            } else {
+                                self.setMode('EXPERIMENT');
+                            }
+                        }
+                        break;
+                    case 'SPARK':
+                        saveExperimentType();
+                        if (self.sparkType === '' && self.jobConfig['spark.dynamicAllocation.enabled']) {
+                            self.setMode('SPARK_DYNAMIC');
+                        } else if (self.sparkType === '') {
+                            self.setMode('SPARK_STATIC');
+                        } else {
+                            self.setMode(self.sparkType);
+                        }
+                        if (typeof self.jobConfig.experimentType !== "undefined") {
+                            delete self.jobConfig.experimentType;
+                        }
+                        break;
+                }
             };
 
             self.setMode = function(mode) {
-
                 if (mode === 'PARALLEL_EXPERIMENTS' || mode === 'DISTRIBUTED_TRAINING') {
                     self.jobConfig['spark.dynamicAllocation.initialExecutors'] = 0;
                     self.jobConfig['spark.dynamicAllocation.minExecutors'] = 0;
@@ -149,14 +233,14 @@ angular.module('hopsWorksApp')
                         self.sparkType = mode;
                     } else {
                         self.jobConfig.experimentType = mode;
-                        self.sparkType = "";
+                        //self.sparkType = '';
                     }
                 }
 
-                if(mode === 'SPARK_STATIC') {
-                  self.jobConfig['spark.dynamicAllocation.enabled']=false;
+                if (mode === 'SPARK_STATIC') {
+                    self.jobConfig['spark.dynamicAllocation.enabled'] = false;
                 } else {
-                  self.jobConfig['spark.dynamicAllocation.enabled']=true;
+                    self.jobConfig['spark.dynamicAllocation.enabled'] = true;
                 }
 
                 self.sliderOptions.min = self.jobConfig['spark.dynamicAllocation.minExecutors'];
@@ -372,13 +456,12 @@ angular.module('hopsWorksApp')
 
             self.distribution_strategies = [{
                 id: 1,
-                name: 'MIRRORED'
+                name: 'MULTI_WORKER_MIRRORED',
+                displayName: 'MultiWorkerMirrored'
             }, {
                 id: 2,
-                name: 'COLLECTIVE_ALL_REDUCE'
-            }, {
-                id: 3,
-                name: 'PARAMETER_SERVER'
+                name: 'PARAMETER_SERVER',
+                displayName: 'ParameterServer'
             }];
 
             self.distributionStrategySelected;
@@ -394,6 +477,17 @@ angular.module('hopsWorksApp')
                   if(currentElemHeight < scrollHeight) {
                     element.style.height = scrollHeight + "px";
                   }
+            };
+
+            self.validateExecutorMemory = function () {
+                if(!self.jobConfig['spark.executor.memory']  ||
+                    (self.jobConfig['spark.executor.memory'] < self.MIN_EXECUTOR_MEMORY)) {
+                    self.executorMemoryWarning = "Executor memory should not be less than " + self.MIN_EXECUTOR_MEMORY + " MB";
+                    $scope.$parent.executorMemoryState({minExecutorMemory:self.MIN_EXECUTOR_MEMORY, hasEnoughMemory:false});
+                } else {
+                    self.executorMemoryWarning = "";
+                    $scope.$parent.executorMemoryState({minExecutorMemory:self.MIN_EXECUTOR_MEMORY, hasEnoughMemory:true});
+                }
             };
         }
     ]);

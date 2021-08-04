@@ -55,7 +55,6 @@ angular.module('hopsWorksApp')
             self.allocatedMB = 0.0;
             self.availableGPUs = 0;
             self.allocatedGPUs = 0;
-            self.reservedGPUs = 0;
             self.gpusPercent = 0;
             self.progressBarClass = 'progress-bar-success';
             self.gpuBarClass = 'progress-bar-success';
@@ -66,22 +65,37 @@ angular.module('hopsWorksApp')
             self.YarnWarn = false;
             self.KafkaBan = false;
             self.KafkaWarn = false;
+            self.EpipeBan = false;
+            self.ElasticBan = false;
+            self.ElasticWarn = false;
+
             
             var getClusterUtilisation = function () {
                 ClusterUtilService.getYarnMetrics().then(
                       function (success) {
-                        self.allocatedGPUs = success.data.clusterMetrics.allocatedGPUs;
-                        self.reservedGPUs = success.data.clusterMetrics.reservedGPUs;
-                        self.availableGPUs = success.data.clusterMetrics.availableGPUs;
-                        var totalGpus = self.availableGPUs + self.allocatedGPUs;
-                        if (self.availableGPUs > 0 && self.reservedGPUs == 0) {
+                        var totalGPUs = 0;
+                        var resourceInfo = success.data.clusterMetrics.totalUsedResourcesAcrossPartition.resourceInformations.resourceInformation;
+                        resourceInfo.forEach(function(item, index, array) {
+                          if(item.name=="yarn.io/gpu"){
+                           self.allocatedGPUs = item.value; 
+                          }
+                        });
+                        resourceInfo = success.data.clusterMetrics.totalClusterResourcesAcrossPartition.resourceInformations.resourceInformation;
+                        resourceInfo.forEach(function(item, index, array) {
+                          if(item.name=="yarn.io/gpu"){
+                           totalGPUs = item.value;
+                           self.availableGPUs = totalGPUs - self.allocatedGPUs;
+                          }
+                        });
+                        self.gpusPercent = (self.allocatedGPUs/totalGPUs)*100;
+                        if (self.gpusPercent < 70) {
                           self.gpuBarClass = 'progress-bar-success';
-                        } else if (self.availableGPUs > 0 ) {
+                        } else if (self.gpusPercent < 100 ) {
                           self.gpuBarClass = 'progress-bar-warning';
                         } else {
                           self.gpuBarClass = 'progress-bar-danger';
                         }
-                        self.gpusPercent = (self.allocatedGPUs/totalGpus)*100;
+                        
                         
                         self.allocatedVCores = success.data.clusterMetrics.allocatedVirtualCores;
                         self.availableVCores = success.data.clusterMetrics.availableVirtualCores;
@@ -178,7 +192,7 @@ angular.module('hopsWorksApp')
                         }
 
                       }, function (error) {
-                console.log("problem getting HDFS status");
+                console.log("problem getting YARN status");
               });
             };
 
@@ -205,7 +219,50 @@ angular.module('hopsWorksApp')
                         }
 
                       }, function (error) {
-                console.log("problem getting HDFS status");
+                console.log("problem getting Kafka status");
+              });
+            };
+
+            var getHopsStatus = function () {
+              ClusterUtilService.getHopsStatus().then(
+                      function (success) {
+                        success.data.forEach(function (status) {
+                          if (status.service === "epipe" && status.status === "Stopped") {
+                            self.EpipeBan = true;
+                          }
+                        });
+                      }, function (error) {
+                console.log("problem getting Hops status");
+              });
+            };
+
+            var getELKStatus = function () {
+              ClusterUtilService.getELKStatus().then(
+                      function (success) {
+                        var nbInstances = 0;
+                        var nbRunningInstances = 0;
+                        success.data.forEach(function (status) {
+                          if (status.service == "elasticsearch") {
+                              if(status.status === "Started") {
+                                nbRunningInstances++;
+                              } else {
+                                nbInstances++;
+                              }
+                          }
+                        });
+                        if (nbRunningInstances > nbInstances * 2 / 3) {
+                          self.ElasticBan = false;
+                          self.ElasticWarn = false;
+                        } else if (nbRunningInstances > nbInstances * 1 / 3) {
+                          self.ElasticBan = false;
+                          self.ElasticWarn = true;
+                        } else {
+                          self.ElasticBan = true;
+                          self.ElasticWarn = false;
+                        }
+
+                      }, function (error) {
+                console.log("problem getting ELK status");
               });
             };
             
@@ -216,6 +273,9 @@ angular.module('hopsWorksApp')
             getHdfsStatus();
             getYarnStatus();
             getKafkaStatus();
+            getHopsStatus();
+            getELKStatus();
+
             $scope.$on("$destroy", function () {
               $interval.cancel(getClusterUtilisationInterval);
             });

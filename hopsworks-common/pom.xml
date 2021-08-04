@@ -44,13 +44,13 @@
   <parent>
     <groupId>io.hops</groupId>
     <artifactId>hopsworks</artifactId>
-    <version>1.0.0</version>
+    <version>2.2.0</version>
     <relativePath>..</relativePath>
   </parent>
 
   <groupId>io.hops.hopsworks</groupId>
   <artifactId>hopsworks-common</artifactId>
-  <version>1.0.0</version>
+  <version>2.2.0</version>
   <packaging>ejb</packaging>
   <description>Hopsworks common</description>
   <name>hopsworks-common</name>
@@ -80,7 +80,6 @@
       <groupId>io.hops.hopsworks</groupId>
       <artifactId>hopsworks-persistence</artifactId>
       <version>${project.version}</version>
-      <scope>provided</scope>
     </dependency>
 
     <dependency>
@@ -89,18 +88,6 @@
       <version>${tuples.version}</version>
     </dependency>
 
-    <dependency>
-      <groupId>org.eclipse.persistence</groupId>
-      <artifactId>eclipselink</artifactId>
-      <version>2.5.2</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.eclipse.persistence</groupId>
-      <artifactId>org.eclipse.persistence.jpa.modelgen.processor</artifactId>
-      <version>2.5.2</version>
-      <scope>provided</scope>
-    </dependency>
     <dependency>
       <groupId>org.codehaus.plexus</groupId>
       <artifactId>plexus-utils</artifactId>
@@ -112,11 +99,6 @@
       <version>2.3.0</version>
       <type>jar</type>
     </dependency>
-    <dependency>
-      <groupId>org.influxdb</groupId>
-      <artifactId>influxdb-java</artifactId>
-      <version>2.5</version>
-    </dependency>
     <!-- io.hops -->
     <dependency>
       <groupId>org.codehaus.jettison</groupId>
@@ -124,19 +106,14 @@
       <version>1.1</version>
     </dependency>
     <dependency>
-      <groupId>io.hops</groupId>
-      <artifactId>hadoop-client</artifactId>
+      <groupId>io.hops.metadata</groupId>
+      <artifactId>hops-metadata-dal</artifactId>
       <version>${hops.version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>com.sun.jersey</groupId>
-          <artifactId>jersey-core</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>io.netty</groupId>
-          <artifactId>netty-all</artifactId>
-        </exclusion>
-      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>io.hops</groupId>
+      <artifactId>hadoop-client-runtime</artifactId>
+      <version>${hops.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.kafka</groupId>
@@ -184,29 +161,23 @@
     <dependency>
       <groupId>org.apache.avro</groupId>
       <artifactId>avro</artifactId>
-      <version>1.7.7</version>
+      <version>1.10.1</version>
     </dependency>
     <!--Elastic dependency-->
     <dependency>
-        <groupId>org.elasticsearch.client</groupId>
-        <artifactId>transport</artifactId>
-        <version>6.2.3</version>
+      <groupId>org.elasticsearch.client</groupId>
+      <artifactId>elasticsearch-rest-high-level-client</artifactId>
+      <version>7.2.0</version>
     </dependency>
     <dependency>
-        <groupId>org.apache.logging.log4j</groupId>
-        <artifactId>log4j-api</artifactId>
-        <version>2.6.2</version>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-api</artifactId>
+      <version>2.6.2</version>
     </dependency>
     <dependency>
-        <groupId>org.apache.logging.log4j</groupId>
-        <artifactId>log4j-core</artifactId>
-        <version>2.6.2</version>
-
-    </dependency>
-    <dependency>
-      <groupId>commons-beanutils</groupId>
-      <artifactId>commons-beanutils</artifactId>
-      <version>1.9.2</version>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-core</artifactId>
+      <version>2.6.2</version>
     </dependency>
     <dependency>
       <groupId>com.googlecode.json-simple</groupId>
@@ -216,23 +187,23 @@
     <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-clients_2.11</artifactId>
-      <version>1.8.1</version>
+      <version>1.9.2</version>
     </dependency>
     <dependency>
       <groupId>io.hops.flink</groupId>
       <artifactId>flink-yarn_2.11</artifactId>
-      <version>1.8.1</version>
+      <version>1.9.2.1</version>
       <exclusions>
         <exclusion>
           <groupId>org.apache.flink</groupId>
-          <artifactId>flink-shaded-hadoop2</artifactId>
+          <artifactId>flink-shaded-hadoop-2</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.httpcomponents</groupId>
       <artifactId>httpclient</artifactId>
-      <version>4.5.2</version>
+      <version>4.5.12</version>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
@@ -258,26 +229,13 @@
 
     <dependency>
       <groupId>io.hops</groupId>
-      <artifactId>hadoop-common</artifactId>
+      <artifactId>hadoop-client-api</artifactId>
       <version>${hops.version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>com.nimbusds</groupId>
-          <artifactId>nimbus-jose-jwt</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.bouncycastle</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>com.sun.jersey</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>javax.servlet</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>com.jcraft</groupId>
+      <artifactId>jsch</artifactId>
+      <version>0.1.54</version>
     </dependency>
 
     <!-- Hops Hive dependecies -->
@@ -302,7 +260,7 @@
         </exclusion>
         <exclusion>
           <groupId>com.sun.jersey</groupId>
-          <artifactId>jersey-core</artifactId>
+          <artifactId>*</artifactId>
         </exclusion>
         <exclusion>
           <groupId>javax.servlet</groupId>
@@ -351,6 +309,25 @@
       </exclusions>
     </dependency>
     <dependency>
+      <groupId>io.hops.hive</groupId>
+      <artifactId>hive-standalone-metastore</artifactId>
+      <version>${hive.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.eclipse.jetty</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>com.sun.jersey</groupId>
+          <artifactId>jersey-core</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>javax.servlet</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
       <groupId>com.twitter</groupId>
       <artifactId>bijection-avro_2.12</artifactId>
       <version>0.9.6</version>
@@ -360,11 +337,80 @@
       <artifactId>snakeyaml</artifactId>
       <version>1.18</version>
     </dependency>
+    <dependency>
+      <groupId>org.freemarker</groupId>
+      <artifactId>freemarker</artifactId>
+      <version>2.3.29</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.ben-manes.caffeine</groupId>
+      <artifactId>caffeine</artifactId>
+      <version>2.8.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.calcite</groupId>
+      <artifactId>calcite-core</artifactId>
+      <version>1.21.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.calcite</groupId>
+      <artifactId>calcite-server</artifactId>
+      <version>1.21.0</version>
+    </dependency>
+    <!-- Here we are lying to Maven. Calcite has some dependency that depends on protobuf 3.0.0.
+    We are not going to use that codepath as we only use a small subset of calcite code.
+    Still the dependency to protobuf collides with the Hops dependency to protobuf and causes issues
+    during compilation. So here we add the protobuf-java dependency just for the compilation.
+    -->
+    <dependency>
+      <groupId>com.google.protobuf</groupId>
+      <artifactId>protobuf-java</artifactId>
+      <version>3.9.1</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>com.logicalclocks</groupId>
+      <artifactId>service-discovery-client</artifactId>
+      <version>0.5-SNAPSHOT</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.jsoup</groupId>
+      <artifactId>jsoup</artifactId>
+      <version>1.13.1</version>
+    </dependency>
+
+    <!-- Test dependencies -->
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-all</artifactId>
+      <version>1.10.19</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- enhance functional java - Try construct - used by provenance -->
+    <dependency>
+      <groupId>com.lambdista</groupId>
+      <artifactId>try</artifactId>
+      <version>0.3.1</version>
+    </dependency>
+    <!-- json schema validation - used by tags -->
+    <dependency>
+      <groupId>com.github.everit-org.json-schema</groupId>
+      <artifactId>org.everit.json.schema</artifactId>
+      <version>1.12.1</version>
+    </dependency>
+    <dependency>
+        <groupId>com.fasterxml.jackson.module</groupId>
+        <artifactId>jackson-module-jaxb-annotations</artifactId>
+        <version>2.4.5</version>
+        <scope>compile</scope>
+    </dependency>
   </dependencies>
 
   <build>
     <finalName>hopsworks-common</finalName>
-    <testSourceDirectory>./src/test</testSourceDirectory>
+    <testSourceDirectory>src/test</testSourceDirectory>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

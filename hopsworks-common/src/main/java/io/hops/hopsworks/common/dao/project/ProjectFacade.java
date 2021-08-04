@@ -40,12 +40,15 @@ package io.hops.hopsworks.common.dao.project;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import javax.ejb.Stateless;
 import javax.persistence.EntityManager;
 import javax.persistence.NoResultException;
 import javax.persistence.PersistenceContext;
 import javax.persistence.TypedQuery;
-import io.hops.hopsworks.common.dao.user.Users;
+
+import io.hops.hopsworks.persistence.entity.project.Project;
+import io.hops.hopsworks.persistence.entity.user.Users;
 import io.hops.hopsworks.common.dao.AbstractFacade;
 
 @Stateless
@@ -65,8 +68,12 @@ public class ProjectFacade extends AbstractFacade<Project> {
 
   @Override
   public List<Project> findAll() {
-    TypedQuery<Project> query = em.createNamedQuery("Project.findAll",
-        Project.class);
+    TypedQuery<Project> query = em.createNamedQuery("Project.findAll", Project.class);
+    return query.getResultList();
+  }
+
+  public List<Project> findAllOrderByCreated() {
+    TypedQuery<Project> query = em.createNamedQuery("Project.findAllOrderByCreated", Project.class);
     return query.getResultList();
   }
 
@@ -264,17 +271,15 @@ public class ProjectFacade extends AbstractFacade<Project> {
     em.merge(project);
   }
 
-  public void enableConda(Project project) {
-    if (project != null) {
-      project.setConda(true);
-    }
-    em.merge(project);
-  }
-
   public void enableLogs(Project project) {
     if (project != null) {
       project.setLogs(true);
     }
+    em.merge(project);
+  }
+
+  public void setDockerImage(Project project, String dockerImage) {
+    project.setDockerImage(dockerImage);
     em.merge(project);
   }
 
@@ -299,6 +304,12 @@ public class ProjectFacade extends AbstractFacade<Project> {
       return project.getRetentionPeriod();
     }
     return null;
+  }
+  
+  public Optional<Project> findById(Integer id) {
+    return Optional.ofNullable(em.createNamedQuery("Project.findById", Project.class)
+        .setParameter("id", id)
+        .getSingleResult());
   }
 
   public Project findByName(String name) {
@@ -339,15 +350,5 @@ public class ProjectFacade extends AbstractFacade<Project> {
   public void changeKafkaQuota(Project project, int numTopics) {
     project.setKafkaMaxNumTopics(numTopics);
     em.merge(project);
-  }
-  
-  /**
-   * Find all Projects which are Conda enabled
-   *
-   * @return list of Conda enabled projects
-   */
-  public List<Project> findAllCondaEnabled() {
-    TypedQuery<Project> query = em.createNamedQuery("Project.findAllCondaEnabled", Project.class);
-    return query.getResultList();
   }
 }

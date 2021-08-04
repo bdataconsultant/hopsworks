@@ -18,8 +18,10 @@ package io.hops.hopsworks.common.serving.inference.logger;
 
 import com.twitter.bijection.Injection;
 import com.twitter.bijection.avro.GenericAvroCodecs;
-import io.hops.hopsworks.common.dao.project.Project;
-import io.hops.hopsworks.common.dao.serving.Serving;
+import io.hops.hopsworks.common.dao.kafka.KafkaConst;
+import io.hops.hopsworks.common.kafka.KafkaBrokers;
+import io.hops.hopsworks.persistence.entity.project.Project;
+import io.hops.hopsworks.persistence.entity.serving.Serving;
 import io.hops.hopsworks.common.security.CertificateMaterializer;
 import io.hops.hopsworks.common.util.HopsUtils;
 import io.hops.hopsworks.common.util.Settings;
@@ -45,8 +47,6 @@ import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static io.hops.hopsworks.common.dao.kafka.KafkaFacade.KAFKA_SECURITY_PROTOCOL;
-
 @Stateless
 public class KafkaInferenceLogger implements InferenceLogger {
 
@@ -56,6 +56,8 @@ public class KafkaInferenceLogger implements InferenceLogger {
   private Settings settings;
   @EJB
   private CertificateMaterializer certificateMaterializer;
+  @EJB
+  private KafkaBrokers kafkaBrokers;
 
   public static final String SERVING_MANAGER_USERNAME = "srvmanager";
   private Properties props;
@@ -64,7 +66,7 @@ public class KafkaInferenceLogger implements InferenceLogger {
   public void init() {
     // Setup default properties
     props = new Properties();
-    props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, settings.getKafkaBrokersStr());
+    props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBrokers.getKafkaBrokersString());
     props.put(ProducerConfig.CLIENT_ID_CONFIG, "KafkaServing");
     props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
         StringSerializer.class.getName());
@@ -94,11 +96,11 @@ public class KafkaInferenceLogger implements InferenceLogger {
     }
     
     //Get the schema for the topic and the serializer
-    Schema avroSchema = new Schema.Parser().parse(serving.getKafkaTopic().getSchemaTopics().getContents());
+    Schema avroSchema = new Schema.Parser().parse(serving.getKafkaTopic().getSubjects().getSchema().getSchema());
     Injection<GenericRecord, byte[]> recordSerializer = GenericAvroCodecs.toBinary(avroSchema);
   
     //Get the version of the schema
-    int schemaVersion = serving.getKafkaTopic().getSchemaTopics().getSchemaTopicsPK().getVersion();
+    int schemaVersion = serving.getKafkaTopic().getSubjects().getVersion();
     
     // Create the GenericRecord from the avroSchema
     GenericData.Record inferenceRecord = new GenericData.Record(avroSchema);
@@ -144,7 +146,8 @@ public class KafkaInferenceLogger implements InferenceLogger {
    */
   private void populateInfererenceRecord(Serving serving, String inferenceRequest, Integer responseHttpCode,
     String inferenceResponse, GenericData.Record inferenceRecord, int schemaVersion){
-    if(schemaVersion == 1) {
+    if (schemaVersion <= 3) {
+      // schema v1
       inferenceRecord.put("modelId", serving.getId());
       inferenceRecord.put("modelName", serving.getName());
       inferenceRecord.put("modelVersion", serving.getVersion());
@@ -154,14 +157,11 @@ public class KafkaInferenceLogger implements InferenceLogger {
       inferenceRecord.put("inferenceResponse", inferenceResponse);
     }
     if(schemaVersion == 2){
-      inferenceRecord.put("modelId", serving.getId());
-      inferenceRecord.put("modelName", serving.getName());
-      inferenceRecord.put("modelVersion", serving.getVersion());
-      inferenceRecord.put("requestTimestamp", System.currentTimeMillis());
-      inferenceRecord.put("responseHttpCode", responseHttpCode);
-      inferenceRecord.put("inferenceRequest", inferenceRequest);
-      inferenceRecord.put("inferenceResponse", inferenceResponse);
-      inferenceRecord.put("servingType", serving.getServingType().name());
+      inferenceRecord.put("servingType", serving.getModelServer().name());
+    }
+    if(schemaVersion == 3){
+      inferenceRecord.put("modelServer", serving.getModelServer().name());
+      inferenceRecord.put("servingTool", serving.getServingTool().name());
     }
   }
 
@@ -173,8 +173,9 @@ public class KafkaInferenceLogger implements InferenceLogger {
         certificateMaterializer.getUserMaterial(SERVING_MANAGER_USERNAME, project.getName());
 
     // Configure TLS for this producer
-    props.setProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, KAFKA_SECURITY_PROTOCOL);
-
+    props.setProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, KafkaConst.KAFKA_SECURITY_PROTOCOL);
+    props.setProperty(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG,
+      KafkaConst.KAFKA_ENDPOINT_IDENTIFICATION_ALGORITHM);
     props.setProperty(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG,
         settings.getHopsworksTmpCertDir() + File.separator + HopsUtils.getProjectTruststoreName(project.getName(),
             SERVING_MANAGER_USERNAME));

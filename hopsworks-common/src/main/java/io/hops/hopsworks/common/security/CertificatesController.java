@@ -39,10 +39,10 @@
 package io.hops.hopsworks.common.security;
 
 import io.hops.hopsworks.common.dao.certificates.CertsFacade;
-import io.hops.hopsworks.common.dao.certificates.UserCerts;
-import io.hops.hopsworks.common.dao.project.Project;
-import io.hops.hopsworks.common.dao.project.team.ProjectTeam;
-import io.hops.hopsworks.common.dao.user.Users;
+import io.hops.hopsworks.persistence.entity.certificates.UserCerts;
+import io.hops.hopsworks.persistence.entity.project.Project;
+import io.hops.hopsworks.persistence.entity.project.team.ProjectTeam;
+import io.hops.hopsworks.persistence.entity.user.Users;
 import io.hops.hopsworks.common.proxies.CAProxy;
 import io.hops.hopsworks.common.util.Settings;
 import io.hops.hopsworks.exceptions.GenericException;
@@ -108,14 +108,12 @@ public class CertificatesController {
   private final static String KEY_ALGORITHM = "RSA";
   private final static String SIGNATURE_ALGORITHM = "SHA256withRSA";
   private final static String CERTIFICATE_TYPE = "X.509";
-  private final static int KEY_SIZE = 1024;
+  private final static int KEY_SIZE = 2048;
 
   @EJB
   private CertsFacade certsFacade;
   @EJB
   private CertificatesMgmService certificatesMgmService;
-  @EJB
-  private Settings settings;
   @Inject
   @Any
   private Instance<CertificateHandler> certificateHandlers;

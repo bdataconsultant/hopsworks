@@ -38,13 +38,16 @@
  */
 package io.hops.hopsworks.common.jobs.spark;
 
-import io.hops.hopsworks.common.dao.jobs.description.Jobs;
-import io.hops.hopsworks.common.dao.project.Project;
+import com.logicalclocks.servicediscoverclient.exceptions.ServiceDiscoveryException;
+import io.hops.hopsworks.exceptions.JobException;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.spark.SparkJobConfiguration;
+import io.hops.hopsworks.persistence.entity.jobs.description.Jobs;
+import io.hops.hopsworks.persistence.entity.project.Project;
 import io.hops.hopsworks.common.hdfs.DistributedFileSystemOps;
+import io.hops.hopsworks.common.hosts.ServiceDiscoveryController;
 import io.hops.hopsworks.common.jobs.AsynchronousJobExecutor;
-import io.hops.hopsworks.common.jobs.configuration.JobType;
-import io.hops.hopsworks.common.jobs.yarn.LocalResourceDTO;
-import io.hops.hopsworks.common.jobs.yarn.ServiceProperties;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.JobType;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.yarn.LocalResourceDTO;
 import io.hops.hopsworks.common.jobs.yarn.YarnRunner;
 import io.hops.hopsworks.common.util.HopsUtils;
 import io.hops.hopsworks.common.util.Settings;
@@ -83,7 +86,6 @@ public class SparkYarnRunnerBuilder {
   private final List<LocalResourceDTO> extraFiles = new ArrayList<>();
 
   private final Map<String, String> sysProps = new HashMap<>();
-  private ServiceProperties serviceProps;
   private SparkConfigurationUtil sparkConfigurationUtil = new SparkConfigurationUtil();
 
   public SparkYarnRunnerBuilder(Jobs job) {
@@ -114,10 +116,11 @@ public class SparkYarnRunnerBuilder {
    * @return The YarnRunner instance to launch the Spark job on Yarn.
    * @throws IOException If creation failed.
    */
-  public YarnRunner getYarnRunner(Project project,
-      String jobUser, String usersFullName, AsynchronousJobExecutor services,
-      final DistributedFileSystemOps dfsClient, final YarnClient yarnClient,
-      Settings settings) throws IOException {
+  public YarnRunner getYarnRunner(Project project, String jobUser, AsynchronousJobExecutor services,
+                                  final DistributedFileSystemOps dfsClient, final YarnClient yarnClient,
+                                  Settings settings, String kafkaBrokersString, String hopsworksRestEndpoint,
+                                  ServiceDiscoveryController serviceDiscoveryController)
+          throws IOException, ServiceDiscoveryException, JobException {
 
     Map<String, ConfigProperty> jobHopsworksProps = new HashMap<>();
     JobType jobType = job.getJobConfig().getJobType();
@@ -154,8 +157,7 @@ public class SparkYarnRunnerBuilder {
     builder.addLocalResource(new LocalResourceDTO(
         appExecName, appPath,
         LocalResourceVisibility.APPLICATION.toString(),
-        LocalResourceType.FILE.toString(), null),
-        !appPath.startsWith("hdfs:"));
+        LocalResourceType.FILE.toString(), null), dfsClient);
 
     builder.addToAppMasterEnvironment(YarnRunner.KEY_CLASSPATH,
         Settings.SPARK_LOCRSC_APP_JAR
@@ -187,23 +189,17 @@ public class SparkYarnRunnerBuilder {
 
     if (jobType == JobType.PYSPARK) {
       amargs.append(" --primary-py-file ").append(appExecName);
-      //Add libs to PYTHONPATH
-      if (!serviceProps.isAnacondaEnabled()) {
-        //Throw error in Hopswors UI to notify user to enable Anaconda
-        throw new IOException("PySpark job needs to have Python Anaconda environment enabled");
-      }
     }
 
-    String tfLibraryPath = services.getTfLibMappingUtil().getTfLdLibraryPath(project);
-
     Map<String, String> finalJobProps = new HashMap<>();
-    finalJobProps.putAll(sparkConfigurationUtil.getFrameworkProperties(project, job.getJobConfig(), settings,
-            jobUser, usersFullName, tfLibraryPath, extraJavaOptions));
 
-    finalJobProps.put(Settings.SPARK_YARN_APPMASTER_ENV + "SPARK_USER", jobUser);
-    finalJobProps.put(Settings.SPARK_EXECUTOR_ENV + "SPARK_USER", jobUser);
-    finalJobProps.put(Settings.SPARK_YARN_APPMASTER_ENV + "SPARK_YARN_MODE", "true");
-    finalJobProps.put(Settings.SPARK_YARN_APPMASTER_ENV + "SPARK_YARN_STAGING_DIR", stagingPath);
+    finalJobProps.putAll(sparkConfigurationUtil.setFrameworkProperties(project, job.getJobConfig(), settings,
+            jobUser, extraJavaOptions, kafkaBrokersString, hopsworksRestEndpoint, serviceDiscoveryController));
+
+    finalJobProps.put(Settings.SPARK_YARN_APPMASTER_SPARK_USER, jobUser);
+    finalJobProps.put(Settings.SPARK_EXECUTOR_SPARK_USER, jobUser);
+    finalJobProps.put(Settings.SPARK_YARN_APPMASTER_YARN_MODE, "true");
+    finalJobProps.put(Settings.SPARK_YARN_APPMASTER_YARN_STAGING_DIR, stagingPath);
 
     //Parse properties from Spark config file
     Properties sparkProperties = new Properties();
@@ -237,7 +233,6 @@ public class SparkYarnRunnerBuilder {
       builder.addJavaOption(option);
     }
 
-    //Add local resources to spark environment too
     for (String s : jobArgs) {
       amargs.append(" --arg '").append(s).append("'");
     }
@@ -261,7 +256,7 @@ public class SparkYarnRunnerBuilder {
         builder.addLocalResource(new LocalResourceDTO(
                 fileName, filePath,
                 LocalResourceVisibility.APPLICATION.toString(),
-                LocalResourceType.FILE.toString(), null), false);
+                LocalResourceType.FILE.toString(), null), dfsClient);
       }
     }
 
@@ -276,7 +271,7 @@ public class SparkYarnRunnerBuilder {
         builder.addLocalResource(new LocalResourceDTO(
           fileName, archivePath,
           LocalResourceVisibility.APPLICATION.toString(),
-          LocalResourceType.ARCHIVE.toString(), null), false);
+          LocalResourceType.ARCHIVE.toString(), null), dfsClient);
       }
     }
 
@@ -301,10 +296,6 @@ public class SparkYarnRunnerBuilder {
       this.extraFiles.addAll(projectLocalResources);
     }
     return this;
-  }
-
-  public void setServiceProps(ServiceProperties serviceProps) {
-    this.serviceProps = serviceProps;
   }
 
   public SparkYarnRunnerBuilder addSystemProperty(String name, String value) {

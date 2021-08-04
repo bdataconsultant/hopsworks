@@ -38,10 +38,16 @@
   -->
 <div ng-controller="MainCtrl as mainCtrl">
   <div ng-include="'nav.html'"></div>
-  <div id="wrapper" class="toggled"  ng-controller="JupyterCtrl as jupyterCtrl">
+  <div id="wrapper" ng-class="{'toggled': projectCtrl.isClosed}"  ng-controller="JupyterCtrl as jupyterCtrl">
     <div class="overlay"></div>
     <div ng-include="'navProject.html'"></div>
-    <div ng-controller="SparkConfigCtrl as sparkConfigCtrl">
+    <div ng-if="mainCtrl.showSearchPage" class="content-wrapper">
+      <div id="projectSearchResults">
+        <div ng-include="'views/search/search.html'"></div>
+      </div>
+    </div>
+
+    <div ng-if="!mainCtrl.showSearchPage" ng-controller="SparkConfigCtrl as sparkConfigCtrl">
       <section>
         <div ng-if="jupyterCtrl.loading" class="loadingwrap">
           <div class="loading-content">
@@ -49,58 +55,71 @@
             {{jupyterCtrl.loadingText}}
           </div>
         </div>
-        <div class="content-wrapper">
+        <div ng-if="!mainCtrl.showSearchPage" class="content-wrapper">
+          <div class="alert alert-warning" style="padding: 10px;" ng-show="!jupyterCtrl.condaEnabled">
+                  <span style="font-size: 1.2em !important; margin-left:150px;">
+                    <i class="fa fa-warning" uib-tooltip="Jupyter requires a Python environment but the service is not enabled for this project." style="color:red;">
+                    </i> <a ng-click="jupyterCtrl.navigateToPython()" style="cursor: pointer;">Python</a> environment not created for this project.
+                  </span>
+          </div>
+          <div class="alert alert-warning" style="padding: 10px;" ng-show="jupyterCtrl.jupyterConflicts">
+                  <span style="font-size: 1.2em !important; margin-left:150px;">
+                    <i class="fa fa-warning" uib-tooltip="pip check detected unsatisfied dependency constraints in the environment. If possible please resolve them." style="color:orange;">
+                    </i> <a ng-click="jupyterCtrl.showConflicts()" style="cursor: pointer;">Conflicts</a> detected in your python environment may affect this service
+                  </span>
+          </div>
         <div growl reference="10" class="pull-right" ></div>
-          <h3>
-            <div class="col-md-4 col-lg-4" style="margin-top:-25px;">
-              <div class="row">
-                <div class="col-md-2 col-lg-2">
-                  <img height="40" src="images/jupyter.png"/>
-                </div>
-                <div class="col-md-10 col-lg-10">
-                  <div class="ng-scope" ng-if="jupyterCtrl.numNotEnabledEnvs > 0" style="margin-top:12px;">
-                    <i class="fa fa-spinner fa-spin" style="font-size:18px;"></i> &nbsp;Anaconda environment installing...
+          <h3 class="breadcrumb" ng-class="{'hidden' : jupyterCtrl.ui == ''}">
+            <div style="padding-top: 20px; padding-bottom: 5px;">
+              <div class="col-md-4 col-lg-4" style="margin-top:-25px;">
+                <div class="row">
+                  <div class="col-md-2 col-lg-2">
+                    <img height="40" src="images/jupyter.png"/>
                   </div>
-                  <div ng-controller="ProjectCtrl as projectCtrl" class="ng-scope" ng-if="!jupyterCtrl.condaEnabled" style="margin-top:12px;">
-                    <i class="fa fa-warning" style="color:orange;" uib-tooltip="Jupyter requires that you enable Python. Please navigate to the Python service to do so."></i> <strong>&nbsp;Python not enabled</strong>
-                  </div>
-                  <div ng-controller="ProjectCtrl as projectCtrl" class="ng-scope" ng-if="jupyterCtrl.condaEnabled && !jupyterCtrl.jupyterInstalled && jupyterCtrl.numNotEnabledEnvs === 0" style="margin-top:12px;">
-                    <i class="fa fa-warning" style="color:orange;" uib-tooltip="Make sure Jupyter, hdfscontents and Sparkmagic are installed in your project environment"></i> <strong>&nbsp;Jupyter not installed</strong>
+                  <div class="col-md-10 col-lg-10">
+                    <div class="ng-scope" ng-if="jupyterCtrl.ongoingCondaOps > 0" style="margin-top:12px;">
+                      <i class="fa fa-spinner fa-spin" style="font-size:18px;"></i> &nbsp;Ongoing Anaconda operation...
+                    </div>
+                    <div ng-controller="ProjectCtrl as projectCtrl" class="ng-scope" ng-if="!jupyterCtrl.condaEnabled" style="margin-top:12px;">
+                      <i class="fa fa-warning" style="color:orange;" uib-tooltip="Jupyter requires that you enable Python. Please navigate to the Python service to do so."></i> <strong>&nbsp;Python not enabled</strong>
+                    </div>
                   </div>
                 </div>
               </div>
+              <div class="col-sm-3 col-md-3 col-lg-3" style="margin-top:-20px;" ng-if="jupyterCtrl.ui !== '' && sparkConfigCtrl.uneditableMode===false" id="viewConfig">
+                <button class="btn btn-primary btn-md"
+                        ng-click="jupyterCtrl.showLogs()">
+                  <i class="fa fa-file-text"></i> Logs
+                </button>
+                <button class="btn btn-primary btn-md"
+                        ng-click="jupyterCtrl.tgState=false; sparkConfigCtrl.uneditableMode=true; sparkConfigCtrl.setConf()">
+                  <i class="fa fa-sliders"></i> View Configuration
+                </button>
+              </div>
+              <div class="col-sm-4 col-md-4 col-lg-4" style="margin-top:-20px;"
+                   ng-if="jupyterCtrl.ui !== '' && sparkConfigCtrl.uneditableMode===true">
+                <button class="btn btn-primary btn-md"
+                        ng-click="jupyterCtrl.showLogs()">
+                  <i class="fa fa-file-text"></i> Logs
+                </button>
+                <button class="btn btn-primary btn-md" ng-click="jupyterCtrl.tgState=true; sparkConfigCtrl.uneditableMode=false;">
+                  <i class="fa fa-share" style="margin-right:5px;"></i>View Notebook Server
+                </button>
+              </div>
+              <div class="col-sm-3 col-md-3 col-lg-3" style="margin-top:-10px;" ng-if="jupyterCtrl.ui !== '' && sparkConfigCtrl.uneditableMode===true">
+                <i class="fa fa-info-circle" tooltip-placement="auto left" uib-tooltip="Configuration not editable while Jupyter Notebook Server is running" style="margin-left: 10px"></i> <strong>&nbsp;Configuration not editable</strong>
+              </div>
+              <ul class="nav navbar-nav pull-right" style="margin-right:30px;  margin-top:-17px;">
+                <li class="pull-left" style="margin-top:-8px;">
+                  <hamburger-toggle state="jupyterCtrl.tgState" class="hamburger-toggle" ng-if="jupyterCtrl.ui !== '' && sparkConfigCtrl.uneditableMode===false">
+                  </hamburger-toggle>
+                </li>
+                <li class="server-status">
+                          <span class="fa fa-circle" ng-class="{'server-connected' :jupyterCtrl.ui !== ''}"></span>
+                  <span ng-show="jupyterCtrl.ui !== ''">Connected</span>
+                </li>
+              </ul>
             </div>
-            <div class="col-sm-2 col-md-2 col-lg-2" style="margin-top:-20px;" ng-if="jupyterCtrl.ui === ''">
-              <button class="btn btn-primary" ng-click="jupyterCtrl.start()" type="button" id="newNotebook" style="width:90px;">
-                Start
-              </button>
-            </div>
-            <div class="col-sm-2 col-md-2 col-lg-2" style="margin-top:-20px;" ng-if="jupyterCtrl.ui !== '' && sparkConfigCtrl.uneditableMode===false" id="viewConfig">
-              <button class="btn btn-info btn-md" ng-click="jupyterCtrl.tgState=false; sparkConfigCtrl.uneditableMode=true;">
-                <i class="fa fa-sliders"></i> View Configuration
-              </button>
-            </div>
-            <div class="col-sm-2 col-md-2 col-lg-2" style="margin-top:-20px;" ng-if="jupyterCtrl.ui !== '' && sparkConfigCtrl.uneditableMode===true">
-              <button class="btn btn-info btn-md" ng-click="jupyterCtrl.tgState=true; sparkConfigCtrl.uneditableMode=false;">
-                <i class="fa fa-share" style="margin-right:5px;"></i>View Notebook Server
-              </button>
-            </div>
-            <div class="col-sm-3 col-md-3 col-lg-3" style="margin-top:-10px;" ng-if="jupyterCtrl.ui !== '' && sparkConfigCtrl.uneditableMode===true">
-              <i class="fa fa-info-circle" tooltip-placement="auto left" uib-tooltip="Configuration not editable while Jupyter Notebook Server is running" style="margin-left: 10px"></i> <strong>&nbsp;Configuration not editable</strong>
-            </div>
-            <ul class="nav navbar-nav pull-right" style="margin-right:30px;  margin-top:-17px;">
-              <li class="pull-left"
-                  ng-class="{'connected-space' : jupyterCtrl.connectedStatus, 'disconnected-space':!jupyterCtrl.connectedStatus}" style="margin-top:-8px;">
-                <hamburger-toggle state="jupyterCtrl.tgState" class="hamburger-toggle" ng-if="jupyterCtrl.ui !== '' && sparkConfigCtrl.uneditableMode===false">
-                </hamburger-toggle>
-              </li>
-              <li class="server-status">
-                        <span class="fa fa-circle" ng-class="{'server-connected' :jupyterCtrl.ui !== '',
-                           'server-disconnected':jupyterCtrl.ui === ''}"></span>
-                <span ng-show="jupyterCtrl.jupyterCtrl.ui !== ''">Connected</span>
-                <span ng-show="jupyterCtrl.jupyterCtrl.ui === ''">Disconnected</span>
-              </li>
-            </ul>
           </h3>
           <div ng-init="(iscollapsed$index) = true; jupyterCtrl.tgState = true;"
                class="ds-content col-lg-12" ng-class="{'sidenav-open': jupyterCtrl.tgState}" style="margin-top: 5px;">
@@ -108,7 +127,7 @@
             </div>
           </div>
           <div ng-if="jupyterCtrl.ui === '' || sparkConfigCtrl.uneditableMode===true">
-            <div ng-include="'views/sparkConfig.html'"></div>
+            <div ng-include="'views/jupyter/jupyterConfigPanel.html'"></div>
           </div>  
           <div class="row top-buffer" ng-if="jupyterCtrl.ui !== '' && sparkConfigCtrl.uneditableMode===false" class="animate-if">
             <div class="col-md-4 panel panel-default jupyter-left" style="min-height: 212px;" id="applications">
@@ -128,7 +147,7 @@
                                 uib-tooltip="Open ApplicationUI"
                                 tooltip-placement="auto right"
                                 ng-click="jupyterCtrl.showLivyUI(session.appId)"
-                                type="button" class="btn btn-info btn-sm" >
+                                type="button" class="btn btn-primary btn-sm" >
                           <span class="glyphicon glyphicon-eye-open" ></span>
                         </button>
                         <button
@@ -167,7 +186,10 @@
                     Repository:
                   </div>
                   <div class="col-md-5">
-                    <span><a target="_blank" href="{{jupyterCtrl.gitRepoStatus.repository}}">{{jupyterCtrl.gitRepoStatus.repository}}</a></span>
+                    <span>
+                      <a target="_blank" href="{{jupyterCtrl.gitRepoStatus.repository}}" style="white-space: nowrap;">
+                      {{jupyterCtrl.gitRepoStatus.repository}}</a>
+                    </span>
                   </div>
                 </div>
                 <div class="row">
@@ -222,7 +244,7 @@
                                 <button id="openNotebook" uib-tooltip="Open a new Browser Tab to connect to the running Jupyter Notebook Server"
                                         tooltip-placement="auto right"
                                         ng-click="jupyterCtrl.openWindow()"
-                                        type="button" class="btn btn-info btn-sm">
+                                        type="button" class="btn btn-primary btn-sm">
                                   <span class="glyphicon glyphicon-eye-open" ></span>
                                 </button>
                               </td>
@@ -275,61 +297,54 @@
       </section>
       <!-- <tour class="ng-scope" step="projectCtrl.tourService.currentStep_TourEight"
             post-tour="closeTour()"
-            ng-if="projectCtrl.loadedView && projectCtrl.tourService.activeTour === 'deep_learning'
-            && (projectCtrl.tourService.informAndTips
-            || projectCtrl.tourService.tipsOnly) && !jupyterCtrl.loading &&
+            ng-if="projectCtrl.loadedView && projectCtrl.tourService.activeTour === 'ml'
+            && projectCtrl.tourService.showTips && !jupyterCtrl.loading &&
             !(self.ui !=='' && (self.tourService.currentStep_TourEight >= 0 ||  self.tourService.currentStep_TourEight <= 10))">
         <virtual-step
                 class="ng-scope"
-                tourtip="Before starting Jupyter you need to select an appropriate mode depending on what type of job you intend to run. The 'Experiment' mode should be selected for this tour."
+                tourtip="Jupyter Notebooks is the recommended way for development and writing production pipelines in the platform."
                 tourtip-step="0"
-                tourtip-element="#experimentLabel"
+                tourtip-element="#python"
                 tourtip-placement="bottom"
                 tourtip-next-label="Next"
                 on-show=""
-                on-proceed="sparkConfigCtrl.setMode('EXPERIMENT');"
+                on-proceed=""
         ></virtual-step>
         <virtual-step
                 class="ng-scope"
-                tourtip="Parallel Experiments is used for parallel hyperparameter optimization of your Deep Learning model. We provide tools to search for the best hyperparameters automatically."
+                tourtip="The Jupyter Notebook server you will be working with can be configured for different use-cases as represented by the tabs above."
                 tourtip-step="1"
-                tourtip-element="#parallelExperiments"
+                tourtip-element="#python"
                 tourtip-placement="bottom"
                 tourtip-next-label="Next"
+                on-show=""
                 on-proceed=""
         ></virtual-step>
         <virtual-step
                 class="ng-scope"
-                tourtip="Distributed Training using CollectiveAllReduceStrategy, ParameterServerStrategy and MirroredStrategy is configured here."
+                tourtip="If you want to work in the python kernel as on your local workstation, the 'Python' option should be selected."
                 tourtip-step="2"
-                tourtip-element="#distributedTraining"
+                tourtip-element="#python"
                 tourtip-placement="bottom"
                 tourtip-next-label="Next"
+                on-show=""
                 on-proceed=""
         ></virtual-step>
         <virtual-step
                 class="ng-scope"
-                tourtip="If you want to run Spark with static executors, use this mode."
+                tourtip="Running parallel hyperparameter optimization or distributed training over many hosts and GPUs the 'Experiments' option should be selected."
                 tourtip-step="3"
-                tourtip-element="#sparkStatic"
+                tourtip-element="#experiment"
                 tourtip-placement="bottom"
                 tourtip-next-label="Next"
+                on-show=""
                 on-proceed=""
         ></virtual-step>
         <virtual-step
                 class="ng-scope"
-                tourtip="Or if you would like a dynamic number of executors pick this mode."
+                tourtip="To work with Spark, PySpark or SparkR the 'Spark' option should be selected."
                 tourtip-step="4"
-                tourtip-element="#sparkDynamic"
-                tourtip-placement="bottom"
-                tourtip-next-label="Next"
-                on-proceed=""
-        ></virtual-step>
-        <virtual-step
-                class="ng-scope"
-                tourtip="These configuration options are important to understand as they define the behaviour of the application, for example setting the application memory."
-                tourtip-step="5"
-                tourtip-element="#configOptions"
+                tourtip-element="#spark"
                 tourtip-placement="bottom"
                 tourtip-next-label="Next"
                 on-proceed=""
@@ -337,22 +352,22 @@
         <virtual-step
                 class="ng-scope"
                 tourtip="Click 'Start' to start a Jupyter Notebook server for your user in this project for the given configuration. To change the configuration you need to restart the Jupyter notebook server."
-                tourtip-step="6"
+                tourtip-step="5"
                 tourtip-element="#newNotebook"
                 tourtip-placement="bottom"
                 tourtip-next-label="Start"
-                on-proceed="jupyterCtrl.start();"
+                on-proceed="jupyterCtrl.start('JUPYTER_LAB');"
         ></virtual-step>
         <virtual-step
                 class="ng-scope"
                 tourtip="invisible"
-                tourtip-step="7"
+                tourtip-step="6"
                 ng-hide="true"
         ></virtual-step>
         <virtual-step
                 class="ng-scope"
                 tourtip="Click the icon to enter Jupyter. When inside Jupyter, navigate to the Experiment folder in which there are several notebooks you can run. "
-                tourtip-step="8"
+                tourtip-step="7"
                 tourtip-element="#openNotebook"
                 tourtip-placement="left"
                 tourtip-next-label="Open Jupyter in a new tab"
@@ -361,7 +376,7 @@
         <virtual-step
                 class="ng-scope"
                 tourtip="To shut down Jupyter click this stop icon. Note that any running jobs that were started in Jupyter will be killed along with it."
-                tourtip-step="9"
+                tourtip-step="8"
                 tourtip-element="#shutdownNotebook"
                 tourtip-placement="left"
                 tourtip-next-label="Next"
@@ -371,7 +386,7 @@
         <virtual-step
                 class="ng-scope"
                 tourtip="The current configuration for the Jupyter Notebook Server can be viewed by clicking this button."
-                tourtip-step="10"
+                tourtip-step="9"
                 tourtip-element="#viewConfig"
                 tourtip-placement="bottom"
                 tourtip-next-label="Next"
@@ -381,9 +396,9 @@
         <virtual-step
                 class="ng-scope"
                 tourtip="This is the time left until the Jupyter Notebook Server and running jobs inside is automatically shut down."
-                tourtip-step="11"
+                tourtip-step="10"
                 tourtip-element="#minuteSpan"
-                tourtip-placement="right"
+                tourtip-placement="left"
                 tourtip-next-label="Next"
                 on-proceed=""
                 tourtip-offset-vertical="-30"
@@ -391,9 +406,9 @@
         <virtual-step
                 class="ng-scope"
                 tourtip="Here you can add more hours in case you need more time before Jupyter is shut down."
-                tourtip-step="12"
+                tourtip-step="11"
                 tourtip-element="#addHours"
-                tourtip-placement="right"
+                tourtip-placement="left"
                 tourtip-next-label="Next"
                 on-proceed=""
                 tourtip-offset-vertical="-30"
@@ -401,7 +416,7 @@
         <virtual-step
                 class="ng-scope"
                 tourtip="Each Spark application inside Jupyter will be listed here, giving access to the SparkUI and more monitoring information for that particular application."
-                tourtip-step="13"
+                tourtip-step="12"
                 tourtip-element="#monitor"
                 tourtip-placement="right"
                 tourtip-next-label="Next"
@@ -411,7 +426,7 @@
         <virtual-step
                 class="ng-scope"
                 tourtip="After running one of the notebooks you can monitor the training in TensorBoard and find history about your experiments in the Experiments service. For an experiment to be listed in the service it must be launched using the experiment module in the hops python library."
-                tourtip-step="14"
+                tourtip-step="13"
                 tourtip-element="#experimentsTab"
                 tourtip-placement="right"
                 tourtip-next-label="Next"
@@ -421,7 +436,7 @@
         <virtual-step
                 class="ng-scope"
                 tourtip="Experiments are stored in the Experiments dataset, be sure to check it out after running one of the provided notebooks."
-                tourtip-step="15"
+                tourtip-step="14"
                 tourtip-element="#datasetsTab"
                 tourtip-placement="right"
                 tourtip-next-label="Next"
@@ -430,9 +445,9 @@
         ></virtual-step>
         <virtual-step
                 class="ng-scope"
-                tourtip="All project members share an Anaconda environment. Navigate to the Python service to install more libraries using pip or conda package managers."
-                tourtip-step="16"
-                tourtip-element="#pythonTab"
+                tourtip="In the Model repository general information about models can be found and different versions compared based on metrics like accuracy."
+                tourtip-step="15"
+                tourtip-element="#modelsTab"
                 tourtip-placement="right"
                 tourtip-next-label="Next"
                 tourtip-offset-vertical="-15"
@@ -441,8 +456,18 @@
         <virtual-step
                 class="ng-scope"
                 tourtip="To serve a model you have trained, navigate to the Model Serving service."
-                tourtip-step="17"
+                tourtip-step="16"
                 tourtip-element="#servingTab"
+                tourtip-placement="right"
+                tourtip-next-label="Next"
+                tourtip-offset-vertical="-15"
+                on-proceed=""
+        ></virtual-step>
+        <virtual-step
+                class="ng-scope"
+                tourtip="All project members share an Anaconda environment. Navigate to the Python service to install more libraries using pip or conda package managers."
+                tourtip-step="17"
+                tourtip-element="#pythonTab"
                 tourtip-placement="right"
                 tourtip-next-label="Finish The Tour"
                 tourtip-offset-vertical="-15"

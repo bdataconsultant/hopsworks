@@ -266,7 +266,8 @@ public class AirflowProxyServlet extends ProxyServlet {
          */
         && statusCode < HttpServletResponse.SC_NOT_MODIFIED /*
          * 304
-         */) {
+         */
+        || statusCode == 308) {
       Header locationHeader = proxyResponse.getLastHeader(HttpHeaders.LOCATION);
       LOGGER.info("LOCATION HEADER: " + locationHeader.getValue());
       if (locationHeader == null) {

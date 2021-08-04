@@ -39,15 +39,15 @@
 
 package io.hops.hopsworks.common.jobs.yarn;
 
-import io.hops.hopsworks.common.dao.jobhistory.Execution;
+import io.hops.hopsworks.persistence.entity.jobs.history.Execution;
 import io.hops.hopsworks.common.dao.jobhistory.ExecutionFacade;
-import io.hops.hopsworks.common.dao.project.service.ProjectServiceEnum;
-import io.hops.hopsworks.common.dao.project.service.ProjectServices;
+import io.hops.hopsworks.persistence.entity.project.service.ProjectServiceEnum;
+import io.hops.hopsworks.persistence.entity.project.service.ProjectServices;
 import io.hops.hopsworks.common.hdfs.DistributedFileSystemOps;
 import io.hops.hopsworks.common.hdfs.DistributedFsService;
 import io.hops.hopsworks.common.hdfs.Utils;
-import io.hops.hopsworks.common.jobs.configuration.JobType;
-import io.hops.hopsworks.common.jobs.jobhistory.JobState;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.JobType;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.history.JobState;
 import io.hops.hopsworks.common.util.Settings;
 import io.hops.hopsworks.common.yarn.YarnClientService;
 import io.hops.hopsworks.common.yarn.YarnClientWrapper;
@@ -95,37 +95,16 @@ public class YarnExecutionFinalizer {
     YarnMonitor monitor = new YarnMonitor(applicationId, yarnClientWrapper, ycs);
 
     try {
-      String defaultOutputPath;
-      switch (exec.getJob().getJobType()) {
-        case SPARK:
-        case PYSPARK:
-          defaultOutputPath = Settings.SPARK_DEFAULT_OUTPUT_PATH;
-          break;
-        case FLINK:
-          defaultOutputPath = Settings.FLINK_DEFAULT_OUTPUT_PATH;
-          break;
-        case YARN:
-          defaultOutputPath = Settings.YARN_DEFAULT_OUTPUT_PATH;
-          break;
-        default:
-          defaultOutputPath = "Logs/";
-      }
-      String stdOutFinalDestination =
-          Utils.getProjectPath(exec.getJob().getProject().getName()) +
-              defaultOutputPath;
-      String stdErrFinalDestination =
-          Utils.getProjectPath(exec.getJob().getProject().getName()) +
-              defaultOutputPath;
-  
       String stdOutPath = settings.getAggregatedLogPath(exec.getHdfsUser(), exec.getAppId());
+      String[] logOutputPaths = Utils.getJobLogLocation(exec.getJob().getProject().getName(),
+        exec.getJob().getJobType());
+      String stdOutFinalDestination = logOutputPaths[0] + exec.getAppId() + File.separator + "stdout.log";
+      String stdErrFinalDestination = logOutputPaths[1] + exec.getAppId() + File.separator + "stderr.log";
+  
       try {
-        stdOutFinalDestination = stdOutFinalDestination + exec.getAppId() + File.separator + "stdout.log";
         String[] desiredOutLogTypes = {"out"};
-
         YarnLogUtil.copyAggregatedYarnLogs(udfso, stdOutPath, stdOutFinalDestination,
             desiredOutLogTypes, monitor);
-
-        stdErrFinalDestination = stdErrFinalDestination + exec.getAppId() + File.separator + "stderr.log";
         String[] desiredErrLogTypes = {"err", ".log"};
         YarnLogUtil.copyAggregatedYarnLogs(udfso, stdOutPath, stdErrFinalDestination,
                 desiredErrLogTypes, monitor);
@@ -176,7 +155,10 @@ public class YarnExecutionFinalizer {
     DistributedFileSystemOps dfso = dfs.getDfsOps();
     try {
       for (String s : filesToRemove) {
-        if (s.startsWith("hdfs:") && dfso.getFilesystem().exists(new Path(s))) {
+        Path path = new Path(s);
+        String scheme = path.toUri().getScheme();
+        if (scheme != null && (scheme.equals(dfso.getFilesystem().getScheme()) || scheme.equals(dfso.getFilesystem().
+            getAlternativeScheme())) && dfso.getFilesystem().exists(path))  {
           dfso.getFilesystem().delete(new Path(s), true);
         } else {
           org.apache.commons.io.FileUtils.deleteQuietly(new File(s));

@@ -14,14 +14,9 @@
   ~ If not, see <https://www.gnu.org/licenses/>.
   -->
 
-<div class="modal-header">
-  <button class="close" ng-click="trainingDatasetViewInfoCtrl.close()" data-dismiss="modal" aria-hidden="true"
-          type="button">&times;</button>
-  <h2 class="modal-title">Training Dataset details: {{trainingDatasetViewInfoCtrl.trainingDataset.name}}</h2>
-</div>
-<div class="modal-body" style="overflow: auto">
+<div>
     <div uib-accordion close-others="false">
-        <div uib-accordion-group class="panel-default">
+        <div uib-accordion-group class="panel-default" is-open="true">
             <div uib-accordion-heading>
                 <i class="fa fa-info-circle" tooltip-placement="auto left"
                    uib-tooltip='Training Dataset Metadata'></i>
@@ -37,7 +32,7 @@
                         Id
                     </td>
                     <td class="fs-table">
-                        {{trainingDatasetViewInfoCtrl.trainingDataset.id}}
+                        {{trainingDatasetViewInfoCtrl.selectedTrainingDataset.id}}
                     </td>
                 </tr>
                 <tr class="fs-table">
@@ -45,7 +40,7 @@
                         Name
                     </td>
                     <td class="fs-table">
-                        {{trainingDatasetViewInfoCtrl.trainingDataset.name}}
+                        {{trainingDatasetViewInfoCtrl.selectedTrainingDataset.name}}
                     </td>
                 </tr>
 
@@ -54,7 +49,7 @@
                         Version
                     </td>
                     <td class="fs-table">
-                        {{trainingDatasetViewInfoCtrl.trainingDataset.version}}
+                        {{trainingDatasetViewInfoCtrl.selectedTrainingDataset.version}}
                     </td>
                 </tr>
 
@@ -63,7 +58,7 @@
                         Description
                     </td>
                     <td class="fs-table">
-                        {{trainingDatasetViewInfoCtrl.trainingDataset.description}}
+                        {{trainingDatasetViewInfoCtrl.selectedTrainingDataset.description}}
                     </td>
                 </tr>
 
@@ -72,7 +67,7 @@
                         Feature Store
                     </td>
                     <td class="fs-table">
-                        {{trainingDatasetViewInfoCtrl.trainingDataset.featurestoreName}}
+                        {{trainingDatasetViewInfoCtrl.selectedTrainingDataset.featurestoreName}}
                     </td>
                 </tr>
 
@@ -81,7 +76,7 @@
                         Creator
                     </td>
                     <td class="fs-table">
-                        {{trainingDatasetViewInfoCtrl.trainingDataset.creator}}
+                        {{trainingDatasetViewInfoCtrl.selectedTrainingDataset.creator}}
                     </td>
                 </tr>
 
@@ -90,7 +85,30 @@
                         Created
                     </td>
                     <td class="fs-table">
-                        {{trainingDatasetViewInfoCtrl.formatCreated}}
+                        {{trainingDatasetViewInfoCtrl.selectedTrainingDataset.created | date:'medium'}}
+                    </td>
+                </tr>
+
+                <tr class="fs-table">
+                    <td style="font-weight:700;" class="fs-table">
+                        Actions
+                    </td>
+                    <td class="fs-table">
+                        <button class="btn btn-default fa fa-bar-chart"
+                                uib-tooltip="View statistics"
+                                ng-click="trainingDatasetViewInfoCtrl.viewTrainingDatasetStatistics(); $event.stopPropagation();"></button>
+
+                        <button class="btn btn-default fa fa-edit" id="toolbar-edit"
+                                uib-tooltip="Edit"
+                                ng-click="trainingDatasetViewInfoCtrl.updateTrainingDataset(featurestoreCtrl); $event.stopPropagation();"></button>
+
+                        <button class="btn btn-default fa fa-plus" id="toolbar-new"
+                                uib-tooltip="New"
+                                ng-click="trainingDatasetViewInfoCtrl.newTrainingDatasetVersion(featurestoreCtrl); $event.stopPropagation();"></button>
+
+                        <button class="btn btn-default fa fa-trash-o"
+                                uib-tooltip="Delete"
+                                ng-click="trainingDatasetViewInfoCtrl.deleteTrainingDataset(featurestoreCtrl); $event.stopPropagation();"></button>
                     </td>
                 </tr>
                 </tbody>
@@ -108,22 +126,19 @@
 
             <table class="table table-hover fs-table" style="margin-left: 10px; overflow: auto">
                 <tbody class="fs-table">
-                <tr class="fs-table" ng-if="trainingDatasetViewInfoCtrl.trainingDataset.trainingDatasetType == trainingDatasetViewInfoCtrl.hopsfsTrainingDatasetType">
+                <tr class="fs-table">
                     <td style="font-weight:700;" class="fs-table">
-                        HDFS path
+                        Location
                     </td>
                     <td class="fs-table">
-                        {{trainingDatasetViewInfoCtrl.trainingDataset.location}}
-                    </td>
-                </tr>
-
-                <tr class="fs-table"
-                    ng-if="trainingDatasetViewInfoCtrl.trainingDataset.trainingDatasetType == trainingDatasetViewInfoCtrl.externalTrainingDatasetType">
-                    <td style="font-weight:700;" class="fs-table">
-                        S3 Bucket Path
-                    </td>
-                    <td class="fs-table">
-                        {{trainingDatasetViewInfoCtrl.trainingDataset.location}}
+                        <span ng-if="trainingDatasetViewInfoCtrl.selectedTrainingDataset.trainingDatasetType !== trainingDatasetViewInfoCtrl.externalTrainingDatasetType">
+                            <a ng-click="trainingDatasetViewInfoCtrl.tdLocation()">
+                            {{trainingDatasetViewInfoCtrl.selectedTrainingDataset.location}}
+                            </a>
+                        </span>
+                        <span ng-if="trainingDatasetViewInfoCtrl.selectedTrainingDataset.trainingDatasetType == trainingDatasetViewInfoCtrl.externalTrainingDatasetType">
+                            {{trainingDatasetViewInfoCtrl.selectedTrainingDataset.location}}
+                        </span>
                     </td>
                 </tr>
 
@@ -132,11 +147,11 @@
                         Data format
                     </td>
                     <td class="fs-table">
-                        {{trainingDatasetViewInfoCtrl.trainingDataset.dataFormat}}
+                        {{trainingDatasetViewInfoCtrl.selectedTrainingDataset.dataFormat}}
                     </td>
                 </tr>
 
-                <tr class="fs-table" ng-if="trainingDatasetViewInfoCtrl.trainingDataset.trainingDatasetType == trainingDatasetViewInfoCtrl.hopsfsTrainingDatasetType">
+                <tr class="fs-table" ng-if="trainingDatasetViewInfoCtrl.selectedTrainingDataset.trainingDatasetType == trainingDatasetViewInfoCtrl.hopsfsTrainingDatasetType">
                     <td style="font-weight:700;" class="fs-table">
                         Size
                     </td>
@@ -147,55 +162,62 @@
                     </td>
                 </tr>
 
-                <tr class="fs-table" ng-if="trainingDatasetViewInfoCtrl.trainingDataset.trainingDatasetType == trainingDatasetViewInfoCtrl.hopsfsTrainingDatasetType">
+                <tr class="fs-table">
                     <td style="font-weight:700;" class="fs-table">
-                        HopsFS Storage Connector Name
+                        Storage Connector Name:
                     </td>
                     <td class="fs-table">
-                        {{trainingDatasetViewInfoCtrl.trainingDataset.hopsfsConnectorName}}
-                    </td>
-                </tr>
-
-                <tr class="fs-table" ng-if="trainingDatasetViewInfoCtrl.trainingDataset.trainingDatasetType == trainingDatasetViewInfoCtrl.hopsfsTrainingDatasetType">
-                    <td style="font-weight:700;" class="fs-table">
-                        HopsFS Storage Connector Id
-                    </td>
-                    <td class="fs-table">
-                        {{trainingDatasetViewInfoCtrl.trainingDataset.hopsfsConnectorId}}
-                    </td>
-                </tr>
-
-                <tr class="fs-table"
-                    ng-if="trainingDatasetViewInfoCtrl.trainingDataset.trainingDatasetType == trainingDatasetViewInfoCtrl.externalTrainingDatasetType">
-                    <td style="font-weight:700;" class="fs-table">
-                        S3 Storage Connector Name
-                    </td>
-                    <td class="fs-table">
-                        {{trainingDatasetViewInfoCtrl.trainingDataset.s3ConnectorName}}
-                    </td>
-                </tr>
-
-                <tr class="fs-table"
-                    ng-if="trainingDatasetViewInfoCtrl.trainingDataset.trainingDatasetType == trainingDatasetViewInfoCtrl.externalTrainingDatasetType">
-                    <td style="font-weight:700;" class="fs-table">
-                        S3 Storage Connector Id
-                    </td>
-                    <td class="fs-table">
-                        {{trainingDatasetViewInfoCtrl.trainingDataset.s3ConnectorId}}
-                    </td>
-                </tr>
-
-                <tr class="fs-table"
-                    ng-if="trainingDatasetViewInfoCtrl.trainingDataset.trainingDatasetType == trainingDatasetViewInfoCtrl.externalTrainingDatasetType">
-                    <td style="font-weight:700;" class="fs-table">
-                        S3 Storage Connector Bucket
-                    </td>
-                    <td class="fs-table">
-                        {{trainingDatasetViewInfoCtrl.trainingDataset.s3ConnectorBucket}}
+                        {{trainingDatasetViewInfoCtrl.selectedTrainingDataset.storageConnector.name}}
                     </td>
                 </tr>
                 </tbody>
             </table>
+        </div>
+
+        <div uib-accordion-group class="panel-default">
+            <div uib-accordion-heading>
+                <i class="fa fa-info-circle" tooltip-placement="auto left"
+                   uib-tooltip='Details about the splits in which the Training Dataset is stored.'></i>
+                <span style="margin-left: 20px">
+                    Splits
+                </span>
+            </div>
+
+            <table class="table table-hover fs-table" style="margin-left: 10px; overflow: auto"
+                   ng-if="trainingDatasetViewInfoCtrl.selectedTrainingDataset.splits.length > 0">
+                <tbody class="fs-table">
+                <tr class="fs-table">
+                    <td style="font-weight:700;" class="fs-table">
+                        Seed
+                    </td>
+                    <td class="fs-table" ng-if="trainingDatasetViewInfoCtrl.selectedTrainingDataset.seed != null">
+                        {{trainingDatasetViewInfoCtrl.selectedTrainingDataset.seed}}
+                    </td>
+                    <td class="fs-table" ng-if="trainingDatasetViewInfoCtrl.selectedTrainingDataset.seed == null">
+                        undefined
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+
+            <table class="table table-hover fs-table" style="margin-left: 10px; overflow: auto"
+                   ng-if="trainingDatasetViewInfoCtrl.selectedTrainingDataset.splits.length > 0">
+                <thead style="border:none;" class="fs-table">
+                <th class="fs-table" style="width: 20%">Split Name</th>
+                <th class="fs-table" style="width: 20%">Percentage</th>
+                </thead>
+                <tbody>
+                <tr class="fs-table"
+                    data-ng-repeat="split in trainingDatasetViewInfoCtrl.selectedTrainingDataset.splits">
+                    <td class="fs-table"> {{split.name}}</td>
+                    <td class="fs-table"> {{split.percentage}}</td>
+                </tr>
+                </tbody>
+            </table>
+
+            <h4 style="margin-left: 10px"
+                ng-if="trainingDatasetViewInfoCtrl.selectedTrainingDataset.splits.length == 0">
+                This training dataset does not contain separate splits</h4>
         </div>
 
         <div uib-accordion-group class="panel-default">
@@ -207,17 +229,17 @@
                 </span>
             </div>
 
-            <h3 style="margin-left: 10px" ng-if="trainingDatasetViewInfoCtrl.trainingDataset.jobs.length === 0">
+            <h3 style="margin-left: 10px" ng-if="trainingDatasetViewInfoCtrl.selectedTrainingDataset.jobs.length === 0">
                 No jobs have been linked to this training dataset
             </h3>
 
-            <table class="table table-hover fs-table" style="margin-left: 10px; overflow: auto" ng-if="trainingDatasetViewInfoCtrl.trainingDataset.jobs.length > 0">
+            <table class="table table-hover fs-table" style="margin-left: 10px; overflow: auto" ng-if="trainingDatasetViewInfoCtrl.selectedTrainingDataset.jobs.length > 0">
                 <thead style="border:none;" class="fs-table">
                 <th class="fs-table" style="width: 50%">Job Name</th>
                 <th class="fs-table" style="width: 50%">Last Computed</th>
                 </thead>
                 <tbody class="fs-table">
-                <tr class="fs-table" data-ng-repeat="job in trainingDatasetViewInfoCtrl.trainingDataset.jobs">
+                <tr class="fs-table" data-ng-repeat="job in trainingDatasetViewInfoCtrl.selectedTrainingDataset.jobs">
                     <td class="fs-table">
                             <span style="cursor:pointer;color:black;text-decoration:underline;"
                                   ng-click="trainingDatasetViewInfoCtrl.launchJob(job.jobName); $event.stopPropagation();">
@@ -232,22 +254,22 @@
                       <span
                               ng-if="job.jobStatus === 'Undefined'"
                               style="color: #0066bb ">
-                        {{formatDate(job.lastComputed)}}
+                        {{job.lastComputed | date:'medium'}}
                       </span>
                             <span
                                     ng-if="job.jobStatus === 'Succeeded'"
                                     style="color: #00A000 ">
-                        {{formatDate(job.lastComputed)}}
+                        {{job.lastComputed | date:'medium'}}
                       </span>
                             <span
                                     ng-if="job.jobStatus === 'Failed'"
                                     style="color: #880000 ">
-                        {{formatDate(job.lastComputed)}}
+                        {{job.lastComputed | date:'medium'}}
                       </span>
                             <span
                                     ng-if="job.jobStatus === 'Killed'"
                                     style="color: #880000 ">
-                        {{formatDate(job.lastComputed)}}
+                        {{job.lastComputed | date:'medium'}}
                       </span>
                         </div>
                     </td>
@@ -301,23 +323,120 @@
             </div>
 
             <table class="table table-hover fs-table" style="margin-left: 10px; overflow: auto"
-                   ng-if="trainingDatasetViewInfoCtrl.trainingDataset.features.length > 0">
+                   ng-if="trainingDatasetViewInfoCtrl.selectedTrainingDataset.features.length > 0">
                 <thead style="border:none;" class="fs-table">
-                <th class="fs-table" style="width: 20%">Feature Name</th>
+                <th class="fs-table" style="width: 35%">Feature Name</th>
                 <th class="fs-table" style="width: 20%">Feature Type</th>
-                <th class="fs-table" style="width: 20%">Feature Description</th>
+                <th class="fs-table" style="width: 10%">Label</th>
+                <th class="fs-table" style="width: 35%">Feature Group</th>
+                <th class="fs-table" style="width: 10%"> </th>
                 </thead>
                 <tbody>
-                <tr class="fs-table" data-ng-repeat="feature in trainingDatasetViewInfoCtrl.trainingDataset.features">
+                <tr class="fs-table" data-ng-repeat="feature in trainingDatasetViewInfoCtrl.selectedTrainingDataset.features">
                     <td class="fs-table"> {{feature.name}}</td>
                     <td class="fs-table"> {{feature.type}}</td>
-                    <td class="fs-table"> {{feature.description}}</td>
+                    <td class="fs-table"> {{feature.label}}</td>
+                    <td class="fs-table"><a ng-if="feature.featuregroup != null" ng-click="trainingDatasetViewInfoCtrl.goToFeaturegroup(feature.featuregroup)">{{feature.featuregroup.name}}</a></td>
+                    <td class="fs-table">
+                        <i class="fa fa-info-circle" tooltip-placement="auto left" 
+                           ng-if="feature.featuregroup != null"
+                            uib-tooltip="featurestore: {{feature.featuregroup.featurestoreName}} featuregroup: {{ feature.featuregroup.name }} version: {{ feature.featuregroup.version }}"
+                            style="margin-left: 10px"></i>
+                    </td>
                 </tr>
                 </tbody>
             </table>
-            <h3 style="margin-left: 10px" ng-if="trainingDatasetViewInfoCtrl.trainingDataset.features.length == 0">
+            <h3 style="margin-left: 10px" ng-if="trainingDatasetViewInfoCtrl.selectedTrainingDataset.features.length == 0">
                 This training dataset does not have a defined schema</h3>
         </div>
-        
+
+        <div uib-accordion-group class="panel-default">
+            <div uib-accordion-heading>
+                <i class="fa fa-info-circle" tooltip-placement="auto left"
+                   uib-tooltip='The query used to generated this training dataset'></i>
+                <span style="margin-left: 20px">
+                    Query 
+                </span>
+            </div>
+
+            <div ng-if="trainingDatasetViewInfoCtrl.selectedTrainingDataset.fromQuery">
+<pre>
+<code>{{trainingDatasetViewInfoCtrl.tdQuery}}</code>
+</pre>
+                <i ng-if="trainingDatasetViewInfoCtrl.tdQuery == null" 
+                   style="margin-top: 2px; text-align: center;" class="fa fa-spinner fa-spin"></i>
+            </div>
+ 
+
+            <h3 style="margin-left: 10px" ng-if="!trainingDatasetViewInfoCtrl.selectedTrainingDataset.fromQuery">
+                This training dataset was not generated from a HSFS query
+            </h3>
+        </div>
+
+        <div uib-accordion-group class="panel-default">
+            <div uib-accordion-heading>
+                <i class="fa fa-info-circle" tooltip-placement="auto left"
+                   uib-tooltip='Details about the configuration of statistics computation of this training dataset.'></i>
+                <span style="margin-left: 20px">
+                    Statistics Configuration
+                </span>
+            </div>
+
+            <table class="table table-hover fs-table" style="margin-left: 10px; overflow: auto"
+                   ng-if="trainingDatasetViewInfoCtrl.selectedTrainingDataset.statisticsConfig.enabled">
+                <thead style="border:none;" class="fs-table">
+                <th class="fs-table" style="width: 20%">Statistics</th>
+                <th class="fs-table" style="width: 20%">Enabled</th>
+                </thead>
+                <tbody class="fs-table">
+                <tr class="fs-table">
+                    <td style="font-weight:700;" class="fs-table">
+                        Descriptive
+                    </td>
+                    <td class="fs-table">
+                        {{trainingDatasetViewInfoCtrl.selectedTrainingDataset.statisticsConfig.enabled ? "yes" : "no"}}
+                    </td>
+                </tr>
+                <tr class="fs-table">
+                    <td style="font-weight:700;" class="fs-table">
+                        Correlations
+                    </td>
+                    <td class="fs-table">
+                        {{trainingDatasetViewInfoCtrl.selectedTrainingDataset.statisticsConfig.correlations ? "yes" : "no"}}
+                    </td>
+                </tr>
+                <tr class="fs-table">
+                    <td style="font-weight:700;" class="fs-table">
+                        Histograms
+                    </td>
+                    <td class="fs-table">
+                        {{trainingDatasetViewInfoCtrl.selectedTrainingDataset.statisticsConfig.histograms ? "yes" : "no"}}
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+
+            <table class="table table-hover fs-table" style="margin-left: 10px; overflow: auto"
+                   ng-if="trainingDatasetViewInfoCtrl.selectedTrainingDataset.statisticsConfig.columns.length > 0">
+                <thead style="border:none;" class="fs-table">
+                <th class="fs-table" style="width: 20%">For Features:</th>
+                </thead>
+                <tbody>
+                <tr class="fs-table"
+                    data-ng-repeat="column in trainingDatasetViewInfoCtrl.selectedTrainingDataset.statisticsConfig.columns">
+                    <td class="fs-table"> {{column}}</td>
+                </tr>
+                </tbody>
+            </table>
+
+            <h4 style="margin-left: 10px"
+                ng-if="trainingDatasetViewInfoCtrl.selectedTrainingDataset.statisticsConfig.columns.length == 0 &&
+                    trainingDatasetViewInfoCtrl.selectedTrainingDataset.statisticsConfig.enabled">
+                Statistics are enabled for all features.</h4>
+
+            <h4 style="margin-left: 10px"
+                ng-if="!trainingDatasetViewInfoCtrl.selectedTrainingDataset.statisticsConfig.enabled">
+                Statistics are currently disabled for this feature group.</h4>
+        </div>
     </div>
 </div>

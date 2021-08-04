@@ -15,38 +15,37 @@
  */
 package io.hops.hopsworks.common.python.commands;
 
-import io.hops.hopsworks.common.dao.host.Hosts;
-import io.hops.hopsworks.common.dao.host.HostsFacade;
-import io.hops.hopsworks.common.dao.project.Project;
+import com.google.common.base.Strings;
 import io.hops.hopsworks.common.dao.project.ProjectFacade;
-import io.hops.hopsworks.common.dao.python.AnacondaRepo;
 import io.hops.hopsworks.common.dao.python.CondaCommandFacade;
-import io.hops.hopsworks.common.dao.python.CondaCommands;
 import io.hops.hopsworks.common.dao.python.LibraryFacade;
-import io.hops.hopsworks.common.dao.python.PythonDep;
 import io.hops.hopsworks.common.util.Settings;
-import io.hops.hopsworks.common.util.WebCommunication;
 import io.hops.hopsworks.exceptions.GenericException;
 import io.hops.hopsworks.exceptions.ProjectException;
 import io.hops.hopsworks.exceptions.ServiceException;
+import io.hops.hopsworks.persistence.entity.jupyter.config.GitBackend;
+import io.hops.hopsworks.persistence.entity.project.Project;
+import io.hops.hopsworks.persistence.entity.python.AnacondaRepo;
+import io.hops.hopsworks.persistence.entity.python.CondaCommands;
+import io.hops.hopsworks.persistence.entity.python.CondaInstallType;
+import io.hops.hopsworks.persistence.entity.python.CondaOp;
+import io.hops.hopsworks.persistence.entity.python.CondaStatus;
+import io.hops.hopsworks.persistence.entity.python.PythonDep;
+import io.hops.hopsworks.persistence.entity.user.Users;
 import io.hops.hopsworks.restutils.RESTCodes;
 
-import javax.annotation.Resource;
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
-import javax.enterprise.concurrent.ManagedExecutorService;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 @Stateless
 @TransactionAttribute(TransactionAttributeType.NEVER)
@@ -60,39 +59,40 @@ public class CommandsController {
   @EJB
   private ProjectFacade projectFacade;
   @EJB
-  private HostsFacade hostsFacade;
-  @EJB
-  private WebCommunication web;
-  @EJB
   private LibraryFacade libraryFacade;
   
-  @Resource(lookup = "concurrent/kagentExecutorService")
-  ManagedExecutorService kagentExecutorService;
-  
-  public void deleteCommands(Project project, String lib) {
-    condaCommandFacade.deleteCommandsForLibrary(project, lib);
+  public void deleteCommands(Project project, String library) {
+    //Failed installation commands should remove
+    List<CondaCommands> commands = condaCommandFacade.getFailedCommandsForProjectAndLib(project, library);
+    Optional<CondaCommands> command = commands.stream()
+        .filter(d -> d.getStatus().equals(CondaStatus.FAILED))
+        .findFirst();
+    if(command.isPresent()) {
+      Collection<PythonDep> projectLibs = project.getPythonDepCollection();
+      projectLibs.removeIf(lib -> lib.getDependency().equals(library));
+      projectFacade.update(project);
+    }
+    condaCommandFacade.deleteCommandsForLibrary(project, library);
   }
   
   public void deleteCommands(Project project) {
     condaCommandFacade.deleteCommandsForEnvironment(project);
   }
   
-  public List<CondaCommands> retryFailedCondaOps(Project project) {
-    List<CondaCommands> commands = condaCommandFacade.getFailedCommandsForProject(project);
+  public void retryFailedCondaEnvOps(Project project) {
+    List<CondaCommands> commands = condaCommandFacade.getFailedEnvCommandsForProject(project);
     for (CondaCommands cc : commands) {
-      cc.setStatus(CondaCommandFacade.CondaStatus.NEW);
+      cc.setStatus(CondaStatus.NEW);
       condaCommandFacade.update(cc);
     }
-    return commands;
   }
-  
-  public List<CondaCommands> retryFailedCondaOps(Project project, String library) {
+    
+  public void retryFailedCondaLibraryOps(Project project, String library) {
     List<CondaCommands> commands = condaCommandFacade.getFailedCommandsForProjectAndLib(project, library);
     for (CondaCommands cc : commands) {
-      cc.setStatus(CondaCommandFacade.CondaStatus.NEW);
+      cc.setStatus(CondaStatus.NEW);
       condaCommandFacade.update(cc);
     }
-    return commands;
   }
   
   public void deleteCommandsForProject(Project proj) {
@@ -100,205 +100,138 @@ public class CommandsController {
     if (commands == null) {
       return;
     }
-    for (CondaCommands cc : commands) {
-      // First, remove any old commands for the project in conda_commands
-      condaCommandFacade.remove(cc);
-    }
-  }
-  
-  /**
-   * Launches a thread per kagent (up to the threadpool max-size limit) that
-   * send a REST
-   * call to the kagent to execute the anaconda command.
-   *
-   * @param op
-   * @param proj
-   * @param arg
-   * @param hosts
-   */
-  public void blockingCondaEnvironmentOp(CondaCommandFacade.CondaOp op, String proj, String arg, List<Hosts> hosts) {
-    List<Future> waiters = new ArrayList<>();
-    for (Hosts h : hosts) {
-      LOGGER.log(Level.INFO, "Create anaconda enviornment for {0} on {1}", new Object[]{proj, h.getHostIp()});
-      Future<?> f = kagentExecutorService.submit(new AnacondaTask(this.web, proj, h, op, arg));
-      waiters.add(f);
-    }
-    for (Future f : waiters) {
-      try {
-        f.get(10, TimeUnit.SECONDS);
-      } catch (InterruptedException | ExecutionException | TimeoutException ex) {
-        LOGGER.log(Level.SEVERE, null, ex);
-      }
-    }
+    // First, remove any old commands for the project in conda_commands. Except for REMOVE commands as they are
+    //processed asynchronously
+    commands.stream().filter(cc -> cc.getOp() != CondaOp.REMOVE).forEach(condaCommandFacade::remove);
   }
 
+  public PythonDep condaOp(CondaOp op, Users user, CondaInstallType installType, Project proj, String channelUrl,
+                           String lib, String version, String arg, GitBackend gitBackend, String apiKeyName)
+    throws GenericException, ServiceException {
 
-  public PythonDep condaOp(CondaCommandFacade.CondaOp op, CondaCommandFacade.CondaInstallType installType,
-    LibraryFacade.MachineType machineType, Project proj, String channelUrl, String lib, String version)
-    throws ServiceException, GenericException {
+    if(Strings.isNullOrEmpty(version) && CondaOp.isLibraryOp(op)) {
+      version = Settings.UNKNOWN_LIBRARY_VERSION;
+    }
+
+    //If there is an already ongoing command to uninstall the same library, allow the queuing of a new install op
+    List<CondaStatus> statuses = new ArrayList<>();
+    statuses.add(CondaStatus.NEW);
+    statuses.add(CondaStatus.ONGOING);
+    List<CondaCommands> uninstallCommands =
+      condaCommandFacade.findByStatusAndCondaOpAndProject(statuses, CondaOp.UNINSTALL, proj);
+    //Get current uninstall operations for this project
+    List<CondaCommands> ongoingUninstall = uninstallCommands.stream()
+      .filter(c -> c.getLib().equalsIgnoreCase(lib) && c.getInstallType().equals(installType))
+      .collect(Collectors.toList());
+    //Get currently installed library with the same name and package manager if it exists
+    Optional<PythonDep> installedDep = proj.getPythonDepCollection().stream()
+      .filter(d -> d.getDependency().equalsIgnoreCase(lib) && d.getInstallType().equals(installType))
+      .findFirst();
+
+    if (op == CondaOp.INSTALL && installedDep.isPresent() && ongoingUninstall.isEmpty()) {
+      throw new ServiceException(RESTCodes.ServiceErrorCode.ANACONDA_DEP_INSTALL_FORBIDDEN, Level.FINE,
+        "dep: " + lib);
+    }
     
-    List<Hosts> hosts = hostsFacade.getCondaHosts(machineType);
-    if (hosts.size() == 0) {
-      throw new ServiceException(RESTCodes.ServiceErrorCode.HOST_TYPE_NOT_FOUND, Level.INFO,
-        "capability:" + machineType.name());
-    }
     PythonDep dep;
     try {
       // 1. test if anacondaRepoUrl exists. If not, add it.
       AnacondaRepo repo = libraryFacade.getRepo(channelUrl, true);
+
       // 2. Test if pythonDep exists. If not, add it.
-      dep = libraryFacade.getOrCreateDep(repo, machineType, installType, lib, version, true, false);
-      
-      // 3. Add the python library to the join table for the project
+      dep = libraryFacade.getOrCreateDep(repo, installType, lib, version, true, false);
+
       Collection<PythonDep> depsInProj = proj.getPythonDepCollection();
-      if (depsInProj.contains(dep) && op == CondaCommandFacade.CondaOp.INSTALL) {
-        throw new ProjectException(RESTCodes.ProjectErrorCode.PYTHON_LIB_ALREADY_INSTALLED, Level.FINE,
-          "dep: " + dep.getDependency());
-      }
-      if (op == CondaCommandFacade.CondaOp.INSTALL || op == CondaCommandFacade.CondaOp.UPGRADE) {
+      // 3. Add the python library to the join table for the project
+      if (op == CondaOp.INSTALL) {
         depsInProj.remove(dep);// if upgrade
         depsInProj.add(dep);
       }
       proj.setPythonDepCollection(depsInProj);
       projectFacade.update(proj);
-  
-      for (Hosts h : hosts) {
-        CondaCommands cc = new CondaCommands(h, settings.getAnacondaUser(), op, CondaCommandFacade.CondaStatus.NEW,
-          installType, machineType, proj, lib, version, channelUrl, new Date(), "", null, false);
-        condaCommandFacade.save(cc);
-      }
+
+      CondaCommands cc = new CondaCommands(settings.getAnacondaUser(), user, op,
+          CondaStatus.NEW, installType, proj, lib, version, channelUrl,
+          new Date(), arg, null, false, gitBackend, apiKeyName);
+      condaCommandFacade.save(cc);
     } catch (Exception ex) {
       throw new GenericException(RESTCodes.GenericErrorCode.UNKNOWN_ERROR, Level.SEVERE, "condaOp failed",
-        ex.getMessage(), ex);
+          ex.getMessage(), ex);
     }
     return dep;
   }
   
-  public void updateCondaCommandStatus(Integer commandID, CondaCommandFacade.CondaStatus status, String arguments)
-    throws ServiceException {
-    updateCondaCommandStatus(commandID, status,
-      null, null, arguments, null, null, null, null, null);
+  public void updateCondaCommandStatus(int commandId, CondaStatus condaStatus, String arg,
+                                       CondaOp opType) throws ServiceException, ProjectException {
+    updateCondaCommandStatus(commandId, condaStatus, arg, opType, null);
   }
   
-  public void updateCondaCommandStatus(int commandId, CondaCommandFacade.CondaStatus condaStatus,
-    CondaCommandFacade.CondaInstallType installType, LibraryFacade.MachineType machineType, String arg, String proj,
-    CondaCommandFacade.CondaOp opType, String lib, String version, String channel) throws ServiceException {
+  public void updateCondaCommandStatus(int commandId, CondaStatus condaStatus, String arg, CondaOp opType,
+                                       String errorMessage) throws ServiceException, ProjectException {
     CondaCommands cc = condaCommandFacade.findCondaCommand(commandId);
     if (cc != null) {
-      if (condaStatus == CondaCommandFacade.CondaStatus.SUCCESS) {
+      if (condaStatus == CondaStatus.SUCCESS) {
         // remove completed commands
         condaCommandFacade.remove(cc);
         // Check if this is the last operation for this project. If yes, set
         // the PythonDep to be installed or
         // the CondaEnv operation is finished implicitly (no condaOperations are
         // returned => CondaEnv operation is finished).
-        if (!CondaCommandFacade.CondaOp.isEnvOp(opType)) {
-          Project p = projectFacade.findByName(proj);
-          Collection<CondaCommands> ongoingCommands = p.getCondaCommandsCollection();
-          boolean finished = true;
-          for (CondaCommands c : ongoingCommands) {
-            if (c.getOp().compareTo(opType) == 0
-              && c.getLib().compareTo(lib) == 0
-              && c.getVersion().compareTo(version) == 0
-              && c.getInstallType().name().compareTo(installType.name()) == 0
-              && c.getChannelUrl().compareTo(channel) == 0
-              && c.getMachineType().name().compareTo(machineType.name()) == 0) {
-              finished = false;
-              break;
-            }
-          }
-          if (finished) {
-            PythonDep dep = libraryFacade.getOrCreateDep(libraryFacade.getRepo(cc.getChannelUrl(), false),
-              cc.getMachineType(), cc.getInstallType(), cc.getLib(), cc.getVersion(), true, false);
-            Collection<PythonDep> deps = cc.getProjectId().getPythonDepCollection();
+        if (CondaOp.isLibraryOp(opType)) {
+          Project project = projectFacade.findById(cc.getProjectId().getId()).orElseThrow(() -> new ProjectException(
+            RESTCodes.ProjectErrorCode.PROJECT_NOT_FOUND, Level.FINE, "projectId: " + cc.getProjectId().getId()));
+          PythonDep dep = libraryFacade.getOrCreateDep(libraryFacade.getRepo(cc.getChannelUrl(), false),
+              cc.getInstallType(), cc.getLib(), cc.getVersion(), true, false);
+          Collection<PythonDep> deps = project.getPythonDepCollection();
 
-            if (opType.equals(CondaCommandFacade.CondaOp.INSTALL)) {
-              deps.remove(dep);
-              deps.add(dep);
-            } else if (opType.equals(CondaCommandFacade.CondaOp.UNINSTALL)) {
-              deps.remove(dep);
-            }
-            cc.getProjectId().setPythonDepCollection(deps);
-            projectFacade.update(cc.getProjectId());
+          if(isPlaceholderDep(cc, opType) || opType.equals(CondaOp.UNINSTALL)) {
+            deps.remove(dep);
           }
+          
+          project.setPythonDepCollection(deps);
+          projectFacade.update(project);
+          projectFacade.flushEm();
         }
-      } else {
+      } else if(condaStatus == CondaStatus.FAILED) {
         cc.setStatus(condaStatus);
         cc.setArg(arg);
+        cc.setErrorMsg(errorMessage);
+        condaCommandFacade.update(cc);
+      } else if (condaStatus == CondaStatus.ONGOING) {
+        cc.setStatus(condaStatus);
         condaCommandFacade.update(cc);
       }
     } else {
       LOGGER.log(Level.FINE, "Could not remove CondaCommand with id: {0}", commandId);
     }
   }
-  
-  public class AnacondaTask implements Runnable {
-    
-    private final WebCommunication web;
-    private final String proj;
-    private final Hosts host;
-    private final CondaCommandFacade.CondaOp op;
-    private final String arg;
-    private Object entity;
-    
-    public AnacondaTask(WebCommunication web, String proj, Hosts host, CondaCommandFacade.CondaOp op, String arg) {
-      this.web = web;
-      this.proj = proj;
-      this.host = host;
-      this.op = op;
-      this.arg = arg == null ? "" : arg;
+
+  /**
+   * A placeholder is a library which represents a dependency in the project which is not known before installation
+   * For example installing from a git url, we do not know the name of the library, and when installing a library
+   * but not specifying a version it's not known which PythonDep it will resolve to in the end.
+   * We need placeholders to keep track of what libraries are being installed in the environment and to monitor the
+   * installation progress.
+   *
+   * @param command
+   * @param condaOp
+   * @return
+   */
+  private boolean isPlaceholderDep(CondaCommands command, CondaOp condaOp) {
+    if (command.getInstallType().equals(CondaInstallType.GIT) ||
+      command.getInstallType().equals(CondaInstallType.EGG) ||
+      command.getInstallType().equals(CondaInstallType.WHEEL) ||
+      command.getInstallType().equals(CondaInstallType.REQUIREMENTS_TXT) ||
+      command.getInstallType().equals(CondaInstallType.ENVIRONMENT_YAML)) {
+      return true;
     }
-    
-    @Override
-    public void run() {
-      try {
-        entity = web.anaconda(host.getHostIp(), host.
-          getAgentPassword(), op.toString(), proj, arg);
-      } catch (Exception ex) {
-        Logger.getLogger(CondaCommandFacade.class.getName()).log(Level.SEVERE,
-          null, ex);
-      }
+    if(condaOp.equals(CondaOp.INSTALL) &&
+      (command.getInstallType().equals(CondaInstallType.PIP)
+        || command.getInstallType().equals(CondaInstallType.CONDA))
+      && command.getVersion().equals(Settings.UNKNOWN_LIBRARY_VERSION)) {
+      return true;
     }
-    
-    public Object getEntity() {
-      return entity;
-    }
-    
-  }
-  
-  public class CondaTask implements Runnable {
-    
-    private final WebCommunication web;
-    private final Project proj;
-    private final Hosts host;
-    private final CondaCommandFacade.CondaOp op;
-    private final PythonDep dep;
-    private Object entity;
-    
-    public CondaTask(WebCommunication web, Project proj, Hosts host, CondaCommandFacade.CondaOp op,
-      PythonDep dep) {
-      this.web = web;
-      this.proj = proj;
-      this.host = host;
-      this.op = op;
-      this.dep = dep;
-    }
-    
-    @Override
-    public void run() {
-      try {
-        this.entity = web.conda(host.getHostIp(), host.
-          getAgentPassword(), op.toString(), proj.getName(), dep.
-          getRepoUrl().getUrl(), dep.getDependency(), dep.getVersion());
-      } catch (Exception ex) {
-        Logger.getLogger(CondaCommandFacade.class.getName()).log(Level.SEVERE,
-          null, ex);
-      }
-    }
-    
-    public Object getEntity() {
-      return entity;
-    }
-    
+    return false;
   }
 }
+

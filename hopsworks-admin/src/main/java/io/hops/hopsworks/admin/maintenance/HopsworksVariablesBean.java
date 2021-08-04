@@ -38,8 +38,9 @@
  */
 package io.hops.hopsworks.admin.maintenance;
 
-import io.hops.hopsworks.common.dao.util.Variables;
 import io.hops.hopsworks.common.util.Settings;
+import io.hops.hopsworks.persistence.entity.util.Variables;
+import io.hops.hopsworks.persistence.entity.util.VariablesVisibility;
 import org.primefaces.context.RequestContext;
 import org.primefaces.event.RowEditEvent;
 
@@ -47,7 +48,10 @@ import javax.annotation.PostConstruct;
 import javax.ejb.EJB;
 import javax.faces.bean.ManagedBean;
 import javax.faces.bean.ViewScoped;
+import javax.faces.context.FacesContext;
+import javax.servlet.http.HttpServletRequest;
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -58,12 +62,17 @@ public class HopsworksVariablesBean implements Serializable {
   
   @EJB
   private Settings settings;
+  @EJB
+  private LoggedMaintenanceHelper loggedMaintenanceHelper;
   
   private List<Variables> allVariables;
+  private List<VariablesVisibility> visibilities;
   
   public HopsworksVariablesBean() {
+    visibilities =
+        Arrays.asList(VariablesVisibility.ADMIN, VariablesVisibility.USER, VariablesVisibility.NOTAUTHENTICATED);
   }
-  
+
   @PostConstruct
   public void init() {
     allVariables = settings.getAllVariables();
@@ -76,11 +85,22 @@ public class HopsworksVariablesBean implements Serializable {
   public void setAllVariables(List<Variables> allVariables) {
     this.allVariables = allVariables;
   }
-  
+
+  public List<VariablesVisibility> getVisibilities() {
+    return visibilities;
+  }
+
+  public void setVisibilities(List<VariablesVisibility> visibilities) {
+    this.visibilities = visibilities;
+  }
+
   public void onRowEdit(RowEditEvent event) {
     String varName = ((Variables) event.getObject()).getId();
     String varValue = ((Variables) event.getObject()).getValue();
-    settings.updateVariable(varName, varValue);
+    VariablesVisibility visibility = ((Variables) event.getObject()).getVisibility();
+    HttpServletRequest httpServletRequest = (HttpServletRequest) FacesContext.getCurrentInstance().getExternalContext()
+      .getRequest();
+    loggedMaintenanceHelper.updateVariable(varName, varValue, visibility, httpServletRequest);
     MessagesController.addInfoMessage("Updated variable : " + varName + " to: " + varValue);
   }
   

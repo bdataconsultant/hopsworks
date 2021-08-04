@@ -16,19 +16,23 @@
 package io.hops.hopsworks.common.dao.python;
 
 import io.hops.hopsworks.common.dao.AbstractFacade;
-import io.hops.hopsworks.common.dao.project.Project;
 import io.hops.hopsworks.exceptions.ServiceException;
+import io.hops.hopsworks.persistence.entity.project.Project;
+import io.hops.hopsworks.persistence.entity.python.AnacondaRepo;
+import io.hops.hopsworks.persistence.entity.python.CondaInstallType;
+import io.hops.hopsworks.persistence.entity.python.CondaStatus;
+import io.hops.hopsworks.persistence.entity.python.PythonDep;
 import io.hops.hopsworks.restutils.RESTCodes;
 
 import javax.ejb.Stateless;
 import javax.persistence.EntityManager;
 import javax.persistence.NoResultException;
 import javax.persistence.PersistenceContext;
+import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
-import javax.persistence.Query;
 
 @Stateless
 public class LibraryFacade extends AbstractFacade<PythonDep> {
@@ -43,12 +47,6 @@ public class LibraryFacade extends AbstractFacade<PythonDep> {
   @Override
   protected EntityManager getEntityManager() {
     return em;
-  }
-
-  public enum MachineType {
-    ALL,
-    CPU,
-    GPU
   }
 
   public AnacondaRepo getRepo(String channelUrl, boolean create) throws ServiceException {
@@ -72,33 +70,33 @@ public class LibraryFacade extends AbstractFacade<PythonDep> {
     return repo;
   }
 
-  public PythonDep getOrCreateDep(AnacondaRepo repo, MachineType machineType,
-                                  CondaCommandFacade.CondaInstallType installType,
-                                  String dependency, String version, boolean create, boolean preinstalled) {
-
+  public PythonDep getOrCreateDep(PythonDep dep) {
+    return getOrCreateDep(dep.getRepoUrl(), dep.getInstallType(), dep.getDependency(), dep.
+        getVersion(), true, dep.isPreinstalled());
+  }
+  
+  public PythonDep getOrCreateDep(AnacondaRepo repo, CondaInstallType installType,
+                                  String dependency, String version, boolean persist, boolean preinstalled) {
     TypedQuery<PythonDep> deps = em.createNamedQuery("PythonDep.findUniqueDependency", PythonDep.class);
     deps.setParameter("dependency", dependency);
     deps.setParameter("version", version);
     deps.setParameter("installType", installType);
     deps.setParameter("repoUrl", repo);
-    deps.setParameter("machineType", machineType);
     PythonDep dep = null;
     try {
       dep = deps.getSingleResult();
     } catch (NoResultException ex) {
-      if (create) {
-        dep = new PythonDep();
-        dep.setRepoUrl(repo);
-        dep.setDependency(dependency);
-        dep.setVersion(version);
-        dep.setPreinstalled(preinstalled);
-        dep.setInstallType(installType);
-        dep.setMachineType(machineType);
+      dep = new PythonDep();
+      dep.setRepoUrl(repo);
+      dep.setDependency(dependency);
+      dep.setVersion(version);
+      dep.setPreinstalled(preinstalled);
+      dep.setInstallType(installType);
+      if (persist) {
         em.persist(dep);
         em.flush();
       }
     }
-
     return dep;
   }
   
@@ -147,10 +145,6 @@ public class LibraryFacade extends AbstractFacade<PythonDep> {
       case STATUS_NEQ:
         setStatus(filterBy, q);
         break;
-      case MACHINE_TYPE:
-      case MACHINE_TYPE_NEQ:
-        setMachineType(filterBy, q);
-        break;
       default:
         break;
     }
@@ -163,13 +157,8 @@ public class LibraryFacade extends AbstractFacade<PythonDep> {
   }
   
   private void setStatus(AbstractFacade.FilterBy filterBy, Query q) {
-    List<CondaCommandFacade.CondaStatus> status = getEnumValues(filterBy, CondaCommandFacade.CondaStatus.class);
+    List<CondaStatus> status = getEnumValues(filterBy, CondaStatus.class);
     q.setParameter(filterBy.getField(), status);
-  }
-
-  private void setMachineType(AbstractFacade.FilterBy filterBy, Query q) {
-    List<LibraryFacade.MachineType> machineTypes = getEnumValues(filterBy, LibraryFacade.MachineType.class);
-    q.setParameter(filterBy.getField(), machineTypes);
   }
   
   public enum Sorts {
@@ -213,9 +202,7 @@ public class LibraryFacade extends AbstractFacade<PythonDep> {
   public enum Filters {
     PREINSTALLED("PREINSTALLED", "p.preinstalled = :preinstalled ", "preinstalled", "1"),
     STATUS("STATUS", "p.status IN :status ", "status", "NEW"),
-    STATUS_NEQ("STATUS_NEQ", "p.status NOT IN :status_neq ", "status_neq", "NEW"),
-    MACHINE_TYPE("MACHINE_TYPE", "p.machineType IN :machineType ", "machineType", "ALL"),
-    MACHINE_TYPE_NEQ("MACHINE_TYPE_NEQ", "p.machineType NOT IN :machineType_neq ", "machineType_neq", "CPU");
+    STATUS_NEQ("STATUS_NEQ", "p.status NOT IN :status_neq ", "status_neq", "NEW");
 
     private final String value;
     private final String sql;

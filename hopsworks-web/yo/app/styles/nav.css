@@ -182,9 +182,10 @@ ul.dropdown-messages .dropdown-header {
 .ds-content.sidenav-open {
   width: 79%;
 }
+
 .ds-sidenav {
   width: 0;
-  overflow: hidden;
+  overflow: auto;
   position: absolute;
   right: 0;/*start from right*/
   top: 200px;
@@ -197,8 +198,10 @@ ul.dropdown-messages .dropdown-header {
   -webkit-box-shadow: 0 4px 8px rgba(0,0,0,.2);
   background: rgb(250,250,250);
   z-index: 10;
-  height: auto;
+  height: calc(100% - 110px);
+  margin-top: 15px;
 }
+
 .ds-sidenav.open {
     width: 20%;
 }
@@ -211,6 +214,11 @@ ul.dropdown-messages .dropdown-header {
 
 .row-no-margin-left {
   margin-left: 0px !important;
+}
+
+.row-no-margin {
+    margin-left: 0px !important;
+    margin-right: 0px !important;
 }
 
 
@@ -267,85 +275,96 @@ ul.dropdown-messages .dropdown-header {
     font-size: large;
 }
 
-/* md-toolbar:not(.md-menu-toolbar) {
-    background: linear-gradient(to right, #337ab7, #555);
-    background-color: transparent;
-    color: #fff;
-    border-bottom: solid 1px;
-    border-color: #305680;
-    height: 80px;
+.container .navbar-header,
+.container .navbar-collapse {
+    margin-right: 0;
+    margin-left: 0;
 }
 
-md-toolbar:not(.md-hue-1), .md-fab {
-    fill: #eee;
+/* Always float the navbar header */
+.navbar-header {
+    float: left;
 }
 
-.md-whiteframe-z1 {
-    box-shadow: 0 1px 3px 0 rgba(0,0,0,.2), 0 1px 1px 0 rgba(0,0,0,.14), 0 2px 1px -1px rgba(0,0,0,.12);
+/* Undo the collapsing navbar */
+.navbar-collapse {
+    display: block !important;
+    height: auto !important;
+    padding-bottom: 0;
+    overflow: visible !important;
 }
 
-md-toolbar {
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    z-index: 2;
-    font-size: 20px;
-    min-height: 64px;
-    width: 70px;
+.navbar-toggle {
+    display: none;
+}
+.navbar-collapse {
+    border-top: 0;
 }
 
-.giotto-header-container {
-    display: flex;
-    justify-content: space-between;
-    margin: 0
+.navbar-brand {
+    margin-left: -15px;
 }
 
-.giotto-header-left-items {
-    display: flex;
+/* Always apply the floated nav */
+.navbar-nav {
+    float: left;
     margin: 0;
-    align-items: center;
+}
+.navbar-nav > li {
+    float: left;
+}
+.navbar-nav > li > a {
+    padding: 15px;
 }
 
-.giotto-header-right-items {
-    display: flex;
-    padding-top: 15px;
-    margin: 0;
-    color: white;
-} */
-
-.navbar-project-name {
-    color: white;
-    font-size: 32px;
-    width: fit-content;
-    margin-top: 6px;
-    margin-left: 30px;
+/* Redeclare since we override the float above */
+.navbar-nav.navbar-right {
+    float: right;
 }
 
-.sidebar-warning-icon {
+/* Undo custom dropdowns */
+.navbar .navbar-nav .open .dropdown-menu {
     position: absolute;
-    top: 8px;
-    right: 8px;
-    z-index: 3000;
+    float: left;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border: 1px solid rgba(0, 0, 0, .15);
+    border-width: 0 1px 1px;
+    border-radius: 0 0 4px 4px;
+    -webkit-box-shadow: 0 6px 12px rgba(0, 0, 0, .175);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, .175);
+}
+.navbar-default .navbar-nav .open .dropdown-menu > li > a {
+    color: #333;
+}
+.navbar .navbar-nav .open .dropdown-menu > li > a:hover,
+.navbar .navbar-nav .open .dropdown-menu > li > a:focus,
+.navbar .navbar-nav .open .dropdown-menu > .active > a,
+.navbar .navbar-nav .open .dropdown-menu > .active > a:hover,
+.navbar .navbar-nav .open .dropdown-menu > .active > a:focus {
+    color: #fff !important;
+    background-color: #428bca !important;
+}
+.navbar .navbar-nav .open .dropdown-menu > .disabled > a,
+.navbar .navbar-nav .open .dropdown-menu > .disabled > a:hover,
+.navbar .navbar-nav .open .dropdown-menu > .disabled > a:focus {
+    color: #999 !important;
+    background-color: transparent !important;
 }
 
-.pon-footer {
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    padding: 10px;
-    text-align: center;
-    background-color: white;
+.navbar-default .navbar-collapse, .navbar-default .navbar-form {
+    border-color: unset !important;
+    box-shadow: unset !important;
 }
 
-.pon-footer-fixed {
-    position: sticky;
+.container {
+    min-width: 970px !important;
 }
 
-.pon-footer-sticky {
-    position: sticky;
+.container > div.navbar-header > div {
+    padding-right: 50px
 }
 
-.pon-footer img {
-    width: var(--footer-img-width)
+.container-fluid > div.navbar-header > div {
+    padding-right: 10px
 }

@@ -39,14 +39,15 @@
 
 package io.hops.hopsworks.common.jobs.yarn;
 
-import io.hops.hopsworks.common.dao.project.Project;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.yarn.LocalResourceDTO;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.yarn.YarnJobConfiguration;
+import io.hops.hopsworks.persistence.entity.project.Project;
 import io.hops.hopsworks.common.hdfs.DistributedFileSystemOps;
 import io.hops.hopsworks.common.hdfs.DistributedFsService;
 import io.hops.hopsworks.common.hdfs.Utils;
 import io.hops.hopsworks.common.jobs.AsynchronousJobExecutor;
-import io.hops.hopsworks.common.jobs.configuration.JobType;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.JobType;
 import io.hops.hopsworks.common.util.HopsUtils;
-import io.hops.hopsworks.common.util.IoUtils;
 import io.hops.hopsworks.common.util.Settings;
 import org.apache.flink.client.deployment.ClusterDeploymentException;
 import org.apache.flink.client.deployment.ClusterSpecification;
@@ -71,6 +72,7 @@ import org.apache.hadoop.yarn.client.api.YarnClientApplication;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.ConverterUtils;
+import org.apache.parquet.Strings;
 
 import java.io.File;
 import java.io.IOException;
@@ -181,9 +183,7 @@ public class YarnRunner {
     HopsUtils.copyProjectUserCerts(project, username,
         services.getSettings().getHopsworksTmpCertDir(),
         services.getSettings().getHdfsTmpCertDir(), jobType,
-        dfso, materialResources, systemProperties, services.getSettings().getGlassfishTrustStoreHdfs(),
-        applicationId, services.getCertificateMaterializer(),
-        services.getSettings().getHopsRpcTls());
+        dfso, materialResources, applicationId, services.getCertificateMaterializer());
 
     for (LocalResourceDTO materialDTO : materialResources) {
       amLocalResourcesOnHDFS.put(materialDTO.getName(), materialDTO);
@@ -208,10 +208,17 @@ public class YarnRunner {
    * @throws IOException Can occur upon opening and moving execution and input files.
    * @throws java.net.URISyntaxException
    */
-  ApplicationId startAppMaster(Project project, DistributedFileSystemOps dfso, String username) throws
+  ApplicationId startAppMaster(Project project, DistributedFileSystemOps dfso, String username, String args) throws
     YarnException, IOException, URISyntaxException, InterruptedException {
     logger.info("Starting application master.");
     if (jobType == JobType.SPARK || jobType == JobType.PYSPARK) {
+  
+      if(!Strings.isNullOrEmpty(args)) {
+        String[] argsArray= args.trim().split(" ");
+        for (String s : argsArray) {
+          amArgs = amArgs + " --arg '" + s + "'";
+        }
+      }
       //Get application id
       
       YarnClientApplication app = yarnClient.createApplication();
@@ -222,8 +229,7 @@ public class YarnRunner {
 
       // When Hops RPC TLS is enabled, Yarn will take care of application certificate
       if (!services.getSettings().getHopsRpcTls()) {
-        copyUserCertificates(project, jobType, dfso, username,
-            appId.toString());
+        copyUserCertificates(project, jobType, dfso, username, appId.toString());
       }
 
       //Check resource requests and availabilities
@@ -289,7 +295,6 @@ public class YarnRunner {
         logger.log(Level.FINE, "Deploying Flink cluster.");
         clusterClient = yarnClusterDescriptor.deploySessionCluster(clusterSpecification);
         clusterClient.setDetached(true);
-        clusterClient.waitForClusterToBeReady();
     
         appId = clusterClient.getClusterId();
         logger.log(Level.FINE, "Deployed Flink cluster with ID {0}",appId.toString());
@@ -452,7 +457,7 @@ public class YarnRunner {
       String destination = basePath + File.separator + Utils.getFileName(path);
       Path dst = new Path(destination);
       //copy the input file to where cuneiform expects it
-      if (!path.startsWith("hdfs:")) {
+      if (!path.startsWith(fs.getScheme()) && !path.startsWith(fs.getAlternativeScheme())) {
         //First, remove any checksum files that are present
         //Since the file may have been downloaded from HDFS, modified and now trying to upload,
         //may run into bug HADOOP-7199 (https://issues.apache.org/jira/browse/HADOOP-7199)
@@ -597,8 +602,6 @@ public class YarnRunner {
     //Possibly equired attributes
     //The name of the application app master class
     private String amMainClass;
-    //Path to the application master jar
-    private String amJarPath;
     //Which job type is running
     private JobType jobType;
     //Flink parallelism
@@ -646,10 +649,6 @@ public class YarnRunner {
       this.amMainClass = amMainClass;
     }
 
-    public Builder(String amJarPath, String amJarLocalName) {
-      this.amJarPath = amJarPath;
-    }
-    
     /**
      * Sets the configured DFS client
      *
@@ -773,29 +772,21 @@ public class YarnRunner {
     
 
     /**
-     * Add a local resource that should be added to the AM container. The name
-     * is the key as used in the LocalResources
-     * map passed to the container. The source is the local path to the file.
-     * The file will be copied into HDFS under
-     * the path
-     * <i>localResourcesBasePath</i>/<i>filename</i> and if removeAfterCopy is
-     * true, the original will be removed after
-     * starting the AM.
-     * <p/>
+     * Add a hdfs resource that should be added to the AM container.The name
+ is the key as used in the LocalResources
+ map passed to the container. The source is the path to the file.
+ <p/>
      * @param dto
-     * @param removeAfterCopy
+     * @param dfsClient to check that the path has the proper scheme compared to the dfs
      * @return
      */
-    public Builder addLocalResource(LocalResourceDTO dto,
-      boolean removeAfterCopy) {
-      if (!dto.getPath().startsWith("hdfs")) {
+    public Builder addLocalResource(LocalResourceDTO dto, DistributedFileSystemOps dfsClient) {
+      if (!dto.getPath().startsWith(dfsClient.getFilesystem().getScheme()) && !dto.getPath().startsWith(dfsClient.
+          getFilesystem().getAlternativeScheme())) {
         throw new IllegalArgumentException("Dependencies need to be stored in Datasets, local file system is not " +
           "supported");
       }
       amLocalResourcesOnHDFS.put(dto.getName(), dto);
-      if (removeAfterCopy) {
-        filesToRemove.add(dto.getPath());
-      }
       return this;
     }
     
@@ -875,11 +866,8 @@ public class YarnRunner {
 
       //Set main class
       if (amMainClass == null) {
-        amMainClass = IoUtils.getMainClassNameFromJar(amJarPath, null);
-        if (amMainClass == null) {
-          throw new IllegalStateException(
+        throw new IllegalStateException(
               "Could not infer main class name from jar and was not specified.");
-        }
       }
       //Default localResourcesBasePath
       if (localResourcesBasePath == null) {

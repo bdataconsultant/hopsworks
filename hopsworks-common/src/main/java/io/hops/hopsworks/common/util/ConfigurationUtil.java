@@ -16,17 +16,20 @@
 
 package io.hops.hopsworks.common.util;
 
-import io.hops.hopsworks.common.dao.project.Project;
-import io.hops.hopsworks.common.jobs.configuration.JobConfiguration;
+import com.logicalclocks.servicediscoverclient.exceptions.ServiceDiscoveryException;
+import io.hops.hopsworks.common.hosts.ServiceDiscoveryController;
+import io.hops.hopsworks.exceptions.JobException;
+import io.hops.hopsworks.persistence.entity.project.Project;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.JobConfiguration;
 
 import java.io.IOException;
 import java.util.Map;
 
 public abstract class ConfigurationUtil {
-  
-  public abstract Map<String, String> getFrameworkProperties(Project project, JobConfiguration jobConfiguration,
-    Settings settings, String hdfsUser,
-    String usersFullName, String tfLibraryPath,
-    Map<String, String> extraJavaOptions)
-    throws IOException;
+  public abstract Map<String, String> setFrameworkProperties(Project project, JobConfiguration jobConfiguration,
+                                                             Settings settings, String hdfsUser,
+                                                             Map<String, String> extraJavaOptions,
+                                                             String kafkaBrokersString, String hopsworksRestEndpoint,
+                                                             ServiceDiscoveryController serviceDiscoveryController)
+          throws IOException, ServiceDiscoveryException, JobException;
 }

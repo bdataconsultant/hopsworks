@@ -44,13 +44,13 @@
   <parent>
     <groupId>io.hops</groupId>
     <artifactId>hopsworks</artifactId>
-    <version>1.0.0</version>
+    <version>2.2.0</version>
     <relativePath>..</relativePath>
   </parent>
   
   <groupId>io.hops.hopsworks</groupId>
   <artifactId>hopsworks-api</artifactId>
-  <version>1.0.0</version>
+  <version>2.2.0</version>
   <packaging>war</packaging>
   <description>Hopsworks rest api</description>
   <name>hopsworks-api</name>
@@ -104,9 +104,15 @@
     </dependency>
 
     <dependency>
+      <groupId>org.eclipse.persistence</groupId>
+      <artifactId>eclipselink</artifactId>
+      <version>${persistence.version}</version>
+    </dependency>
+
+    <dependency>
       <groupId>io.hops.hopsworks</groupId>
       <artifactId>hopsworks-common</artifactId>
-      <version>1.0.0</version>
+      <version>2.2.0</version>
       <type>ejb</type>
       <scope>provided</scope>
       <exclusions>
@@ -135,14 +141,14 @@
     <dependency>
       <groupId>io.hops.hopsworks</groupId>
       <artifactId>hopsworks-dela</artifactId>
-      <version>1.0.0</version>
+      <version>${project.version}</version>
       <type>ejb</type>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.hops.hopsworks</groupId>
       <artifactId>hopsworks-jwt</artifactId>
-      <version>1.0.0</version>
+      <version>${project.version}</version>
       <type>ejb</type>
       <scope>provided</scope>
     </dependency>
@@ -152,6 +158,19 @@
       <artifactId>hopsworks-rest-utils</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>io.hops.hopsworks</groupId>
+      <artifactId>hopsworks-persistence</artifactId>
+      <version>${project.version}</version>
+      <exclusions>
+        <!-- exclude all transitive dependencies -->
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <!-- jersey dependencies -->
@@ -193,7 +212,12 @@
       <artifactId>commons-httpclient</artifactId>
       <version>3.1</version>
     </dependency>
-
+    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <version>RELEASE</version>
+      <scope>compile</scope>
+    </dependency>
   </dependencies>
   <build>
     <finalName>giotto-api</finalName>
@@ -214,6 +238,7 @@
         <version>3.0.0</version>
         <configuration>
           <failOnMissingWebXml>true</failOnMissingWebXml>
+          <attachClasses>true</attachClasses>
           <webResources>
             <resource>
               <filtering>true</filtering>

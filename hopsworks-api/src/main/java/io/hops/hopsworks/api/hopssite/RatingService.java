@@ -39,22 +39,22 @@
 
 package io.hops.hopsworks.api.hopssite;
 
+import io.hops.hopsworks.api.filter.Audience;
 import io.hops.hopsworks.api.filter.NoCacheResponse;
 import io.hops.hopsworks.api.hopssite.dto.RatingValueDTO;
 import io.hops.hopsworks.api.jwt.JWTHelper;
-import io.hops.hopsworks.common.dao.user.Users;
-import io.hops.hopsworks.restutils.RESTCodes;
+import io.hops.hopsworks.jwt.annotation.JWTRequired;
 import io.hops.hopsworks.common.util.Settings;
 import io.hops.hopsworks.dela.dto.hopssite.RateDTO;
 import io.hops.hopsworks.dela.dto.hopssite.RatingDTO;
-import io.hops.hopsworks.exceptions.DelaException;
 import io.hops.hopsworks.dela.hopssite.HopsSite;
 import io.hops.hopsworks.dela.hopssite.HopssiteController;
+import io.hops.hopsworks.exceptions.DelaException;
+import io.hops.hopsworks.persistence.entity.user.Users;
+import io.hops.hopsworks.restutils.RESTCodes;
 import io.hops.hopsworks.util.SettingsHelper;
 import io.swagger.annotations.ApiParam;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.ejb.EJB;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
@@ -65,6 +65,8 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @RequestScoped
 @TransactionAttribute(TransactionAttributeType.NEVER)
@@ -81,10 +83,7 @@ public class RatingService {
   private JWTHelper jWTHelper;
 
   private String publicDSId;
-
-  public RatingService() {
-  }
-
+  
   public void setPublicDSId(String publicDSId) {
     this.publicDSId = publicDSId;
   }
@@ -96,6 +95,7 @@ public class RatingService {
   }
 
   @GET
+  @JWTRequired(acceptedTokens={Audience.API}, allowedUserRoles={"HOPS_ADMIN", "HOPS_USER"})
   public Response getRating(@ApiParam(required = true) @QueryParam("filter") RatingFilter filter,
       @Context SecurityContext sc) throws DelaException {
     switch (filter) {
@@ -109,14 +109,14 @@ public class RatingService {
     }
   }
 
-  public Response getDatasetAllRating() throws DelaException {
+  private Response getDatasetAllRating() throws DelaException {
     LOGGER.log(Settings.DELA_DEBUG, "hops-site:rating:get:all {0}", publicDSId);
     RatingDTO rating = hopsSite.getDatasetAllRating(publicDSId);
     LOGGER.log(Settings.DELA_DEBUG, "hops-site:rating:get:all - done {0}", publicDSId);
     return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).entity(rating).build();
   }
 
-  public Response getDatasetUserRating(SecurityContext sc) throws DelaException {
+  private Response getDatasetUserRating(SecurityContext sc) throws DelaException {
     LOGGER.log(Settings.DELA_DEBUG, "hops-site:rating:get:user {0}", publicDSId);
     String publicCId = SettingsHelper.clusterId(settings);
     Users user = jWTHelper.getUserPrincipal(sc);
@@ -126,6 +126,7 @@ public class RatingService {
   }
 
   @POST
+  @JWTRequired(acceptedTokens={Audience.API}, allowedUserRoles={"HOPS_ADMIN", "HOPS_USER"})
   public Response addRating(@Context SecurityContext sc, RatingValueDTO rating) throws DelaException {
     LOGGER.log(Settings.DELA_DEBUG, "hops-site:rating:add {0}", publicDSId);
     String publicCId = SettingsHelper.clusterId(settings);

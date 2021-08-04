@@ -19,7 +19,7 @@ package io.hops.hopsworks.ca.controllers;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import io.hops.hopsworks.ca.dao.ConfEntry;
+import io.hops.hopsworks.persistence.entity.util.Variables;
 
 import javax.annotation.PostConstruct;
 import javax.ejb.ConcurrencyManagement;
@@ -49,7 +49,7 @@ public class CAConf {
 
           @Override
           public String load(CAConfKeys s) throws Exception {
-            ConfEntry confEntry = em.find(ConfEntry.class, s.getKey());
+            Variables confEntry = em.find(Variables.class, s.getKey());
             if (confEntry != null) {
               return confEntry.getValue();
             } else {
@@ -64,11 +64,12 @@ public class CAConf {
     SERVICE_KEY_ROTATION_INTERVAL("service_key_rotation_interval", "3d"),
     APPLICATION_CERTIFICATE_VALIDITY_PERIOD("application_certificate_validity_period", "3d"),
     HOPSWORKS_INSTALL_DIR("hopsworks_dir", "/srv/hops/domains"),
-    CERTS_DIR("certs_dir", "/srv/hops/certs-di"),
+    CERTS_DIR("certs_dir", "/srv/hops/certs-dir"),
     HOPSWORKS_SSL_MASTER_PASSWORD("hopsworks_master_password", "adminpw"),
     KUBE_CA_PASSWORD("kube_ca_password", "adminpw"),
     HOPSWORKS_REST_LOGLEVEL("hopsworks_rest_log_level", "PROD"),
-    JWT_ISSUER("jwt_issuer", "hopsworks@logicalclocks.com");
+    JWT_ISSUER("jwt_issuer", "hopsworks@logicalclocks.com"),
+    SUDOERS_DIR("sudoers_dir", "/srv/hops/sbin");
 
     private String key;
     private String defaultValue;

@@ -19,38 +19,8 @@
  * Service for the feature store page
  */
 angular.module('hopsWorksApp')
-        .factory('FeaturestoreService', ['$http', 'TransformRequest', function ($http, TransformRequest) {
+        .factory('FeaturestoreService', ['$http', function ($http) {
             return {
-
-                /**
-                 * Utility function that formats a date into a string (MMM Do YY)
-                 *
-                 * @param inputDate the date to format
-                 * @returns a formatted date string
-                 */
-                formatDate: function(inputDate) {
-                    return moment(inputDate).format('MMM Do YY');
-                },
-
-                /**
-                 * Utility function for formatting a date into a time string (HH:mm)
-                 *
-                 * @param inputDate the date to format
-                 * @returns {*} a formatted time string
-                 */
-                formatTime: function(inputDate) {
-                    return moment(inputDate).format('HH:mm');
-                },
-
-                /**
-                 * Utility function for formatting a date into a dateAndtime string ('MMMM Do YYYY, h:mm a')
-                 * @param inputDate
-                 * @returns {*} a formatted date and time string
-                 */
-                formatDateAndTime: function(inputDate) {
-                    return moment(inputDate).format('MMMM Do YYYY, h:mm a');
-                },
-
 
                 /**
                  * Sends a POST request to the backend for creating a feature group
@@ -117,6 +87,35 @@ angular.module('hopsWorksApp')
                 },
 
                 /**
+                 * GET request for the metadata of a particular featuregroup for a particular featurestore
+                 *
+                 * @param projectId project of the active user
+                 * @param featurestore featurestore to get featuregroups from
+                 * @param featuregroupId id of the featuregroup to get metadata for
+                 * @returns {HttpPromise}
+                 */
+                getFeaturegroupMetadata: function(projectId, featurestore, featuregroupId) {
+                    return $http.get('/api/project/' + projectId + '/featurestores/' +
+                        featurestore.featurestoreId + "/featuregroups/" + featuregroupId);
+                },
+
+                /**
+                 * Updates the statistics settings of a featuregroup for a particular featurestore
+                 *
+                 * @param projectId
+                 * @param featurestore
+                 * @param featuregroupId
+                 * @param featuregroupJson
+                 * @returns {HttpPromise}
+                 */
+                updateFeaturegroupStatsSettings: function(projectId, featurestore, featuregroupId, featuregroupJson) {
+                    return $http.put('/api/project/' + projectId + '/featurestores/' +
+                        featurestore.featurestoreId + "/featuregroups/" + featuregroupId +
+                        "?updateStatsSettings=true",
+                        JSON.stringify(featuregroupJson), {headers: {'Content-Type': 'application/json'}});
+                },
+
+                /**
                  * GET request for all training datasets for a particular featurestore
                  *
                  * @param projectId project of the active user
@@ -155,16 +154,18 @@ angular.module('hopsWorksApp')
                 },
 
                 /**
-                 * GET request to get the SQL schema of a featuregroup (SHOW CREATE TABLE)
+                 * GET request to get additional details for the feature group.   
                  *
                  * @param projectId the id of the project
                  * @param featurestore the featurestore where the featuregroup resides
                  * @param featuregroup the featuregroup to get the schema for
+                 * @param storage storage for which to retrieve the details 
                  * @returns {HttpPromise}
                  */
-                getFeaturegroupSchema: function(projectId, featurestore, featuregroup) {
+                getFeaturegroupDetails: function(projectId, featurestore, featuregroup, storage) {
                     return $http.get('/api/project/' + projectId + '/featurestores/' +
-                        featurestore.featurestoreId + "/featuregroups/" + featuregroup.id + "/schema");
+                        featurestore.featurestoreId + "/featuregroups/" + featuregroup.id 
+                        + "/details?storage=" + storage);
                 },
 
                 /**
@@ -175,9 +176,60 @@ angular.module('hopsWorksApp')
                  * @param featuregroup the featuregroup to preview
                  * @returns {HttpPromise}
                  */
-                getFeaturegroupSample: function(projectId, featurestore, featuregroup) {
+                getFeaturegroupSample: function(projectId, featurestore, featuregroup, storageType, limit, partition) {
+                    var partitionParam = "";
+                    if (partition != null) {
+                        partitionParam = "&partition=" + encodeURIComponent(partition);
+                    }
+
                     return $http.get('/api/project/' + projectId + '/featurestores/' +
-                        featurestore.featurestoreId + "/featuregroups/" + featuregroup.id + "/preview");
+                        featurestore.featurestoreId + "/featuregroups/" + featuregroup.id + "/preview?storage=" +
+                        storageType + "&limit=" + limit + partitionParam);
+                },
+
+                /**
+                 * GET request to retrieve the partitions of a feature group 
+                 * @param projectId 
+                 * @param featurestore 
+                 * @param featuregroup 
+                 * @param storageType 
+                 * @param limit 
+                 */
+                getFeaturegroupPartitions: function(projectId, featurestore, featuregroup) {
+                    return $http.get('/api/project/' + projectId + '/featurestores/' +
+                        featurestore.featurestoreId + "/featuregroups/" + featuregroup.id + "/partitions");
+                },
+
+                getFeaturegroupTags: function(projectId, featurestore, featuregroup) {
+                    return $http.get('/api/project/' + projectId + '/featurestores/' +
+                        featurestore.featurestoreId + "/featuregroups/" + featuregroup.id + "/tags");
+                },
+
+                updateFeaturegroupTag: function(projectId, featurestore, featuregroup, name, value) {
+                    return $http.put('/api/project/' + projectId + '/featurestores/' +
+                        featurestore.featurestoreId + '/featuregroups/' + featuregroup.id + '/tags/' + name,
+                        value, {headers: {'Content-Type': 'application/json'}});
+                },
+
+                deleteFeaturegroupTag: function(projectId, featurestore, featuregroup, tagName) {
+                    return $http.delete('/api/project/' + projectId + '/featurestores/' +
+                        featurestore.featurestoreId + "/featuregroups/" + featuregroup.id + "/tags/" + tagName);
+                },
+
+                getTrainingDatasetTags: function(projectId, featurestore, td) {
+                    return $http.get('/api/project/' + projectId + '/featurestores/' +
+                        featurestore.featurestoreId + "/trainingdatasets/" + td.id + "/tags");
+                },
+
+                updateTrainingDatasetTag: function(projectId, featurestore, td, name, value) {
+                    return $http.put('/api/project/' + projectId + '/featurestores/' +
+                        featurestore.featurestoreId + "/trainingdatasets/" + td.id + "/tags/" + name,
+                        value, {headers: {'Content-Type': 'application/json'}});
+                },
+
+                deleteTrainingDatasetTag: function(projectId, featurestore, td, tagName) {
+                    return $http.delete('/api/project/' + projectId + '/featurestores/' +
+                        featurestore.featurestoreId + "/trainingdatasets/" + td.id + "/tags/" + tagName);
                 },
 
                 /**
@@ -266,13 +318,12 @@ angular.module('hopsWorksApp')
                  * @param projectId project where the featuregroup will be created
                  * @param storageConnectorJson the JSON payload
                  * @param featurestore featurestore where the connector will be created
-                 * @param storageConnectorType the type of the storage connector
                  *
                  * @returns {HttpPromise}
                  */
-                createStorageConnector: function(projectId, storageConnectorJson, featurestore, storageConnectorType) {
+                createStorageConnector: function(projectId, storageConnectorJson, featurestore) {
                     return $http.post('/api/project/' + projectId + '/featurestores/' +
-                        featurestore.featurestoreId + "/storageconnectors/" + storageConnectorType,
+                        featurestore.featurestoreId + "/storageconnectors/",
                         JSON.stringify(storageConnectorJson), {headers: {'Content-Type': 'application/json'}});
                 },
 
@@ -282,16 +333,13 @@ angular.module('hopsWorksApp')
                  * @param projectId project where the featuregroup will be created
                  * @param storageConnectorJson the JSON payload
                  * @param featurestore featurestore where the connector will be created
-                 * @param storageConnectorId the id of the connector
-                 * @param storageConnectorType the type of the storage connector
+                 * @param storageConnectorName the name of the connector
                  *
                  * @returns {HttpPromise}
                  */
-                updateStorageConnector: function(projectId, storageConnectorJson, featurestore, storageConnectorType,
-                                                 storageConnectorId) {
+                updateStorageConnector: function(projectId, storageConnectorJson, featurestore, storageConnectorName) {
                     return $http.put('/api/project/' + projectId + '/featurestores/' +
-                        featurestore.featurestoreId + "/storageconnectors/" + storageConnectorType + "/"
-                        + storageConnectorId,
+                        featurestore.featurestoreId + "/storageconnectors/" + storageConnectorName,
                         JSON.stringify(storageConnectorJson), {headers: {'Content-Type': 'application/json'}});
                 },
 
@@ -300,25 +348,35 @@ angular.module('hopsWorksApp')
                  *
                  * @param projectId the project of the featurestore
                  * @param featurestore the featurestore
-                 * @param storageConnectorId the id of the connector
-                 * @param storageConnectorType the type of the storage connector
+                 * @param storageConnectorName the name of the connector
                  * @returns {HttpPromise}
                  */
-                deleteStorageConnector: function(projectId, featurestore, storageConnectorId, storageConnectorType) {
+                deleteStorageConnector: function(projectId, featurestore, storageConnectorName) {
                     return $http.delete('/api/project/' + projectId + '/featurestores/' +
-                        featurestore.featurestoreId + "/storageconnectors/" + storageConnectorType + "/" +
-                        storageConnectorId);
+                        featurestore.featurestoreId + "/storageconnectors/" + storageConnectorName);
                 },
                 /**
-                 * Sends a POST request to the backend for writing args for featurestore util job to HDFS
+                 * GET request for the tags that can be attached to featuregroups or training datasets
                  *
-                 * @param projectId project of the featurestore
-                 * @param utilArgsJson the JSON payload
+                 * @param query string for the request
                  * @returns {HttpPromise}
                  */
-                writeUtilArgstoHdfs: function(projectId, utilArgsJson) {
-                    return $http.post('/api/project/' + projectId + '/featurestores/util',
-                        JSON.stringify(utilArgsJson), {headers: {'Content-Type': 'application/json'}});
-                }
+                getTags: function(query) {
+                    return $http.get('/api/tags' + query);
+                },
+
+                getTdQuery: function(projectId, featureStore, td) {
+                    return $http.get("/api/project/" + projectId + "/featurestores/" + featureStore.featurestoreId + "/trainingdatasets/" + td.id + "/query");
+                },
+
+                constructQuery: function(projectId, queryJson) {
+                    return $http.put("/api/project/" + projectId + "/featurestores/query",
+                        JSON.stringify(queryJson), {headers: {'Content-Type': 'application/json'}});
+                },
+
+                computeTrainingDataset: function(projectId, featureStore, trainingDatasetId, computeJson) {
+                    return $http.post("/api/project/" + projectId + "/featurestores/" + featureStore.featurestoreId + "/trainingdatasets/" + trainingDatasetId + "/compute",
+                        JSON.stringify(computeJson), {headers: {'Content-Type': 'application/json'}});
+                },
             };
           }]);

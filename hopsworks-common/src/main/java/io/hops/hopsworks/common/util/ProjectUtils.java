@@ -38,75 +38,192 @@
  */
 package io.hops.hopsworks.common.util;
 
-import io.hops.hopsworks.common.dao.project.Project;
+import com.google.common.base.Strings;
+import com.logicalclocks.servicediscoverclient.exceptions.ServiceDiscoveryException;
+import io.hops.hopsworks.common.hosts.ServiceDiscoveryController;
+import io.hops.hopsworks.exceptions.ProjectException;
+import io.hops.hopsworks.persistence.entity.project.Project;
+import io.hops.hopsworks.restutils.RESTCodes;
 
+import javax.ejb.EJB;
 import javax.ejb.Stateless;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Stateless
 @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
 public class ProjectUtils {
   
-  public boolean isReservedProjectName(String projName) {
-    boolean res = false;
-    for (String name : getReservedProjectNames()) {
-      if (name.compareToIgnoreCase(projName) == 0) {
-        res = true;
-        break;
+  @EJB
+  private Settings settings;
+  
+  @EJB
+  private ServiceDiscoveryController serviceDiscoveryController;
+
+  private final static Logger LOGGER = Logger.getLogger(ProjectUtils.class.getName());
+  
+  public boolean isReservedProjectName(String projectName) {
+    for (String name : settings.getReservedProjectNames()) {
+      if (name.equalsIgnoreCase(projectName)) {
+        return true;
       }
     }
-    return res;
-  }
-  
-  public List<String> getReservedProjectNames() {
-    List<String> reservedNames = new ArrayList<>();
-    reservedNames.add("python27");
-    reservedNames.add("python36");
-    reservedNames.add("python37");
-    reservedNames.add("python38");
-    reservedNames.add("python39");
-    //Online Feature Store creates MySQL db with the same name as the projectname
-    reservedNames.add("hops-system");
-    reservedNames.add("hopsworks");
-    reservedNames.add("information_schema");
-    reservedNames.add("airflow");
-    reservedNames.add("glassfish_timers");
-    reservedNames.add("grafana");
-    reservedNames.add("hops");
-    reservedNames.add("metastore");
-    reservedNames.add("mysql");
-    reservedNames.add("ndbinfo");
-    reservedNames.add("performance_schema");
-    reservedNames.add("sqoop");
-    reservedNames.add("sys");
-    return reservedNames;
-  }
-  
-  public String getCurrentCondaEnvironment(Project project) {
-    String condaEnv = project.getName();
-    
-    if (project.getConda() && !project.getCondaEnv()) {
-      if (project.getPythonVersion().compareToIgnoreCase("2.7") == 0) {
-        condaEnv = "python27";
-      } else if (project.getPythonVersion().compareToIgnoreCase("3.6") == 0) {
-        condaEnv = "python36";
-      } else {
-        throw new IllegalArgumentException("Error. Python has not been enabled for this project.");
-      }
-    }
-    return condaEnv;
+    return false;
   }
 
-  public String getCurrentCondaBaseEnvironment(Project project) {
-    if (project.getPythonVersion().compareToIgnoreCase("2.7") == 0) {
-      return "python27";
-    } else if (project.getPythonVersion().compareToIgnoreCase("3.6") == 0) {
-      return "python36";
-    } else {
-      throw new IllegalArgumentException("Error. Python has not been enabled for this project.");
+  public boolean isOldDockerImage(String dockerImage) throws ProjectException {
+    Pattern versionPattern = Pattern.compile("(\\d+[.]\\d+[.]\\d+)");
+
+    //Extract the version number as NUMBER.NUMBER.NUMBER and ignore the -SNAPSHOT part
+    Matcher projectDockerImageMatcher = versionPattern.matcher(dockerImage);
+    String hopsworksVersion = settings.getHopsworksVersion();
+    Matcher installationVersionMatcher = versionPattern.matcher(hopsworksVersion);
+
+    if(!projectDockerImageMatcher.find()) {
+      throw new ProjectException(RESTCodes.ProjectErrorCode.PROJECT_DOCKER_VERSION_EXTRACT_ERROR,
+          Level.SEVERE, "dockerImage: " + dockerImage + " version: " + hopsworksVersion);
     }
+
+    if(!installationVersionMatcher.find()) {
+      throw new ProjectException(RESTCodes.ProjectErrorCode.PROJECT_DOCKER_VERSION_EXTRACT_ERROR,
+          Level.SEVERE, "dockerImage: " + dockerImage + " version: " + hopsworksVersion);
+    }
+
+    String[] projectDockerImageParts = projectDockerImageMatcher.group().split("\\.");
+    String[] installationDockerImageParts = installationVersionMatcher.group().split("\\.");
+    for(int i = 0; i < installationDockerImageParts.length; i++) {
+      if(Integer.parseInt(installationDockerImageParts[i]) > Integer.parseInt(projectDockerImageParts[i])) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Checks if given docker image follows the format of base:2.1.0 or base:2.1.0-SNAPSHOT.
+   * This check does not validate that the hopsworks version of the tag is the same as the installed hopsworks version
+   * as projects may use images with older versions.
+   * @param image
+   * @return
+   */
+  private static boolean isBaseDockerImage(String image) {
+    Pattern basePattern = Pattern.compile("^(base:\\d+[.]\\d+[.]\\d+(|-SNAPSHOT))$");
+    Matcher baseMatcher = basePattern.matcher(image);
+    return baseMatcher.matches();
+  }
+
+  /**
+   * Checks if given docker image is a base image and follows the format of
+   *
+   * On-premise: python37:2.1.0
+   * Cloud:      base:python37_2.1.0
+   *
+   * This check does not validate that the hopsworks version of the tag is the same as the installed hopsworks version
+   * as projects may use images with older versions.
+   * @param image
+   * @return
+   */
+  private boolean isPythonDockerImage(String image) {
+    Pattern pythonPattern;
+    if(settings.isManagedDockerRegistry()) {
+      pythonPattern = Pattern.compile("^(base:python\\d{2}_\\d+[.]\\d+[.]\\d+(|-SNAPSHOT))$");
+      Matcher pythonMatcher = pythonPattern.matcher(image);
+      return pythonMatcher.matches();
+    } else {
+      pythonPattern = Pattern.compile("^(python\\d{2}:\\d+[.]\\d+[.]\\d+(|-SNAPSHOT))$");
+      Matcher pythonMatcher = pythonPattern.matcher(image);
+      return pythonMatcher.matches();
+    }
+  }
+
+  /**
+   * Check if the image and tag is one of the preinstalled docker images
+   * @param image
+   * @return
+   */
+  public boolean dockerImageIsPreinstalled(String image) {
+    return isBaseDockerImage(image) || isPythonDockerImage(image);
+  }
+
+  public String getFullDockerImageName(Project project, boolean useBase) throws ServiceDiscoveryException {
+    return getFullDockerImageName(project, settings, serviceDiscoveryController, useBase);
+  }
+  
+  public static String getFullDockerImageName(Project project, Settings settings,
+      ServiceDiscoveryController serviceDiscoveryController, boolean useBase) throws ServiceDiscoveryException {
+    String imageName = getDockerImageName(project, settings, useBase);
+    return getRegistryURL(settings, serviceDiscoveryController) + "/" + imageName;
+  }
+  
+  public static String getDockerImageName(Project project, Settings settings, boolean useBase) {
+    if (project.getPythonEnvironment() != null && (useBase || Strings.isNullOrEmpty(project.getDockerImage()))) {
+      // if conda enabled is true and usebase is true
+      // or as a fall back in case the project image name hasn't been set (i.e. during upgrades)
+      return settings.getBaseDockerImagePythonName();
+    } else if(project.getPythonEnvironment() == null && isBaseDockerImage(project.getDockerImage())) {
+      return project.getDockerImage();
+    } else if(project.getPythonEnvironment() == null) {
+      throw new IllegalArgumentException("Error. Python has not been enabled for this project.");
+    } else {
+      return project.getDockerImage();
+    }
+  }
+  
+  public String getFullDockerImageName(String imageName) throws ServiceDiscoveryException {
+    return getRegistryURL(settings, serviceDiscoveryController) + "/" + imageName;
+  }
+
+  public String getRegistryURL() throws
+      ServiceDiscoveryException {
+    return getRegistryURL(settings, serviceDiscoveryController);
+  }
+  
+  public static String getRegistryURL(Settings settings,
+      ServiceDiscoveryController serviceDiscoveryController) throws
+      ServiceDiscoveryException {
+    com.logicalclocks.servicediscoverclient.service.Service registry = serviceDiscoveryController
+        .getAnyAddressOfServiceWithDNSSRVOnly(ServiceDiscoveryController.HopsworksService.REGISTRY);
+    if(settings.isManagedDockerRegistry()){
+      String registryUrl = registry.getAddress();
+      String dockerNamespace = settings.getDockerNamespace();
+      if(!dockerNamespace.isEmpty()){
+        registryUrl += "/" + dockerNamespace;
+      }
+      return registryUrl;
+    }
+    return registry.getName() + ":" + registry.getPort();
+  }
+  
+  public String getInitialDockerImageName(Project project) {
+    String initialImageTag =
+        System.currentTimeMillis() + "-" + settings.getHopsworksVersion() +
+            ".0";
+    if (settings.isManagedDockerRegistry()) {
+      return settings.getBaseNonPythonDockerImageWithNoTag() + ":" +
+          project.getName().toLowerCase() + "_" + initialImageTag;
+    } else {
+      return project.getName().toLowerCase() + ":" + initialImageTag;
+    }
+  }
+  
+  public String getFullBaseImageName() throws ServiceDiscoveryException {
+    return getRegistryURL(settings, serviceDiscoveryController) + "/" +
+        settings.getBaseDockerImagePythonName();
+  }
+  
+  public String getProjectNameFromDockerImageName(String imageName) {
+    if (settings.isManagedDockerRegistry()) {
+      return imageName.split(":")[1].split("_")[0];
+    } else {
+      return getProjectDockerRepoName(imageName);
+    }
+  }
+  
+  public String getProjectDockerRepoName(String imageName){
+    return imageName.split(":")[0];
   }
 }

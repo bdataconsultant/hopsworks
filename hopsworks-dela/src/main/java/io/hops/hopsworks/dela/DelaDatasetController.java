@@ -39,21 +39,26 @@
 
 package io.hops.hopsworks.dela;
 
-import io.hops.hopsworks.common.dao.dataset.Dataset;
 import io.hops.hopsworks.common.dao.dataset.DatasetFacade;
-import io.hops.hopsworks.common.dao.dataset.DatasetPermissions;
-import io.hops.hopsworks.common.dao.log.operation.OperationType;
-import io.hops.hopsworks.common.dao.project.Project;
-import io.hops.hopsworks.common.dao.user.Users;
+import io.hops.hopsworks.common.dao.dataset.DatasetSharedWithFacade;
 import io.hops.hopsworks.common.dataset.DatasetController;
 import io.hops.hopsworks.common.dataset.FilePreviewDTO;
-import io.hops.hopsworks.exceptions.DatasetException;
-import io.hops.hopsworks.exceptions.HopsSecurityException;
-import io.hops.hopsworks.restutils.RESTCodes;
+import io.hops.hopsworks.common.hdfs.DistributedFileSystemOps;
 import io.hops.hopsworks.common.hdfs.DistributedFsService;
-import io.hops.hopsworks.common.hdfs.HdfsUsersController;
+import io.hops.hopsworks.common.provenance.core.HopsFSProvenanceController;
+import io.hops.hopsworks.common.provenance.core.dto.ProvTypeDTO;
 import io.hops.hopsworks.common.util.Settings;
+import io.hops.hopsworks.exceptions.DatasetException;
 import io.hops.hopsworks.exceptions.DelaException;
+import io.hops.hopsworks.exceptions.HopsSecurityException;
+import io.hops.hopsworks.exceptions.ProvenanceException;
+import io.hops.hopsworks.persistence.entity.dataset.Dataset;
+import io.hops.hopsworks.persistence.entity.dataset.DatasetAccessPermission;
+import io.hops.hopsworks.persistence.entity.dataset.SharedState;
+import io.hops.hopsworks.persistence.entity.log.operation.OperationType;
+import io.hops.hopsworks.persistence.entity.project.Project;
+import io.hops.hopsworks.persistence.entity.user.Users;
+import io.hops.hopsworks.restutils.RESTCodes;
 import org.apache.hadoop.fs.Path;
 
 import javax.ejb.EJB;
@@ -79,30 +84,35 @@ public class DelaDatasetController {
   @EJB
   private DatasetController datasetController;
   @EJB
-  private HdfsUsersController hdfsUsersBean;
+  private DatasetSharedWithFacade datasetSharedWithFacade;
   @EJB
   private DistributedFsService dfs;
+  @EJB
+  private HopsFSProvenanceController fsProvenanceController;
 
-  public Dataset uploadToHops(Dataset dataset, String publicDSId) {
-    dataset.setPublicDsState(Dataset.SharedState.HOPS);
+  public Dataset uploadToHops(Project project, Dataset dataset, String publicDSId) {
+    dataset.setPublicDsState(SharedState.HOPS);
     dataset.setPublicDsId(publicDSId);
-    dataset.setEditable(DatasetPermissions.OWNER_ONLY);
+    //TODO:Alex move to set hdfs permissions
+    //datasetController.setPermissions();
+    //dataset.setEditable(DatasetPermissions.OWNER_ONLY);
     datasetFacade.merge(dataset);
-    datasetCtrl.logDataset(dataset, OperationType.Update);
+    datasetCtrl.logDataset(project, dataset, OperationType.Update);
     return dataset;
   }
   
-  public Dataset unshareFromHops(Dataset dataset) {
-    dataset.setPublicDsState(Dataset.SharedState.PRIVATE);
+  public Dataset unshareFromHops(Project project, Dataset dataset) {
+    dataset.setPublicDsState(SharedState.PRIVATE);
     dataset.setPublicDsId(null);
-    dataset.setEditable(DatasetPermissions.GROUP_WRITABLE_SB);
+    //datasetController.setPermissions();
+    //dataset.setEditable(DatasetPermissions.GROUP_WRITABLE_SB);
     datasetFacade.merge(dataset);
-    datasetCtrl.logDataset(dataset, OperationType.Update);
+    datasetCtrl.logDataset(project, dataset, OperationType.Update);
     return dataset;
   }
   
   public Dataset download(Project project, Users user, String publicDSId, String name)
-    throws DelaException {
+    throws DelaException, ProvenanceException {
     Dataset dataset;
     try {
       dataset = createDataset(user, project, name, "");
@@ -110,26 +120,27 @@ public class DelaDatasetController {
       throw new DelaException(RESTCodes.DelaErrorCode.THIRD_PARTY_ERROR, Level.SEVERE, DelaException.Source.LOCAL, null,
         e.getMessage(), e);
     }
-    dataset.setPublicDsState(Dataset.SharedState.HOPS);
+    dataset.setPublicDsState(SharedState.HOPS);
     dataset.setPublicDsId(publicDSId);
-    dataset.setEditable(DatasetPermissions.OWNER_ONLY);
+    //datasetController.setPermissions();
+    //dataset.setEditable(DatasetPermissions.OWNER_ONLY);
     datasetFacade.merge(dataset);
-    datasetCtrl.logDataset(dataset, OperationType.Update);
+    datasetCtrl.logDataset(project, dataset, OperationType.Update);
     return dataset;
   }
 
-  public Dataset updateDescription(Dataset dataset, String description) {
+  public Dataset updateDescription(Project project, Dataset dataset, String description) {
     dataset.setDescription(description);
     datasetFacade.merge(dataset);
-    datasetCtrl.logDataset(dataset, OperationType.Update);
+    datasetCtrl.logDataset(project, dataset, OperationType.Update);
     return dataset;
   }
 
-  public void delete(Project project, Dataset dataset) throws DelaException, DatasetException {
-    if (dataset.isShared()) {
+  public void delete(Project project, Dataset dataset, Users user) throws DelaException, IOException, DatasetException {
+    if (dataset.isShared(project)) {
       //remove the entry in the table that represents shared ds
       //but leave the dataset in hdfs b/c the user does not have the right to delete it.
-      hdfsUsersBean.unShareDataset(project, dataset);
+      datasetController.unshareDataset(project, user, project, dataset);
       return;
     }
     try {
@@ -145,15 +156,22 @@ public class DelaDatasetController {
   }
 
   public Dataset createDataset(Users user, Project project, String name, String description)
-    throws DatasetException, HopsSecurityException {
-
-    datasetCtrl.createDataset(user, project, name, description, -1, true, false, false,
-      dfs.getDfsOps());
-    return datasetController.getByProjectAndDsName(project, null, name);
+    throws DatasetException, HopsSecurityException, ProvenanceException {
+    DistributedFileSystemOps dfso = dfs.getDfsOps();
+    try {
+      ProvTypeDTO projectMetaStatus = fsProvenanceController.getProjectProvType(user, project);
+      datasetCtrl.createDataset(user, project, name, description, projectMetaStatus,
+        false, DatasetAccessPermission.EDITABLE, dfso);
+      return datasetController.getByProjectAndDsName(project, null, name);
+    } finally {
+      if(dfso != null) {
+        dfso.close();
+      }
+    }
   }
   
   public List<Dataset> getLocalPublicDatasets() {
-    return datasetFacade.findAllDatasetsByState(Dataset.SharedState.HOPS.state, false);
+    return datasetFacade.findPublicDatasetsByState(SharedState.HOPS.state);
   }
   
   public Optional<Dataset> isPublicDatasetLocal(String publicDsId) {

@@ -16,17 +16,13 @@
 
 package io.hops.hopsworks.api.jobs.executions;
 
+import com.google.common.base.Strings;
 import io.hops.hopsworks.api.filter.AllowedProjectRoles;
 import io.hops.hopsworks.api.filter.Audience;
 import io.hops.hopsworks.api.filter.apiKey.ApiKeyRequired;
 import io.hops.hopsworks.api.jwt.JWTHelper;
 import io.hops.hopsworks.api.util.Pagination;
 import io.hops.hopsworks.common.api.ResourceRequest;
-import io.hops.hopsworks.common.dao.jobhistory.Execution;
-import io.hops.hopsworks.common.dao.jobhistory.ExecutionFacade;
-import io.hops.hopsworks.common.dao.jobs.description.Jobs;
-import io.hops.hopsworks.common.dao.user.Users;
-import io.hops.hopsworks.common.dao.user.security.apiKey.ApiScope;
 import io.hops.hopsworks.common.jobs.JobLogDTO;
 import io.hops.hopsworks.common.jobs.execution.ExecutionController;
 import io.hops.hopsworks.exceptions.GenericException;
@@ -34,7 +30,10 @@ import io.hops.hopsworks.exceptions.JobException;
 import io.hops.hopsworks.exceptions.ProjectException;
 import io.hops.hopsworks.exceptions.ServiceException;
 import io.hops.hopsworks.jwt.annotation.JWTRequired;
-import io.hops.hopsworks.restutils.RESTCodes;
+import io.hops.hopsworks.persistence.entity.jobs.description.Jobs;
+import io.hops.hopsworks.persistence.entity.jobs.history.Execution;
+import io.hops.hopsworks.persistence.entity.user.Users;
+import io.hops.hopsworks.persistence.entity.user.security.apiKey.ApiScope;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 
@@ -42,31 +41,28 @@ import javax.ejb.EJB;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
 import javax.enterprise.context.RequestScoped;
+import javax.inject.Inject;
 import javax.ws.rs.BeanParam;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 @RequestScoped
 @TransactionAttribute(TransactionAttributeType.NEVER)
 public class ExecutionsResource {
   
-  private static final Logger LOGGER = Logger.getLogger(ExecutionsResource.class.getName());
-  
-  @EJB
-  private ExecutionFacade executionFacade;
-  @EJB
+  @Inject
   private ExecutionController executionController;
   @EJB
   private ExecutionsBuilder executionsBuilder;
@@ -91,8 +87,8 @@ public class ExecutionsResource {
   public Response getExecutions(
     @BeanParam Pagination pagination,
     @BeanParam ExecutionsBeanParam executionsBeanParam,
-    @Context UriInfo uriInfo) {
-  
+    @Context UriInfo uriInfo, @Context SecurityContext sc) {
+    
     ResourceRequest resourceRequest = new ResourceRequest(ResourceRequest.Name.EXECUTIONS);
     resourceRequest.setOffset(pagination.getOffset());
     resourceRequest.setLimit(pagination.getLimit());
@@ -111,12 +107,11 @@ public class ExecutionsResource {
   @AllowedProjectRoles({AllowedProjectRoles.DATA_SCIENTIST, AllowedProjectRoles.DATA_OWNER})
   @JWTRequired(acceptedTokens={Audience.API, Audience.JOB}, allowedUserRoles={"HOPS_ADMIN", "HOPS_USER"})
   @ApiKeyRequired( acceptedScopes = {ApiScope.JOB}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
-  public Response getExecution(
-    @ApiParam(value = "execution id", required = true) @PathParam("id") Integer id,
+  public Response getExecution(@ApiParam(value = "execution id", required = true) @PathParam("id") Integer id,
     @BeanParam ExecutionsBeanParam executionsBeanParam,
-    @Context UriInfo uriInfo) throws JobException {
+    @Context UriInfo uriInfo, @Context SecurityContext sc) throws JobException {
     //If requested execution does not belong to job
-    Execution execution = authorize(id);
+    Execution execution = executionController.authorize(job, id);
     ResourceRequest resourceRequest = new ResourceRequest(ResourceRequest.Name.EXECUTIONS);
     resourceRequest.setExpansions(executionsBeanParam.getExpansions().getResources());
     ExecutionDTO dto = executionsBuilder.build(uriInfo, resourceRequest, execution);
@@ -124,35 +119,68 @@ public class ExecutionsResource {
   }
   
   
-  @ApiOperation(value = "Start/Stop a job",
-    notes = "Starts a job by creating and starting an Execution, stops a job by stopping the Execution.")
-  @POST
+  @ApiOperation(value = "Stop an execution(run) of the job",
+    notes = "Stops an execution of a job by providing the status.",
+    response = ExecutionDTO.class)
+  @PUT
+  @Path("{id}/status")
   @Produces(MediaType.APPLICATION_JSON)
   @AllowedProjectRoles({AllowedProjectRoles.DATA_SCIENTIST, AllowedProjectRoles.DATA_OWNER})
   @JWTRequired(acceptedTokens={Audience.API, Audience.JOB}, allowedUserRoles={"HOPS_ADMIN", "HOPS_USER"})
   @ApiKeyRequired( acceptedScopes = {ApiScope.JOB}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
-  public Response execution(
-    @ApiParam(value = "start or stop", required = true) @QueryParam("action") Action action,
+  public Response stopExecution(
+    @ApiParam(value = "Id of execution.", required = true) @PathParam("id") Integer id,
+    @ApiParam(value = "status to set.", required = true) Status status,
+    @Context SecurityContext sc,
+    @Context UriInfo uriInfo) throws JobException {
+    
+    Execution exec = executionController.stopExecution(id);
+    ResourceRequest resourceRequest = new ResourceRequest(ResourceRequest.Name.EXECUTIONS);
+    return Response.accepted().entity(executionsBuilder.build(uriInfo, resourceRequest, exec)).build();
+  }
+  
+  @ApiOperation(value = "Start an execution(run) of the job",
+    notes = "Starts a job by creating and starting an Execution.",
+    response = ExecutionDTO.class)
+  @POST
+  @Consumes(MediaType.TEXT_PLAIN)
+  @Produces(MediaType.APPLICATION_JSON)
+  @AllowedProjectRoles({AllowedProjectRoles.DATA_SCIENTIST, AllowedProjectRoles.DATA_OWNER})
+  @JWTRequired(acceptedTokens={Audience.API, Audience.JOB}, allowedUserRoles={"HOPS_ADMIN", "HOPS_USER"})
+  @ApiKeyRequired( acceptedScopes = {ApiScope.JOB}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
+  public Response startExecution(
+    @ApiParam(value = "Arguments for executing the job") String args,
     @Context SecurityContext sc,
     @Context UriInfo uriInfo) throws JobException, GenericException, ServiceException, ProjectException {
     
     Users user = jWTHelper.getUserPrincipal(sc);
+
     Execution exec;
-    switch (action) {
-      case START:
-        exec = executionController.start(job, user);
-        UriBuilder uriBuilder = uriInfo.getAbsolutePathBuilder();
-        uriBuilder.path(Integer.toString(exec.getId()));
-        ResourceRequest resourceRequest = new ResourceRequest(ResourceRequest.Name.EXECUTIONS);
-        return Response.created(uriBuilder.build()).entity(executionsBuilder.build(uriInfo, resourceRequest, exec))
-          .build();
-      case STOP:
-        exec = executionController.stop(job);
-        resourceRequest = new ResourceRequest(ResourceRequest.Name.EXECUTIONS);
-        return Response.ok().entity(executionsBuilder.build(uriInfo, resourceRequest, exec)).build();
-      default:
-        return Response.status(Response.Status.BAD_REQUEST).build();
+    if(!Strings.isNullOrEmpty(job.getJobConfig().getDefaultArgs()) && Strings.isNullOrEmpty(args)) {
+      exec = executionController.start(job, job.getJobConfig().getDefaultArgs(), user);
+    } else {
+      exec = executionController.start(job, args, user);
     }
+
+    UriBuilder uriBuilder = uriInfo.getAbsolutePathBuilder();
+    uriBuilder.path(Integer.toString(exec.getId()));
+    ResourceRequest resourceRequest = new ResourceRequest(ResourceRequest.Name.EXECUTIONS);
+    return Response.created(uriBuilder.build()).entity(executionsBuilder.build(uriInfo, resourceRequest, exec))
+      .build();
+  }
+  
+  @ApiOperation(value = "Delete an execution of a job by Id", response = ExecutionDTO.class)
+  @DELETE
+  @Path("{id}")
+  @AllowedProjectRoles({AllowedProjectRoles.DATA_SCIENTIST, AllowedProjectRoles.DATA_OWNER})
+  @JWTRequired(acceptedTokens={Audience.API, Audience.JOB}, allowedUserRoles={"HOPS_ADMIN", "HOPS_USER"})
+  @ApiKeyRequired( acceptedScopes = {ApiScope.JOB}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
+  public Response delete(@ApiParam(value = "execution id", required = true) @PathParam("id") Integer id,
+    @Context UriInfo uriInfo, @Context SecurityContext sc) throws JobException {
+    //If requested execution does not belong to job
+    Execution execution = executionController.authorize(job, id);
+    executionController.delete(execution);
+    return Response.noContent().build();
   }
   
   @ApiOperation(value = "Retrieve log of given execution and type", response = JobLogDTO.class)
@@ -164,8 +192,8 @@ public class ExecutionsResource {
   @ApiKeyRequired( acceptedScopes = {ApiScope.JOB}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
   public Response getLog(
     @PathParam("id") Integer id,
-    @PathParam("type") JobLogDTO.LogType type) throws JobException {
-    Execution execution = authorize(id);
+    @PathParam("type") JobLogDTO.LogType type, @Context SecurityContext sc) throws JobException {
+    Execution execution = executionController.authorize(job, id);
     JobLogDTO dto = executionController.getLog(execution, type);
     return Response.ok().entity(dto).build();
   }
@@ -179,38 +207,22 @@ public class ExecutionsResource {
   @ApiKeyRequired( acceptedScopes = {ApiScope.JOB}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
   public Response retryLog(
     @PathParam("id") Integer id,
-    @PathParam("type") JobLogDTO.LogType type) throws JobException {
-    Execution execution = authorize(id);
+    @PathParam("type") JobLogDTO.LogType type, @Context SecurityContext sc) throws JobException {
+    Execution execution = executionController.authorize(job, id);
     JobLogDTO dto = executionController.retryLogAggregation(execution, type);
     return Response.ok().entity(dto).build();
   }
   
-  
-  private Execution authorize(Integer id) throws JobException {
-    Execution execution = executionFacade.findById(id);
-    if (execution == null) {
-      throw new JobException(RESTCodes.JobErrorCode.JOB_EXECUTION_NOT_FOUND, Level.FINE,
-        "execution with id: " + id + " does not belong to job: " + job.getName() + " or does not exist");
-    } else {
-      if (!job.getExecutions().contains(execution)) {
-        throw new JobException(RESTCodes.JobErrorCode.UNAUTHORIZED_EXECUTION_ACCESS, Level.FINE);
-      }
-    }
-    return execution;
-  }
-  
-  
-  public enum Action {
-    START("start"),
-    STOP("stop");
+  public enum Status {
+    STOPPED("stopped");
     
     private final String name;
     
-    Action(String name) {
+    Status(String name) {
       this.name = name;
     }
     
-    public static Action fromString(String name) {
+    public static Status fromString(String name) {
       return valueOf(name.toUpperCase());
     }
     

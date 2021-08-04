@@ -16,222 +16,193 @@
 
 <div ng-controller="MainCtrl as mainCtrl">
     <div ng-include="'nav.html'"></div>
-    <div id="wrapper" class="toggled" ng-controller="featurestoreCtrl as featurestoreCtrl">
+    <div id="wrapper" ng-class="{'toggled': projectCtrl.isClosed}" ng-controller="featurestoreCtrl as featurestoreCtrl">
         <div class="overlay"></div>
         <div ng-include="'navProject.html'"></div>
-        <div class="content-wrapper">
+        <div ng-if="mainCtrl.showSearchPage" class="content-wrapper">
+            <div id="projectSearchResults">
+                <div ng-include="'views/search/search.html'"></div>
+            </div>
+        </div>
+        <div ng-if="featurestoreCtrl.showPreview" class="content-wrapper">
+            <div ng-include="'views/featuregroupPreview.html'"></div>
+        </div>
+        <div class="content-wrapper" ng-if="featurestoreCtrl.showStatistics && !mainCtrl.showSearchPage">
+            <fs-statistics project-id="featurestoreCtrl.projectId"
+                           feature-group="featurestoreCtrl.fgStatistics"
+                           training-dataset="featurestoreCtrl.tdStatistics"
+                           close="featurestoreCtrl.closeStatistics()"></fs-statistics>
+        </div>
+        <div class="content-wrapper" 
+             ng-show="!featurestoreCtrl.showPreview && !featurestoreCtrl.showStatistics && !mainCtrl.showSearchPage">
+            <div style="background: #FFFFFF; border: 1px solid #21B182; box-sizing: border-box; width: 100%; padding: 20px 12px; margin-bottom: 40px;">A new Hopsworks is available in beta version! <a href="/" style="background: #21B182; padding: 10px 16px; color: white; font-weight: bold; text-decoration: none; margin-left: 20px;">Try out the new Hopsworks</a></div>
+            <h3 id="projectBread" style="border-bottom: none"></h3>
             <div ng-if="featurestoreCtrl.loading" class="loadingwrap" style="z-index: 105">
                 <div class="loading-content">
                     <div class="loader-in-wrap"></div>
                     {{featurestoreCtrl.loadingText}}
                 </div>
             </div>
-            <span style="float: right;margin-top: 7px;" class="glyphicon glyphicon-refresh fa-2x"
-                  ng-click="featurestoreCtrl.refresh()"> </span>
-            <uib-tabset active="featurestoreSelectedTab">
-                <uib-tab index="0" heading="Feature Groups"
-                         uib-tooltip="A Feature Group is a Logical Grouping of Features."
-                         class="fs-tab"
-                         id="featuregroupsTab"
-                >
-                    <h2 style="margin-bottom: 30px; color:#555" id="featuregroupsHeading">
-                        Feature Groups
-                        <!-- <button type="button" ng-click="featurestoreCtrl.showCreateFeaturegroupForm()"
-                                class="btn btn-default btn-success control-label pull-right"
-                                uib-tooltip="Create new Feature Group"
-                                id="createNewFg"
-                        >
-                            Create New Feature Group
-                            <i style="margin-left: 10px" class="glyphicon glyphicon-plus">
-                            </i>
-                        </button> -->
-                    </h2>
+            <span style="float: right;" class="glyphicon glyphicon-refresh fa-2x"
+                  ng-click="featurestoreCtrl.refresh()"></span>
+            <uib-tabset active="featurestoreCtrl.featurestoreSelectedTab">
+                <uib-tab index="0" heading="Feature Groups" uib-tooltip="A Feature Group is a Logical Grouping of Features." class="fs-tab" id="featuregroupsTab">
 
-                    <h3 class="text-muted" style="text-align: center;"
-                        ng-show="featurestoreCtrl.featuregroupsDictList.length < 1">
-                        No Feature Groups to show
-                    </h3>
+                    <section ng-controller="featuregroupViewInfoCtrl as featuregroupViewInfoCtrl" class="fs-content" ng-class="{'sidenav-open': featuregroupViewInfoCtrl.tgState}">
+                        <div>
+                            <button type="button" ng-click="featurestoreCtrl.showCreateFeaturegroupForm()" class="btn btn-default btn-success control-label" uib-tooltip="Create new Feature Group" id="createNewFg" style="margin-top: 10px; margin-bottom: 10px;">
+                                New
+                                <i style="margin-left: 10px" class="glyphicon glyphicon-plus"></i>
+                            </button>
 
-                    <div class="row form-inline" ng-show="featurestoreCtrl.featuregroupsDictList.length > 0">
-                        <div class="col-sm-9 form-group">
-                            <label style="color:#555">
-                                Search:
-                                <input class="form-control"
-                                       style="margin-left: 10px;"
-                                       ng-model="featurestoreCtrl.fgFilter">
-                                <md-datepicker ng-model="featurestoreCtrl.featuregroupsFromDate"
-                                               md-placeholder="From"></md-datepicker>
-                                <md-datepicker ng-model="featurestoreCtrl.featuregroupsToDate"
-                                               md-placeholder="To"></md-datepicker>
-                            </label>
-                        </div>
-                        <div class="col-sm-3 form-group">
-                            <div class="pull-right btn-group">
-                                <label>Feature Groups per page:
-                                    <input type="number" min="1"
-                                           max="50"
-                                           class="form-control" ng-model="featurestoreCtrl.featuregroupsPageSize"
-                                           style="width:80px">
-                                </label>
-                            </div>
-                        </div>
-                    </div>
+                            <h3 class="text-muted" style="text-align: center;" ng-show="featurestoreCtrl.featuregroupsDictList.length < 1">
+                                No Feature Groups to show
+                            </h3>
 
-                    <table class="table table-hover" ng-show="featurestoreCtrl.featuregroupsDictList.length > 0">
-                        <thead>
-                        <tr>
-                            <th style="width: 30%" ng-click="featurestoreCtrl.featuregroupsSort('name')"
-                                class="fs-table">
-                                Name
-                                <span class="glyphicon sort-icon"
-                                      ng-show="featurestoreCtrl.featuregroupsSortKey == 'name'"
-                                      ng-class="{'glyphicon-chevron-up':featurestoreCtrl.featuregroupsReverse,'glyphicon-chevron-down':!featurestoreCtrl.featuregroupsReverse}"></span>
-                            </th>
-                            <th style="width: 20%" ng-click="featurestoreCtrl.featuregroupsSort('created')"
-                                class="fs-table">
-                                Created
-                                <span class="glyphicon sort-icon"
-                                      ng-show="featurestoreCtrl.featuregroupsSortKey == 'created'"
-                                      ng-class="{'glyphicon-chevron-up':featurestoreCtrl.featuregroupsReverse,'glyphicon-chevron-down':!featurestoreCtrl.featuregroupsReverse}"></span>
-                            </th>
-                            <th style="width: 10%" ng-click="featurestoreCtrl.featuregroupsSort('featuregroupType')"
-                                class="fs-table">
-                                Type
-                                <i class="fa fa-info-circle" tooltip-placement="auto left"
-                                   uib-tooltip="The type of the Feature Group. Cached Feature Groups are stored in Hopsworks (Hive for Historical data and MySQL Cluster for Online data).
-                                   On-Demand Feature Groups are computed dynamically using an JDBC Connection and SQL."
-                                   style="margin-left: 10px"></i>
-                                <span class="glyphicon sort-icon"
-                                      ng-show="featurestoreCtrl.featuregroupsSortKey == 'featuregroupType'"
-                                      ng-class="{'glyphicon-chevron-up':featurestoreCtrl.featuregroupsReverse,'glyphicon-chevron-down':!featurestoreCtrl.featuregroupsReverse}"></span>
-                            </th>
-                            <th style="width: 10%" class="fs-table"
-                                ng-click="featurestoreCtrl.featuregroupsSort('onlineEnabled')">
-                                Online
-                                <i class="fa fa-info-circle" tooltip-placement="auto left"
-                                   uib-tooltip="Feature groups that have the online-flag enabled can be used for real-time serving of features."
-                                   style="margin-left: 10px"></i>
-                                <span class="glyphicon sort-icon"
-                                      ng-show="featurestoreCtrl.featuregroupsSortKey == 'onlineEnabled'"
-                                      ng-class="{'glyphicon-chevron-up':featurestoreCtrl.featuregroupsReverse,'glyphicon-chevron-down':!featurestoreCtrl.featuregroupsReverse}"></span>
-                            </th>
-                            <th style="width: 10%" class="fs-table">
-                                Version
-                            </th>
-                            <th style="width: 10%" id="fgActionCol" class="fs-table">
-                                Actions
-                            </th>
-                        </tr>
-                        </thead>
-                        <tbody class="table-hover">
-                        <tr
-                                dir-paginate="featuregroup in featurestoreCtrl.featuregroupsDictList| orderBy :featurestoreCtrl.featuregroupsSortFn:featurestoreCtrl.featuregroupsReverse | dateRangeFilterFeaturegroups : featurestoreCtrl.featuregroupsFromDate : featurestoreCtrl.featuregroupsToDate | filter:featurestoreCtrl.fgFilter:false | itemsPerPage:featurestoreCtrl.featuregroupsPageSize"
-                                pagination-id="featuregroupstable"
-                                class="fs-table">
-                            <td class="fs-table">{{featuregroup.name}}</td>
-                            <td class="fs-table">
-                                {{featurestoreCtrl.createdOn(featuregroup.versionToGroups[featuregroup.activeVersion].created)}}
-                            </td>
-                            <td class="fs-table">
-                                <span ng-if="featuregroup.versionToGroups[featuregroup.activeVersion].featuregroupType == featurestoreCtrl.onDemandFeaturegroupType">
-                                    ON DEMAND
-                                </span>
-                                <span ng-if="featuregroup.versionToGroups[featuregroup.activeVersion].featuregroupType == featurestoreCtrl.cachedFeaturegroupType">
-                                    CACHED
-                                </span>
-                            </td>
-                            <td class="fs-table">
-                                <span
-                                        ng-if="!featuregroup.versionToGroups[featuregroup.activeVersion].featuregroupType == featurestoreCtrl.cachedFeaturegroupType || !featuregroup.versionToGroups[featuregroup.activeVersion].onlineFeaturegroupEnabled">
-                                    No
-                                </span>
-                                <span
-                                        ng-if="featuregroup.versionToGroups[featuregroup.activeVersion].featuregroupType == featurestoreCtrl.cachedFeaturegroupType && featuregroup.versionToGroups[featuregroup.activeVersion].onlineFeaturegroupEnabled">
-                                    Yes
-                                </span>
-                            </td>
-                            <td class="fs-table">
-                                <ui-select ng-model="featuregroup.activeVersion"
-                                           style="z-index: {{100-$index}}">
-                                    <ui-select-match
-                                            placeholder="Select a version">
-                                        <span>{{$select.selected}}</span>
-                                    </ui-select-match>
-                                    <ui-select-choices repeat="version in featuregroup.versions">
-                                        <span ng-bind="version"></span>
-                                    </ui-select-choices>
-                                </ui-select>
-                            </td>
-                            <td class="fs-table">
-                                <div class="btn-group fs-btn" role="group">
-                                    <button class="btn btn-primary btn-default glyphicon glyphicon glyphicon-stats"
-                                            style="background-color: rgb(51, 122, 183)"
-                                            uib-tooltip="View statistics"
-                                            ng-disabled="featuregroup.versionToGroups[featuregroup.activeVersion].featuregroupType === featurestoreCtrl.onDemandFeaturegroupType"
-                                            ng-click="featurestoreCtrl.viewFeaturegroupStatistics(featuregroup.versionToGroups[featuregroup.activeVersion]); $event.stopPropagation();"></button>
-                                    <button class="btn btn-danger glyphicon glyphicon-trash"
-                                            uib-tooltip="Delete"
-                                            ng-click="featurestoreCtrl.deleteFeaturegroup(featuregroup.versionToGroups[featuregroup.activeVersion]); $event.stopPropagation();"></button>
-                                    <div uib-dropdown class="btn-group" role="group"
-                                         style="z-index: auto;">
-                                        <button type="button"
-                                                uib-dropdown-toggle
-                                                class="btn btn-default glyphicon"
-                                                style="font-family: sans-serif;"
-                                        >
-                                            More
-                                            <span class="caret"></span>
-                                        </button>
-                                        <ul uib-dropdown-menu
-                                            class="dropdown-menu dropdown-menu-right"
-                                            style="font-family: sans-serif;">
-                                            <li><a role="menuitem"
-                                                   ng-click="featurestoreCtrl.newFeaturegroupVersion(featuregroup.versionToGroups, featuregroup.versions); $event.stopPropagation();">
-                                                Create new Feature Group version</a></li>
-                                            <li><a role="menuitem"
-                                                   ng-click="featurestoreCtrl.updateFeaturegroup(featuregroup.versionToGroups[featuregroup.activeVersion]); $event.stopPropagatphicion();">
-                                                Edit Feature Group</a></li>
-                                            <li><a role="menuitem"
-                                                   ng-click="featurestoreCtrl.viewFeaturegroupInfo(featuregroup.versionToGroups[featuregroup.activeVersion]);">
-                                                View Feature Group details</a></li>
-					    <li><a role="menuitem"
-                                                   ng-click="featurestoreCtrl.goToDataValidation(featuregroup);">
-                                                Data validation</a></li>
-                                        </ul>
+                            <div class="row form-inline" ng-show="featurestoreCtrl.featuregroupsDictList.length > 0">
+                                <div class="col-sm-9 form-group">
+                                    <label style="color:#555">
+                                        Search:
+                                        <input class="form-control" style="margin-left: 10px;" ng-model="featurestoreCtrl.fgFilter">
+                                        <md-datepicker ng-model="featurestoreCtrl.featuregroupsFromDate" md-placeholder="From"></md-datepicker>
+                                        <md-datepicker ng-model="featurestoreCtrl.featuregroupsToDate" md-placeholder="To"></md-datepicker>
+                                    </label>
+                                </div>
+                                <div class="col-sm-3 form-group">
+                                    <div class="pull-right btn-group" style="padding-right:30px;">
+                                        <label>Hits per page:
+                                            <input type="number" min="1"
+                                                   max="50"
+                                                   class="form-control" ng-model="featurestoreCtrl.featuregroupsPageSize"
+                                                   style="width:80px">
+                                        </label>
                                     </div>
                                 </div>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                    <dir-pagination-controls
-                            pagination-id="featuregroupstable"
-                            class="pull-right"
-                            max-size="5"
-                            direction-links="true"
-                            boundary-links="true"
-                    >
-                    </dir-pagination-controls>
+                            </div>
+
+                            <div class="table-responsive" style="overflow: hidden; padding-right: 35px;">
+                            <table class="table table-hover" ng-show="featurestoreCtrl.featuregroupsDictList.length > 0">
+                                <thead>
+                                <tr>
+                                    <th style="width: 17%" ng-click="featurestoreCtrl.featuregroupsSort('name')" class="fs-table">
+                                        Name
+                                        <span class="glyphicon sort-icon" ng-show="featurestoreCtrl.featuregroupsSortKey == 'name'" ng-class="{'glyphicon-chevron-up':featurestoreCtrl.featuregroupsReverse,'glyphicon-chevron-down':!featurestoreCtrl.featuregroupsReverse}"></span>
+                                    </th>
+                                    <th style="width: 35%" ng-click="featurestoreCtrl.featuregroupsSort('description')" class="fs-table">
+                                        Description
+                                        <span class="glyphicon sort-icon" ng-show="featurestoreCtrl.featuregroupsSortKey == 'description'" ng-class="{'glyphicon-chevron-up':featurestoreCtrl.featuregroupsReverse,'glyphicon-chevron-down':!featurestoreCtrl.featuregroupsReverse}"></span>
+                                    </th>
+
+                                    <th style="width: 20%" ng-click="featurestoreCtrl.featuregroupsSort('created')" class="fs-table">
+                                        Created
+                                        <span class="glyphicon sort-icon" ng-show="featurestoreCtrl.featuregroupsSortKey == 'created'" ng-class="{'glyphicon-chevron-up':featurestoreCtrl.featuregroupsReverse,'glyphicon-chevron-down':!featurestoreCtrl.featuregroupsReverse}"></span>
+                                    </th>
+                                    <th style="width: 10%" ng-click="featurestoreCtrl.featuregroupsSort('featuregroupType')" class="fs-table">
+                                        Type
+                                        <i class="fa fa-info-circle" tooltip-placement="auto left" uib-tooltip="The type of the Feature Group. Cached Feature Groups are stored in Hopsworks (Hive for Historical data and MySQL Cluster for Online data).
+                                       On-Demand Feature Groups are computed dynamically using an JDBC Connection and SQL." style="margin-left: 10px"></i>
+                                        <span class="glyphicon sort-icon" ng-show="featurestoreCtrl.featuregroupsSortKey == 'featuregroupType'" ng-class="{'glyphicon-chevron-up':featurestoreCtrl.featuregroupsReverse,'glyphicon-chevron-down':!featurestoreCtrl.featuregroupsReverse}"></span>
+                                    </th>
+                                    <th style="width: 10%" class="fs-table" ng-click="featurestoreCtrl.featuregroupsSort('onlineEnabled')">
+                                        Online
+                                        <i class="fa fa-info-circle" tooltip-placement="auto left" uib-tooltip="Feature groups that have the online-flag enabled can be used for real-time serving of features." style="margin-left: 10px"></i>
+                                        <span class="glyphicon sort-icon" ng-show="featurestoreCtrl.featuregroupsSortKey == 'onlineEnabled'" ng-class="{'glyphicon-chevron-up':featurestoreCtrl.featuregroupsReverse,'glyphicon-chevron-down':!featurestoreCtrl.featuregroupsReverse}"></span>
+                                    </th>
+                                    <th style="width: 8%" class="fs-table">
+                                        Version
+                                    </th>
+                                </tr>
+                                </thead>
+                                <tbody class="table-hover">
+                                <tr dir-paginate="featuregroup in featurestoreCtrl.featuregroupsDictList | orderBy :featurestoreCtrl.featuregroupsSortFn:featurestoreCtrl.featuregroupsReverse | dateRangeFilterFeaturegroups : featurestoreCtrl.featuregroupsFromDate : featurestoreCtrl.featuregroupsToDate | filter:featurestoreCtrl.fgFilter:false | itemsPerPage:featurestoreCtrl.featuregroupsPageSize"
+                                    pagination-id="featuregroupstable" class="fs-table"
+                                    ng-click="featuregroupViewInfoCtrl.view(featurestoreCtrl, featuregroup, true); $event.stopPropagation();"
+                                    ng-class="{'active':(featuregroup.versionToGroups[featuregroup.activeVersion].id===featuregroupViewInfoCtrl.selectedFeaturegroup.id) && featuregroupViewInfoCtrl.tgState}">
+                                    <td class="fs-table">{{featuregroup.name}}</td>
+                                    <td class="fs-table">
+                                        {{featuregroup.versionToGroups[featuregroup.activeVersion].description | strLimit:200: '...' }}
+                                    </td>
+
+                                    <td class="fs-table">
+                                        {{featuregroup.versionToGroups[featuregroup.activeVersion].created | date:'medium' }}
+                                    </td>
+                                    <td class="fs-table">
+                                        <span ng-if="featuregroup.versionToGroups[featuregroup.activeVersion].type == 'onDemandFeaturegroupDTO'">
+                                            ON DEMAND
+                                        </span>
+                                        <span ng-if="featuregroup.versionToGroups[featuregroup.activeVersion].type == 'cachedFeaturegroupDTO'">
+                                            CACHED
+                                        </span>
+                                    </td>
+                                    <td class="fs-table">
+                                        <span ng-if="!featuregroup.versionToGroups[featuregroup.activeVersion].type == 'cachedFeaturegroupDTO' || !featuregroup.versionToGroups[featuregroup.activeVersion].onlineEnabled">
+                                        No
+                                    </span>
+                                        <span ng-if="featuregroup.versionToGroups[featuregroup.activeVersion].type == 'cachedFeaturegroupDTO' && featuregroup.versionToGroups[featuregroup.activeVersion].onlineEnabled ">
+                                        Yes
+                                    </span>
+                                    </td>
+                                    <td class="fs-table">
+                                        <select class="form-control"
+                                                ng-model="featuregroup.activeVersion"
+                                                ng-click="$event.stopPropagation();"
+                                                ng-change="featuregroupViewInfoCtrl.view(featurestoreCtrl, featuregroup, false); $event.stopPropagation();"
+                                                style="z-index: {{100-$index}}">
+                                            <option ng-repeat="version in featuregroup.versions">{{version}}</option>
+                                        </select>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                            <dir-pagination-controls pagination-id="featuregroupstable" class="pull-right" max-size="5" direction-links="true" boundary-links="true">
+                            </dir-pagination-controls>
+
+                            </div>
+
+                            <div class="fs-sidenav" ng-class="{open: featuregroupViewInfoCtrl.tgState}">
+                                <div class="ibox float-e-margins" style="margin-top: 0px; margin-bottom: 0px;">
+                                    <div>
+                                        <md-content class="md-padding" style="padding-top: 0px;">
+                                            <md-tabs md-dynamic-height md-border-bottom md-no-pagination="true" md-center-tabs="true">
+                                                <md-tab label="Details">
+                                                    <div ng-include="'views/featuregroupViewInfo.html'"></div>
+                                                </md-tab>
+                                                <md-tab label="Tags" ng-if="featurestoreCtrl.isEnterprise">
+                                                    <tags project-id="featurestoreCtrl.projectId"
+                                                          featurestore="featurestoreCtrl.featurestore"
+                                                          attached-tags="featuregroupViewInfoCtrl.attachedTags"
+                                                          loading-tags="featuregroupViewInfoCtrl.loadingTags"
+                                                          add-tag="featuregroupViewInfoCtrl.addTag(name, value)"
+                                                          delete-tag="featuregroupViewInfoCtrl.deleteTag(name)">
+                                                    </tags>
+                                                </md-tab>
+                                            </md-tabs>
+                                        </md-content>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </section>
+
                 </uib-tab>
 
                 <uib-tab index="1" heading="Training Datasets"
                          class="fs-tab"
                          uib-tooltip="A Training Dataset is an immutable dataset for Machine Learning Experiments."
-                         id="trainingDatasetsTab"
-                >
-                    <h2 style="margin-bottom: 30px; color:#555">
-                        Training Datasets
+                         id="trainingDatasetsTab">
 
-                        <!-- <button type="button" ng-click="featurestoreCtrl.showCreateTrainingDatasetForm()"
-                                class="btn btn-default btn-success control-label pull-right"
-                                uib-tooltip="Create new Training Dataset"
-                                id="createNewTd"
-                        >
-                            Create New Training Dataset
-                            <i style="margin-left: 10px" class="glyphicon glyphicon-plus">
-                            </i>
-                        </button> -->
-                    </h2>
+                    <section ng-controller="trainingDatasetViewInfoCtrl as trainingDatasetViewInfoCtrl" class="fs-content" ng-class="{'sidenav-open': trainingDatasetViewInfoCtrl.tgState}">
+                        <div>
+
+                    <button type="button" ng-click="featurestoreCtrl.showCreateTrainingDatasetForm()"
+                            class="btn btn-default btn-success control-label"
+                            uib-tooltip="Create new Training Dataset"
+                            id="createNewTd"
+                            style="margin-top: 10px; margin-bottom: 10px;">
+                        New 
+                        <i style="margin-left: 10px" class="glyphicon glyphicon-plus"></i>
+                    </button>
 
                     <h3 class="text-muted" style="text-align: center;"
                         ng-show="featurestoreCtrl.trainingDatasetsDictList.length < 1">
@@ -263,8 +234,8 @@
                             </label>
                         </div>
                         <div class="col-sm-3 form-group">
-                            <div class="pull-right btn-group">
-                                <label>Training Datasets per page:
+                            <div class="pull-right btn-group" style="padding-right:30px;">
+                                <label>Hits per page:
                                     <input type="number" min="1"
                                            max="50"
                                            class="form-control" ng-model="featurestoreCtrl.trainingDatasetsPageSize"
@@ -272,38 +243,36 @@
                                 </label>
                             </div>
                         </div>
-                        <!-- ADD HERE -->
-                        <div class="col-sm-6 col-md-6 col-lg-6 form-group">
-                            <button style="margin-left: 65%" type="button" ng-click="featurestoreCtrl.showCreateTrainingDatasetForm()"
-                                    class="btn btn-default btn-success control-label" style="margin-bottom: 10px"
-                                    uib-tooltip="Create new training dataset" ,
-                                    id="createNewTd"
-                            >
-                                Create New Training Dataset<i style="margin-left: 10px"
-                                                            class="glyphicon glyphicon-plus">
-                            </i>
-                            </button>
-                        </div> 
                     </div>
 
+                            <div class="table-responsive" style="overflow: hidden; padding-right: 35px;">
                     <table class="table table-hover" ng-show="featurestoreCtrl.trainingDatasetsDictList.length > 0">
                         <thead>
                         <tr>
-                            <th style="width: 30%" ng-click="featurestoreCtrl.trainingDatasetsSort('name')"
+                            <th style="width: 17%" ng-click="featurestoreCtrl.trainingDatasetsSort('name')"
+
                                 class="fs-table">
                                 Name
                                 <span class="glyphicon sort-icon"
                                       ng-show="featurestoreCtrl.trainingDatasetsSortKey == 'name'"
                                       ng-class="{'glyphicon-chevron-up':featurestoreCtrl.trainingDatasetsReverse,'glyphicon-chevron-down':!featurestoreCtrl.trainingDatasetsReverse}"></span>
                             </th>
-                            <th style="width: 15%" ng-click="featurestoreCtrl.trainingDatasetsSort('created')"
+                            <th style="width: 35%" ng-click="featurestoreCtrl.trainingDatasetsSort('description')"
+                                class="fs-table">
+                                Description
+                                <span class="glyphicon sort-icon"
+                                      ng-show="featurestoreCtrl.trainingDatasetsSortKey== 'description'"
+                                      ng-class="{'glyphicon-chevron-up':featurestoreCtrl.trainingDatasetsReverse,'glyphicon-chevron-down':!featurestoreCtrl.trainingDatasetsReverse}"></span>
+                            </th>
+
+                            <th style="width: 20%" ng-click="featurestoreCtrl.trainingDatasetsSort('created')"
                                 class="fs-table">
                                 Created
                                 <span class="glyphicon sort-icon"
                                       ng-show="featurestoreCtrl.trainingDatasetsSortKey == 'created'"
                                       ng-class="{'glyphicon-chevron-up':featurestoreCtrl.trainingDatasetsReverse,'glyphicon-chevron-down':!featurestoreCtrl.trainingDatasetsReverse}"></span>
                             </th>
-                            <th style="width: 20%"
+                            <th style="width: 10%"
                                 ng-click="featurestoreCtrl.trainingDatasetsSort('trainingDatasetType')"
                                 class="fs-table">
                                 Storage Type
@@ -317,7 +286,7 @@
                                       ng-show="featurestoreCtrl.trainingDatasetsSortKey == 'trainingDatasetType'"
                                       ng-class="{'glyphicon-chevron-up':featurestoreCtrl.trainingDatasetsReverse,'glyphicon-chevron-down':!featurestoreCtrl.trainingDatasetsReverse}"></span>
                             </th>
-                            <th style="width: 15%" ng-click="featurestoreCtrl.trainingDatasetsSort('dataFormat')"
+                            <th style="width: 10%" ng-click="featurestoreCtrl.trainingDatasetsSort('dataFormat')"
                                 class="fs-table">
                                 Data Format
                                 <i class="fa fa-info-circle" tooltip-placement="auto left"
@@ -327,11 +296,8 @@
                                       ng-show="featurestoreCtrl.trainingDatasetsSortKey == 'dataFormat'"
                                       ng-class="{'glyphicon-chevron-up':featurestoreCtrl.trainingDatasetsReverse,'glyphicon-chevron-down':!featurestoreCtrl.trainingDatasetsReverse}"></span>
                             </th>
-                            <th style="width: 10%" class="fs-table">
+                            <th style="width: 8%" class="fs-table">
                                 Version
-                            </th>
-                            <th style="width: 10%" id="tdActionCol" class="fs-table">
-                                Actions
                             </th>
                         </tr>
                         </thead>
@@ -339,10 +305,15 @@
                         <tr
                                 dir-paginate="td in featurestoreCtrl.trainingDatasetsDictList| orderBy :featurestoreCtrl.trainingDatasetSortFn:featurestoreCtrl.trainingDatasetsReverse | dateRangeFilterFeaturegroups : featurestoreCtrl.trainingDatasetsFromDate : featurestoreCtrl.trainingDatasetsToDate | filter:featurestoreCtrl.tdFilter:false | itemsPerPage:featurestoreCtrl.trainingDatasetsPageSize"
                                 pagination-id="trainingdatasetstable"
+                                ng-click="trainingDatasetViewInfoCtrl.view(featurestoreCtrl, td, true);"
+                                ng-class="{'active':(td.versionToGroups[td.activeVersion].id===trainingDatasetViewInfoCtrl.selectedTrainingDataset.id) && trainingDatasetViewInfoCtrl.tgState}"
                                 class="fs-table">
                             <td class="fs-table">{{td.name}}</td>
                             <td class="fs-table">
-                                {{featurestoreCtrl.createdOn(td.versionToGroups[td.activeVersion].created)}}
+                                {{td.versionToGroups[td.activeVersion].description | strLimit:200: '...' }}
+                            </td>
+                            <td class="fs-table">
+                                {{td.versionToGroups[td.activeVersion].created | date:'medium' }}
                             </td>
                             <td class="fs-table">
                                 <span
@@ -356,51 +327,13 @@
                             </td>
                             <td class="fs-table">{{td.versionToGroups[td.activeVersion].dataFormat}}</td>
                             <td class="fs-table">
-                                <ui-select ng-model="td.activeVersion"
-                                           style="z-index: {{100-$index}}">
-                                    <ui-select-match
-                                            placeholder="Select a version">
-                                        <span>{{$select.selected}}</span>
-                                    </ui-select-match>
-                                    <ui-select-choices repeat="version in td.versions">
-                                        <span ng-bind="version"></span>
-                                    </ui-select-choices>
-                                </ui-select>
-                            </td>
-                            <td class="fs-table">
-                                <div class="btn-group fs-btn" role="group">
-                                    <button class="btn btn-primary btn-default glyphicon glyphicon glyphicon-stats"
-                                            style="background-color: rgb(51, 122, 183)"
-                                            uib-tooltip="View statistics"
-                                            ng-click="featurestoreCtrl.viewTrainingDatasetStatistics(td.versionToGroups[td.activeVersion]); $event.stopPropagation();"></button>
-                                    <button class="btn btn-danger glyphicon glyphicon-trash"
-                                            uib-tooltip="Delete"
-                                            ng-click="featurestoreCtrl.deleteTrainingDataset(td.versionToGroups[td.activeVersion]); $event.stopPropagation();"></button>
-                                    <div uib-dropdown class="btn-group" role="group"
-                                         style="z-index: auto;">
-                                        <button type="button"
-                                                uib-dropdown-toggle
-                                                class="btn btn-default glyphicon"
-                                                style="font-family: sans-serif;"
-                                        >
-                                            More
-                                            <span class="caret"></span>
-                                        </button>
-                                        <ul uib-dropdown-menu
-                                            class="dropdown-menu dropdown-menu-right"
-                                            style="font-family: sans-serif;">
-                                            <li><a role="menuitem"
-                                                   ng-click="featurestoreCtrl.newTrainingDatasetVersion(td.versionToGroups, td.versions); $event.stopPropagation();">
-                                                Create new Training Dataset version</a></li>
-                                            <li><a role="menuitem"
-                                                   ng-click="featurestoreCtrl.updateTrainingDatasetMetadata(td.versionToGroups[td.activeVersion]); $event.stopPropagatphicion();">
-                                                Edit Training Dataset</a></li>
-                                            <li><a role="menuitem"
-                                                   ng-click="featurestoreCtrl.viewTrainingDatasetInfo(td.versionToGroups[td.activeVersion]);">
-                                                View Training Dataset details</a></li>
-                                        </ul>
-                                    </div>
-                                </div>
+                                <select class="form-control" 
+                                        ng-model="td.activeVersion"
+                                        ng-click="$event.stopPropagation();"
+                                        ng-change="trainingDatasetViewInfoCtrl.view(featurestoreCtrl, td, false); $event.stopPropagation();"
+                                        style="z-index: {{100-$index}}">
+                                    <option ng-repeat="version in td.versions">{{version}}</option>
+                                </select>
                             </td>
                         </tr>
                         </tbody>
@@ -410,206 +343,60 @@
                             class="pull-right"
                             max-size="5"
                             direction-links="true"
-                            boundary-links="true"
-                    >
+                            boundary-links="true">
                     </dir-pagination-controls>
+                            </div>
+
+                    <div class="fs-sidenav" ng-class="{open: trainingDatasetViewInfoCtrl.tgState}">
+                        <div class="ibox float-e-margins" style="margin-top: 0px; margin-bottom: 0px;">
+                            <div>
+                                <md-content class="md-padding" style="padding-top: 0px;">
+                                    <md-tabs md-dynamic-height md-border-bottom md-no-pagination="true" md-center-tabs="true">
+                                        <md-tab label="Details">
+                                            <div ng-include="'views/trainingDatasetViewInfo.html'"></div>
+                                        </md-tab>
+                                        <md-tab label="Tags" ng-if="featurestoreCtrl.isEnterprise">
+                                            <span ng-if="trainingDatasetViewInfoCtrl.selectedTrainingDataset.trainingDatasetType == featurestoreCtrl.hopsfsTrainingDatasetType">
+                                                <tags project-id="featurestoreCtrl.projectId"
+                                                      featurestore="featurestoreCtrl.featurestore"
+                                                      attached-tags="trainingDatasetViewInfoCtrl.attachedTags"
+                                                      loading-tags="trainingDatasetViewInfoCtrl.loadingTags"
+                                                      add-tag="trainingDatasetViewInfoCtrl.addTag(name, value)"
+                                                      delete-tag="trainingDatasetViewInfoCtrl.deleteTag(name)">
+                                                </tags>
+                                            </span>
+                                            <div style="margin-left: 10px" ng-show="!(trainingDatasetViewInfoCtrl.selectedTrainingDataset.trainingDatasetType == featurestoreCtrl.hopsfsTrainingDatasetType)">
+                                                <h3 style="text-align:center;">Tags not supported for </h3>
+                                                <p style="text-align:center; margin-top:20px;">{{trainingDatasetViewInfoCtrl.selectedTrainingDataset.trainingDatasetType}}</p>
+                                            </div>
+                                        </md-tab>
+                                    </md-tabs>
+                                </md-content>
+                            </div>
+                        </div>
+                    </div>
+
+                        </div>
+                    </section>
+
+
                 </uib-tab>
 
 
                 <uib-tab index="2" heading="Feature Search"
                          class="fs-tab"
-                         uib-tooltip="Search for features in feature groups and training datasets by name."
-                         id="featuresTab"
-                >
-
-                    <div>
-                        <h2 style="margin-bottom: 30px;color:#555">
-                            Feature Search
-                        </h2>
-                        <div>
-                            <div class="row form-inline">
-                                <div class="col-sm-9 form-group">
-                                    <label style="color:#555">
-                                        Search:
-                                        <input class="form-control"
-                                               style="margin-left: 10px;"
-                                               ng-model="featurestoreCtrl.fFilter"
-                                               placeholder="Search for a feature"
-                                        >
-                                        <md-datepicker ng-model="featurestoreCtrl.featuresFromDate"
-                                                       md-placeholder="From"></md-datepicker>
-                                        <md-datepicker ng-model="featurestoreCtrl.featuresToDate"
-                                                       md-placeholder="To"></md-datepicker>
-                                    </label>
-                                </div>
-                                <div class="col-sm-3 form-group">
-                                    <div class="pull-right btn-group">
-                                        <label>Features per page:
-                                            <input type="number" min="1"
-                                                   max="50"
-                                                   class="form-control" ng-model="featurestoreCtrl.featuresPageSize"
-                                                   style="width:80px">
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row" style="margin-left:15px; margin-top:10px">
-                                <div>
-                                    <label ng-click="featurestoreCtrl.setFeatureSearchFilterForm();"
-                                           style="color:#555">
-                                        <span class="glyphicon glyphicon-chevron-right"
-                                              ng-if="!featurestoreCtrl.featureSearchFilterForm"></span>
-                                        <span class="glyphicon glyphicon-chevron-down"
-                                              ng-if="featurestoreCtrl.featureSearchFilterForm"></span>
-                                        Search Settings</label>
-                                </div>
-                                <div ng-if="featurestoreCtrl.featureSearchFilterForm" class="animate-if">
-
-                                    <div class="form-group">
-                                        <md-checkbox class="md-primary"
-                                                     ng-checked="featurestoreCtrl.searchInFeaturegroups"
-                                                     ng-click="featurestoreCtrl.setSearchInFeaturegroups()"
-                                                     aria-label="Search in Feature Groups"
-                                                     dir="rtl"
-                                        >
-                                            Search in Feature Groups
-                                        </md-checkbox>
-                                        <br>
-                                        <md-checkbox class="md-primary"
-                                                     ng-checked="featurestoreCtrl.searchInTrainingDatasets"
-                                                     ng-click="featurestoreCtrl.setSearchInTrainingDatasets()"
-                                                     aria-label="Search in Training Datasets"
-                                                     dir="rtl"
-                                        >
-                                            Search in Training Datasets
-                                        </md-checkbox>
-                                        <br>
-                                        <form class="form-inline">
-                                            <div class="form-group">
-                                                Feature Group/Training Dataset Filter:
-                                                <input class="form-control" style="margin-left: 10px"
-                                                       ng-model="featurestoreCtrl.featureSearchFgFilter">
-                                            </div>
-                                        </form>
-                                        <form class="form-inline">
-                                            <div class="form-group">
-                                                Version Filter:
-                                                <input class="form-control" style="margin-left: 154px"
-                                                       ng-model="featurestoreCtrl.featureSearchFgVersionFilter">
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div>
-                                <div class="row search-result-header">
-                                    <div class="col-md-11 pull-left">
-                                        <h3>{{filteredResults.length}} Results found <span
-                                                ng-if="featurestoreCtrl.fFilter != ''">
-                                        for: {{featurestoreCtrl.fFilter | limitTo: 85 }} {{featurestoreCtrl.fFilter > 85 ? '...' : ''}}
-                                        </span>
-                                        </h3>
-                                    </div>
-                                </div>
-                                <table class="table table-hover">
-                                    <thead>
-                                    <tr>
-                                        <th style="width: 15%"
-                                            class="fs-table">
-                                            Created
-                                        </th>
-                                        <th style="width: 15%"
-                                            class="fs-table">
-                                            Origin
-                                        </th>
-                                        <th style="width: 25%"
-                                            class="fs-table">
-                                            Name
-                                        </th>
-                                        <th style="width: 10%"
-                                            class="fs-table"> Type
-                                        </th>
-                                        <th style="width: 20%"
-                                            class="fs-table">
-                                            Feature Group/Training Dataset
-                                        </th>
-                                        <th style="width: 5%"
-                                            class="fs-table">
-                                            Version
-                                        </th>
-                                        <th style="width: 10%"
-                                            class="fs-table">
-                                            Actions
-                                        </th>
-                                    </tr>
-                                    </thead>
-                                    <tbody class="table-hover">
-                                    <tr
-                                            dir-paginate="result in ((filteredResults = (featurestoreCtrl.features | orderBy:featurestoreCtrl.featuresSortKey:featurestoreCtrl.featuresReverse | dateRangeFilterFeatures : featurestoreCtrl.featuresFromDate : featurestoreCtrl.featuresToDate | filter: (!featurestoreCtrl.searchInFeaturegroups || '') && { entity: '!' + 1} | filter: (!featurestoreCtrl.searchInTrainingDatasets || '') && { entity: '!' + 0} | filter:{name:featurestoreCtrl.fFilter}:false | featureSearchFilterByFg:featurestoreCtrl.featureSearchFgFilter:false | featureSearchFilterByFgVersion:featurestoreCtrl.featureSearchFgVersionFilter:false)) | itemsPerPage:featurestoreCtrl.featuresPageSize)"
-                                            class="fs-table">
-                                        <td class="fs-table">
-                                            {{featurestoreCtrl.createdOn(result.date)}}
-                                        </td>
-                                        <td class="fs-table">
-                                            <span ng-if="result.entity === 1">
-                                                <i class="glyphicon glyphicon-tags"></i>
-                                                <span style="margin-left:5px">Feature Group</span>
-                                            </span>
-                                            <span ng-if="result.entity === 0">
-                                                <i class="glyphicon glyphicon-tags"></i>
-                                                <span style="margin-left:5px">Training Dataset</span>
-                                            </span>
-                                        </td>
-                                        <td class="fs-table">{{result.name}}</td>
-                                        <td class="fs-table">{{result.type}}</td>
-                                        <td class="fs-table">
-                                        <span ng-if="result.entity === 1">
-                                                {{result.featuregroup.name}}
-                                        </span>
-                                            <span ng-if="result.entity === 0">
-                                                {{result.trainingDataset.name}}
-                                        </span>
-                                        </td>
-                                        <td class="fs-table">{{result.version}}</td>
-                                        <td class="fs-table">
-                                            <div class="btn-group fs-btn" role="group">
-                                                <button uib-tooltip="Feature Details"
-                                                        type="button"
-                                                        class="btn btn-info btn-sm glyphicon glyphicon-eye-open"
-                                                        ng-click="featurestoreCtrl.viewFeatureInfo(result)"
-                                                        style="background-color:rgb(51, 122, 183); border:rgb(51, 122, 183);"
-                                                >
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    </tbody>
-                                </table>
-                                <div class="row divider" style="margin-bottom: 0px;"></div>
-                                <div class="row" style="margin-top: -20px">
-                                    <dir-pagination-controls
-                                            ng-show="(featurestoreCtrl.features.length /featurestoreCtrl.featuresPageSize) > 1 "
-                                            max-size="15"
-                                            direction-links="true"
-                                            boundary-links="true"
-                                            class="no-margin-pagination pull-right">
-                                    </dir-pagination-controls>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                         uib-tooltip="Search for features in feature groups by name."
+                         id="featuresTab">
+                    <feature-list featurestore-ctrl="featurestoreCtrl" 
+                                  features="featurestoreCtrl.fgFeatures"
+                                  featurestore="featurestoreCtrl.featurestore"
+                                  selected-feature="featurestoreCtrl.selectedFeature"></feature-list>
                 </uib-tab>
                 <uib-tab index="3" heading="Feature Store Details" class="fs-tab"
                          uib-tooltip="View Details of the Feature Store."
                          select="featurestoreCtrl.overviewTab()"
-                         id="overviewTab"
-                >
-
-                    <h2 style="margin-bottom: 30px; color:#555">
-                        Feature Store Details
-                    </h2>
-                    <div>
+                         id="overviewTab">
+                    <div style="margin-top: 10px;">
                         <div class="row" id="headRow">
                             <div class="col-sm-4">
                                 <div class="fs_card card card-inverse card-success">
@@ -619,7 +406,7 @@
                                             Features</h5>
                                         <h1 class="fs_card display-1 fs_top_card fs_top_num"
                                             style="color:#555;font-size: 2rem">
-                                            {{featurestoreCtrl.features.length}}</h1>
+                                            {{featurestoreCtrl.fgFeatures.length}}</h1>
                                     </div>
                                 </div>
                             </div>
@@ -639,9 +426,9 @@
                                 <div class="fs_card card card-inverse card-warning">
                                     <div class="fs_card card-block bg-warning">
                                         <h5 class="fs_card text-uppercase bold_fs fs_top_card fs_top_heading"
-                                            style="color:#555"
-                                        >Training
-                                            Datasets</h5>
+                                            style="color:#555">
+                                            Training Datasets
+                                        </h5>
                                         <h1 class="fs_card display-1 fs_top_card fs_top_num"
                                             style="color:#555;font-size: 2rem">
                                             {{featurestoreCtrl.trainingDatasets.length}}</h1>
@@ -671,8 +458,7 @@
                                             <ui-select ng-model="featurestoreCtrl.featurestore"
                                                        on-select="featurestoreCtrl.onSelectFeaturestoreCallback($item)"
                                                        style="z-index: 1"
-                                                       id="selectFeaturestore"
-                                            >
+                                                       id="selectFeaturestore">
                                                 <ui-select-match placeholder="Select a feature store">
                                                     <span>{{$select.selected.featurestoreName}}</span>
                                                 </ui-select-match>
@@ -693,10 +479,6 @@
                                             <li>
                                                 <span style="font-weight:700">Id:</span>
                                                 {{featurestoreCtrl.featurestore.featurestoreId}}
-                                            </li>
-                                            <li>
-                                                <span style="font-weight:700">Offline Featurestore Type:</span>
-                                                {{featurestoreCtrl.featurestore.offlineFeaturestoreType}}
                                             </li>
                                             <li>
                                                 <span style="font-weight:700">Offline Featurestore Name:</span>
@@ -720,10 +502,6 @@
                                             <li>
                                                 <span style="font-weight:700">Online Featurestore Enabled:</span>
                                                 {{featurestoreCtrl.featurestore.onlineEnabled}}
-                                            </li>
-                                            <li ng-if="featurestoreCtrl.featurestore.onlineEnabled">
-                                                <span style="font-weight:700">Online Featurestore Type:</span>
-                                                {{featurestoreCtrl.featurestore.onlineFeaturestoreType}}
                                             </li>
                                             <li ng-if="featurestoreCtrl.featurestore.onlineEnabled">
                                                 <span style="font-weight:700">Online Featurestore Name:</span>
@@ -750,6 +528,7 @@
                                 </div>
                             </div>
                             <div class="col-sm-4">
+                                <div class="fs_card card">
                                 <div id="quotaChart"
                                      ng-if="featurestoreCtrl.featurestoreHdfsQuota() != null"
                                      style="margin-left:150px">
@@ -761,6 +540,7 @@
                                         {{featurestoreCtrl.featurestoreHdfsQuota()}} used (Offline Feature Store quota).
                                     </small>
                                 </div>
+                                </div>
                             </div>
                         </div>
                         <div class="row" style="margin-top:15px">
@@ -771,21 +551,15 @@
                 <uib-tab index="4" heading="Storage Connectors"
                          class="fs-tab"
                          uib-tooltip="Connectors (e.g JDBC, HopsFS or S3)."
-                         id="connectorsTab"
-                >
-                    <h2 style="margin-bottom: 30px; color:#555">
-                        Storage Connectors
-
-                        <button type="button" ng-click="featurestoreCtrl.showAddStorageConnectorForm()"
-                                class="btn btn-default btn-success control-label pull-right"
-                                uib-tooltip="Add new storage connector"
-                                id="createNewStorageConnector"
-                        >
-                            Create New Storage Connector
-                            <i style="margin-left: 10px" class="glyphicon glyphicon-plus">
-                            </i>
-                        </button>
-                    </h2>
+                         id="connectorsTab">
+                    <button type="button" ng-click="featurestoreCtrl.showAddStorageConnectorForm()"
+                            class="btn btn-default btn-success control-label"
+                            uib-tooltip="Add new storage connector"
+                            style="margin-top: 10px; margin-bottom: 10px;"
+                            id="createNewStorageConnector">
+                        New 
+                        <i style="margin-left: 10px" class="glyphicon glyphicon-plus"></i>
+                    </button>
 
                     <h3 class="text-muted" style="text-align: center;"
                         ng-show="featurestoreCtrl.storageConnectors.length < 1">
@@ -803,7 +577,7 @@
                         </div>
                         <div class="col-sm-3 form-group">
                             <div class="pull-right btn-group">
-                                <label>Storage Connectors per page:
+                                <label>Hits per page:
                                     <input type="number" min="1"
                                            max="50"
                                            class="form-control" ng-model="featurestoreCtrl.storageConnectorsPageSize"
@@ -848,15 +622,20 @@
                         <tr
                                 dir-paginate="connector in featurestoreCtrl.storageConnectors | orderBy :featurestoreCtrl.storageConnectorsSortFn:featurestoreCtrl.storageConnectorsReverse | filter:featurestoreCtrl.scFilter:false | itemsPerPage:featurestoreCtrl.storageConnectorsPageSize"
                                 class="fs-table"
-                                pagination-id="storageconnectorstable"
-                        >
+                                pagination-id="storageconnectorstable">
                             <td class="fs-table">
                                 <i class="sub_icon fa fa-database fa-2x"
                                    ng-if="connector.storageConnectorType==featurestoreCtrl.jdbcConnectorType"></i>
+                                <i class="sub_icon fa fa-server fa-2x"
+                                   ng-if="connector.storageConnectorType==featurestoreCtrl.redshiftConnectorType"></i>
                                 <i class="sub_icon glyphicon glyphicon-folder-close fa-2x"
                                    ng-if="connector.storageConnectorType==featurestoreCtrl.hopsfsConnectorType"></i>
                                 <i class="sub_icon fa fa-cloud fa-2x"
                                    ng-if="connector.storageConnectorType==featurestoreCtrl.s3ConnectorType"></i>
+                                <i class="sub_icon glyphicon glyphicon-folder-close fa-2x"
+                                   ng-if="connector.storageConnectorType=='ADLS'"></i>
+                                <i class="sub_icon glyphicon glyphicon-folder-close fa-2x"
+                                   ng-if="connector.storageConnectorType=='SNOWFLAKE'"></i>
                             </td>
                             <td class="fs-table">{{connector.name}}</td>
                             <td class="fs-table">{{connector.storageConnectorType}}</td>
@@ -871,8 +650,7 @@
                                             type="button"
                                             class="btn btn-info glyphicon glyphicon-eye-open"
                                             ng-click="featurestoreCtrl.viewStorageConnectorInfo(connector)"
-                                            style="background-color:rgb(51, 122, 183); border:rgb(51, 122, 183);"
-                                    >
+                                            style="background-color:rgb(51, 122, 183); border:rgb(51, 122, 183);">
                                     </button>
                                     <button class="btn btn-info glyphicon glyphicon-edit" uib-tooltip="Edit"
                                             style="margin-right:-3px"
@@ -888,30 +666,28 @@
                             class="pull-right"
                             max-size="5"
                             direction-links="true"
-                            boundary-links="true"
-                    >
+                            boundary-links="true">
                     </dir-pagination-controls>
                 </uib-tab>
             </uib-tabset>
         </div>
         <!-- <tour class="ng-scope" step="featurestoreCtrl.tourService.currentStep_TourNine"
               post-tour="closeTour()"
-              ng-if="featurestoreCtrl.tourService.activeTour === 'featurestore'
-          && (featurestoreCtrl.tourService.informAndTips
-              || featurestoreCtrl.tourService.tipsOnly) && !featurestoreCtrl.loading && !projectCtrl.loading">
+              ng-if="featurestoreCtrl.tourService.activeTour === 'fs' && featurestoreCtrl.tourService.showTips
+              && !featurestoreCtrl.loading && !projectCtrl.loading">
             <virtual-step
-                    ng-if="featurestoreCtrl.tourService.activeTour === 'featurestore'"
+                    ng-if="featurestoreCtrl.tourService.activeTour === 'fs'"
                     class="ng-scope"
                     tourtip="This is the feature store registry where you can list and search for
                     features/feature groups/training datasets in the feature store as well as edit their metadata."
                     tourtip-step="0"
-                    tourtip-element="#featuregroupsHeading"
+                    tourtip-element="#featuregroupsTab"
                     tourtip-placement="bottom"
                     tourtip-next-label="Next"
                     on-proceed=""
             ></virtual-step>
             <virtual-step
-                    ng-if="featurestoreCtrl.tourService.activeTour === 'featurestore'"
+                    ng-if="featurestoreCtrl.tourService.activeTour === 'fs'"
                     class="ng-scope"
                     tourtip="This tab displays the available feature groups in the feature store.
                     A feature group is a logical grouping of a set of features."
@@ -922,7 +698,7 @@
                     on-proceed="featurestoreCtrl.goToTab(1)"
             ></virtual-step>
             <virtual-step
-                    ng-if="featurestoreCtrl.tourService.activeTour === 'featurestore'"
+                    ng-if="featurestoreCtrl.tourService.activeTour === 'fs'"
                     class="ng-scope"
                     tourtip="This tab displays the available training datasets in the feature store.
                     A training dataset is an immutable dataset of a set of features to use in machine
@@ -935,10 +711,9 @@
                     on-proceed="featurestoreCtrl.goToTab(2)"
             ></virtual-step>
             <virtual-step
-                    ng-if="featurestoreCtrl.tourService.activeTour === 'featurestore'"
+                    ng-if="featurestoreCtrl.tourService.activeTour === 'fs'"
                     class="ng-scope"
-                    tourtip="This tab allows you to search for individual features in feature groups and
-                    training datasets."
+                    tourtip="This tab allows you to search for individual features in feature groups"
                     tourtip-step="3"
                     tourtip-element="#featuresTab"
                     tourtip-placement="bottom"
@@ -946,7 +721,7 @@
                     on-proceed="featurestoreCtrl.goToTab(3)"
             ></virtual-step>
             <virtual-step
-                    ng-if="featurestoreCtrl.tourService.activeTour === 'featurestore'"
+                    ng-if="featurestoreCtrl.tourService.activeTour === 'fs'"
                     class="ng-scope"
                     tourtip="This tab gives you an overview of the Feature Store."
                     tourtip-step="4"
@@ -956,7 +731,7 @@
                     on-proceed="featurestoreCtrl.goToTab(4)"
             ></virtual-step>
             <virtual-step
-                    ng-if="featurestoreCtrl.tourService.activeTour === 'featurestore'"
+                    ng-if="featurestoreCtrl.tourService.activeTour === 'fs'"
                     class="ng-scope"
                     tourtip="This tab lists the storage connectors for the Feature Store."
                     tourtip-step="5"
@@ -966,7 +741,7 @@
                     on-proceed="featurestoreCtrl.goToTab(0)"
             ></virtual-step>
             <virtual-step
-                    ng-if="featurestoreCtrl.tourService.activeTour === 'featurestore'"
+                    ng-if="featurestoreCtrl.tourService.activeTour === 'fs'"
                     class="ng-scope"
                     tourtip="You can find the feature store datasets here."
                     tourtip-step="6"

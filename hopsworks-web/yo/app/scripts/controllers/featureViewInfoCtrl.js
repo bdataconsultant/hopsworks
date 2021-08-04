@@ -18,26 +18,21 @@
  * Controller for the Feature-Info view
  */
 angular.module('hopsWorksApp')
-    .controller('featureViewInfoCtrl', ['$uibModalInstance', '$scope', 'FeaturestoreService', 'growl', 'projectId',
-        'feature', 'featurestore', 'settings',
-        function ($uibModalInstance, $scope, FeaturestoreService, growl, projectId, feature, featurestore, settings) {
+    .controller('featureViewInfoCtrl', ['$scope',
+        function ($scope) {
 
             /**
              * Initialize controller state
              */
             //Controller Inputs
             var self = this;
-            self.projectId = projectId;
-            self.feature = feature
-            self.featurestore = featurestore;
-            self.settings = settings
             //State
+            self.selectedFeature = null;
+            self.featurestoreCtrl = null;
+            self.tgState = false;
             self.pythonCode = ""
             self.scalaCode = ""
             self.table = []
-            //Constants
-            self.cachedFeaturegroupType = self.settings.cachedFeaturegroupType
-            self.onDemandFeaturegroupType = self.settings.onDemandFeaturegroupType
 
             /**
              * Get the Python API code to retrieve the feature
@@ -53,25 +48,76 @@ angular.module('hopsWorksApp')
              */
             self.getScalaCode = function (feature) {
                 var codeStr = "import io.hops.util.Hops\n"
-                codeStr = codeStr + "Hops.getFeature('" + feature.name + "').read()"
+                codeStr = codeStr + "Hops.getFeature(\"" + feature.name + "\").read()"
                 return codeStr
             };
 
-            /**
-             * Initialization function
-             */
-            self.init= function () {
-                self.pythonCode = self.getPythonCode(self.feature)
-                self.scalaCode = self.getScalaCode(self.feature)
+            self.isToggled = function(feature) {
+                if(!self.selectedFeature || !feature) {
+                    return false;
+                } else {
+                    return self.selectedFeature.featuregroup.id === feature.featuregroup.id && self.selectedFeature.name === feature.name && self.tgState === true;
+                }
+            }
+
+            self.toggle = function(feature) {
+                if (self.selectedFeature
+                    && self.selectedFeature.featuregroup.id === feature.featuregroup.id
+                    && self.selectedFeature.name === feature.name
+                    && self.tgState === true) {
+                    self.tgState = false;
+                } else {
+                    self.tgState = true;
+                }
+            }
+
+            self.view = function(featurestoreCtrl, feature, featuregroupViewInfoCtrl) {
+                self.toggle(feature);
+
+                self.selectedFeature = feature;
+
+                self.pythonCode = self.getPythonCode(self.selectedFeature);
+                self.scalaCode = self.getScalaCode(self.selectedFeature);
+
+                //build featuregroups object
+                var featuregroups = {};
+                featuregroups.versionToGroups = {};
+                featuregroups.activeVersion = feature.featuregroup.version;
+                featuregroups.versionToGroups[feature.featuregroup.version] = feature.featuregroup;
+
+                if (typeof(featurestoreCtrl) !== 'undefined') {
+                    self.featurestoreCtrl = featurestoreCtrl;
+                    featuregroupViewInfoCtrl.view(featurestoreCtrl, featuregroups, false);
+                }
             };
 
-            /**
-             * Closes the modal
-             */
-            self.close = function () {
-                $uibModalInstance.dismiss('cancel');
+            self.viewSelected = function(featurestoreCtrl, feature) {
+                self.toggle(feature);
+
+                self.selectedFeature = feature;
+
+                self.pythonCode = self.getPythonCode(self.selectedFeature);
+                self.scalaCode = self.getScalaCode(self.selectedFeature);
+
+                //build featuregroups object
+                var featuregroups = {};
+                featuregroups.versionToGroups = {};
+                featuregroups.activeVersion = feature.featuregroup.version;
+                featuregroups.versionToGroups[feature.featuregroup.version] = feature.featuregroup;
+
+                if (typeof(featurestoreCtrl) !== 'undefined') {
+                    self.featurestoreCtrl = featurestoreCtrl;
+                    $scope.$broadcast('featuregroupSelected', {
+                        featurestoreCtrl: featurestoreCtrl,
+                        featuregroups: featurestoreCtrl.selectedFeaturegroup,
+                        toggle: true
+                    });
+                }
             };
 
-            self.init()
+            $scope.$on('featureSelected', function (event, args) {
+                self.viewSelected(args.featurestoreCtrl, args.feature);
+
+            });
         }]);
 

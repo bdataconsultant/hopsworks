@@ -38,9 +38,7 @@
  */
 package io.hops.hopsworks.common.elastic;
 
-import io.hops.hopsworks.exceptions.ServiceException;
 import io.hops.hopsworks.common.util.Settings;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
 
 import javax.ejb.EJB;
 import javax.ejb.Schedule;
@@ -56,7 +54,7 @@ public class ElasticCleaner {
   private final static Logger LOGGER = Logger.getLogger(ElasticCleaner.class.getName());
 
   @EJB
-  ElasticController elasticContoller;
+  ElasticClientController elasticClientCtrl;
   @EJB
   Settings settings;
 
@@ -65,33 +63,29 @@ public class ElasticCleaner {
    *
    * @param timer timer
    */
-  @Schedule(persistent = false,
-      minute = "0",
-      hour = "1")
+  @Schedule(persistent = false, minute = "0", hour = "1")
   public void deleteLogIndices(Timer timer) {
     LOGGER.log(Level.INFO, "Running ElasticCleaner.");
     //Get all log indices
     try {
-      Map<String, IndexMetaData> indices = elasticContoller.getIndices("(" + Settings.ELASTIC_LOG_INDEX_REGEX
-        + ")|(" + Settings.ELASTIC_SERVING_INDEX_REGEX
-        + ")|(" + Settings.ELASTIC_KAGENT_INDEX_REGEX
-        + ")|(" + Settings.ELASTIC_BEAMJOBSERVER_INDEX_REGEX
-        + ")|(" + Settings.ELASTIC_BEAMSDKWORKER_INDEX_REGEX + ")");
+      Map<String, Long> indices = elasticClientCtrl.mngIndicesGetWithCreationTime(
+        "(" + Settings.ELASTIC_LOG_INDEX_REGEX + ")" +
+          "|(" + Settings.ELASTIC_SERVING_INDEX_REGEX + ")" +
+          "|(" + Settings.ELASTIC_BEAMJOBSERVER_INDEX_REGEX + ")" +
+          "|(" + Settings.ELASTIC_BEAMSDKWORKER_INDEX_REGEX + ")");
       for (String index : indices.keySet()) {
         //Get current timestamp
         long currentTime = System.currentTimeMillis();
-        long indexCreationTime = indices.get(index).getCreationDate();
+        long indexCreationTime = indices.get(index);
         if (currentTime - indexCreationTime > settings.getElasticLogsIndexExpiration()) {
           //If index was created before the threshold, delete it asynchronously. If operation fails
           //we log it and the next day it will be retried.
-          elasticContoller.deleteIndex(index);
+          elasticClientCtrl.mngIndexDelete(index);
           LOGGER.log(Level.INFO, "Deletedindex:{0}", index);
         }
       }
-    } catch (ServiceException ex) {
+    } catch (Exception ex) {
       LOGGER.log(Level.SEVERE, "Index deletion failed", ex);
     }
-
   }
-
 }

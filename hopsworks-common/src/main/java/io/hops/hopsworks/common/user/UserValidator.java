@@ -42,7 +42,6 @@ package io.hops.hopsworks.common.user;
 import com.google.common.base.Strings;
 import io.hops.hopsworks.common.dao.user.UserDTO;
 import io.hops.hopsworks.common.dao.user.UserFacade;
-import io.hops.hopsworks.common.dao.user.security.ua.SecurityQuestion;
 import io.hops.hopsworks.restutils.RESTCodes;
 import io.hops.hopsworks.exceptions.UserException;
 
@@ -57,15 +56,13 @@ public class UserValidator {
 
   @EJB
   private UserFacade userBean;
-
+  
   public static final int PASSWORD_MIN_LENGTH = 6;
+  public static final int TEMP_PASSWORD_LENGTH = 8;
   public static final int PASSWORD_MAX_LENGTH = 255;
-  private static final String PASSWORD_PATTERN
-          = "(?=.*[a-z])(?=.*[A-Z])(?=.*[\\d\\W]).*$";
-  private static final String EMAIL_PATTERN
-          = "[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)"
-          + "*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]"
-          + "*[a-z0-9])?";
+  private static final String PASSWORD_PATTERN = "(?=.*[a-z])(?=.*[A-Z])(?=.*[\\d\\W]).*$";
+  private static final String EMAIL_PATTERN = "[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)"
+    + "*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?";
 
   public boolean isValidEmail(String email) throws UserException {
     if (Strings.isNullOrEmpty(email)) {
@@ -98,31 +95,33 @@ public class UserValidator {
     return true;
   }
 
-  public boolean isValidsecurityQA(String question, String answer) throws UserException {
-
-    if (question == null || question.isEmpty()) {
-      throw new IllegalArgumentException(RESTCodes.UserErrorCode.SEC_Q_EMPTY.getMessage());
-    } else if (SecurityQuestion.getQuestion(question) == null) {
-      throw new UserException(RESTCodes.UserErrorCode.SEC_Q_NOT_IN_LIST, Level.FINE);
-    }
-    if (answer == null || answer.isEmpty()) {
-      throw new IllegalArgumentException(RESTCodes.UserErrorCode.SEC_A_EMPTY.getMessage());
-    }
-
-    return true;
-  }
-
   public boolean isValidNewUser(UserDTO newUser) throws UserException {
     isValidEmail(newUser.getEmail());
     isValidPassword(newUser.getChosenPassword(), newUser.getRepeatedPassword());
-    isValidsecurityQA(newUser.getSecurityQuestion(), newUser.getSecurityAnswer());
-    if (newUser.getToS()) {
+    if (userBean.findByEmail(newUser.getEmail()) != null) {
+      throw new UserException(RESTCodes.UserErrorCode.USER_EXISTS, Level.FINE);
+    }
+    if (!newUser.getTos()) {
       throw new UserException(RESTCodes.UserErrorCode.TOS_NOT_AGREED, Level.FINE);
+    }
+    return true;
+  }
+
+  public void isValidNewUser(UserDTO newUser, boolean checkPassword) throws UserException {
+    isValidEmail(newUser.getEmail());
+    if (checkPassword) {
+      isValidPassword(newUser.getChosenPassword(), newUser.getRepeatedPassword());
     }
     if (userBean.findByEmail(newUser.getEmail()) != null) {
       throw new UserException(RESTCodes.UserErrorCode.USER_EXISTS, Level.FINE);
     }
-    return true;
+    if (!newUser.getTos()) {
+      throw new UserException(RESTCodes.UserErrorCode.TOS_NOT_AGREED, Level.FINE);
+    }
+    if (newUser.getFirstName() == null || newUser.getFirstName().isEmpty() || newUser.getLastName() == null ||
+      newUser.getLastName().isEmpty()) {
+      throw new UserException(RESTCodes.UserErrorCode.USER_NAME_NOT_SET, Level.FINE, "User name is required");
+    }
   }
 
   private boolean isValid(String u, String inPattern) {

@@ -39,8 +39,10 @@
 package io.hops.hopsworks.common.dao.user.activity;
 
 import io.hops.hopsworks.common.dao.AbstractFacade;
-import io.hops.hopsworks.common.dao.project.Project;
-import io.hops.hopsworks.common.dao.user.Users;
+import io.hops.hopsworks.persistence.entity.project.Project;
+import io.hops.hopsworks.persistence.entity.user.Users;
+import io.hops.hopsworks.persistence.entity.user.activity.Activity;
+import io.hops.hopsworks.persistence.entity.user.activity.ActivityFlag;
 
 import javax.ejb.Stateless;
 import javax.persistence.EntityManager;
@@ -62,10 +64,13 @@ public class ActivityFacade extends AbstractFacade<Activity> {
   // String constants
   public static final String NEW_PROJECT = " created a new project named ";
   public static final String NEW_DATA = " added a new dataset named ";
+  public static final String UPDATE_DATASET_DESCRIPTION = " updated dataset description for ";
   public static final String SHARED_DATA = " shared dataset ";
   public static final String UNSHARED_DATA = " unshared dataset ";
   public static final String NEW_MEMBER = " added a member ";
   public static final String CHANGE_ROLE = " changed the role of ";
+  public static final String CHANGE_DATASET_PERMISSION = " changed dataset permission ";
+  public static final String CHANGE_DATASET_SHARE_PERMISSION = " changed dataset share permission ";
   public static final String REMOVED_MEMBER = " removed team member ";
   public static final String RAN_JOB = " ran a job named ";
   public static final String ADDED_SERVICE = " added new service ";
@@ -85,11 +90,12 @@ public class ActivityFacade extends AbstractFacade<Activity> {
   public static final String EDITED_TRAINING_DATASET = " edited training dataset named ";
   public static final String ADDED_FEATURESTORE_STORAGE_CONNECTOR = " added a storage connector for the featurestore " +
       "with name: ";
+  public static final String UPDATED_FEATURESTORE_STORAGE_CONNECTOR =
+      " updated a storage connector for the featurestore with name: ";
   public static final String REMOVED_FEATURESTORE_STORAGE_CONNECTOR = " added a storage connector for " +
       "the featurestore with name: ";
-  // Flag constants
-  public static final String FLAG_PROJECT = "PROJECT";
-  public static final String FLAG_DATASET = "DATASET";
+  public static final String REMOVED_FEATURESTORE_STORAGE_CONNECTOR_ID = " added a storage connector for " +
+    "the featurestore with id: ";
   
   @PersistenceContext(unitName = "kthfsPU")
   private EntityManager em;

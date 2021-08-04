@@ -46,9 +46,9 @@
 angular.module('hopsWorksApp')
         .controller('KafkaCtrl', ['$routeParams', 'growl',
         'KafkaService', '$location', 'ModalService', '$interval',
-        '$mdSidenav', 'TourService', 'ProjectService',
-          function ($routeParams, growl, KafkaService, $location,
-          ModalService, $interval, $mdSidenav, TourService, ProjectService) {
+        '$mdSidenav', 'TourService', 'ProjectService', 'MembersService',
+          function ($routeParams, growl, KafkaService, $location, ModalService,
+          $interval, $mdSidenav, TourService, ProjectService, MembersService) {
 
             var self = this;
             self.projectId = $routeParams.projectID;
@@ -71,44 +71,65 @@ angular.module('hopsWorksApp')
             self.role = "*";
            // self.activeId = -1;
             self.selectedProjectName="";
+            self.selectedProject;
             
             self.users =[];
             self.project;
+            self.projects = [];
            
             self.showTopics = 1;
             self.showSchemas = -1;
             self.schemas = [];
+            self.schemaNames = [];
             self.schemaVersions = [];
            self.tourService = TourService;
 
             self.selectAcl = function (acl, topicName) {
-              if (self.activeId === acl.id) { 
+              if (self.activeId === acl.id) {
                 return;
               }
-              self.projectName = acl.projectName;
+              self.selectedProjectName = acl.projectName;
               self.userEmail = acl.userEmail;
               self.permission_type = acl.permission_type;
               self.operation_type = acl.operation_type;
               self.host = acl.host;
               self.role = acl.role;
               self.activeId = acl.id;
-              
-              KafkaService.aclUsers(self.projectId, topicName).then(
+
+              self.projects = self.getProjectsForTopic(self.projectId, topicName);
+              self.users = [];
+            };
+
+            self.getProjectsForTopic = function (projectId, topicName) {
+                KafkaService.topicIsSharedTo(projectId, topicName).then(
                     function (success) {
-                        self.users = success.data;
-                }, function (error) {
-                      if (typeof error.data.usrMsg !== 'undefined') {
-                          growl.error(error.data.usrMsg, {title: error.data.errorMsg, ttl: 8000, referenceId: 10});
-                      } else {
-                          growl.error("", {title: error.data.errorMsg, ttl: 8000, referenceId: 10});
-                      }
-                   });
-              
+                        var res = success.data.items != null ? success.data.items : [];
+                        var project = {};
+                        project.id = projectId;
+                        project.name = self.projectName;
+                        res.push(project);
+                        self.projects = res;
+                    }
+                )
+            };
+
+            self.getAclUsersForProject = function (item) {
+                MembersService.query({id: item.id}).$promise.then(
+                    function (success) {
+                        var emails = success.map(function(item) {
+                            return item.user.email;
+                        });
+                        emails.push("*");
+                        self.users = emails;
+                    },
+                    function (error) {
+                    }
+                );
             };
 
             self.updateAcl = function (topicName, aclId){
               var acl ={};
-              acl.projectName = self.project.projectName;
+              acl.projectName = self.project.name;
               acl.role = self.role;
               acl.userEmail = self.userEmail;
               acl.permissionType = self.permission_type;
@@ -130,7 +151,9 @@ angular.module('hopsWorksApp')
             self.getAllTopics = function () {
               KafkaService.getTopics(self.projectId).then(
                       function (success) {
-                        self.topics = success.data;
+                        if (success.data.count > 0) {
+                          self.topics = success.data.items;
+                        }
                         self.numTopicsUsed = self.topics.length;
                       }, function (error) {
                       if (typeof error.data.usrMsg !== 'undefined') {
@@ -144,7 +167,7 @@ angular.module('hopsWorksApp')
             self.getAllSharedTopics = function () {
               KafkaService.getSharedTopics(self.projectId).then(
                       function (success) {
-                        self.sharedTopics = success.data;
+                        self.sharedTopics = success.data.items;
                       }, function (error) {
                       if (typeof error.data.usrMsg !== 'undefined') {
                           growl.error(error.data.usrMsg, {title: error.data.errorMsg, ttl: 8000, referenceId: 10});
@@ -159,7 +182,7 @@ angular.module('hopsWorksApp')
                         function (success) {
                             for(var i =0;i<self.topics.length;i++){
                               if(self.topics[i].name === topicName){
-                                  self.topics[i].partitionDetails= success.data;
+                                  self.topics[i].partitionDetails= success.data.items;
                                   return;
                               }
                           }
@@ -176,8 +199,8 @@ angular.module('hopsWorksApp')
               ModalService.createSchema('lg', self.projectId,
                 self.projectIsGuide).then(
                       function (success) {
-                          growl.success(success.data.successMessage, {title: 'New schema added successfully.', ttl: 2000});
-                          self.listSchemas();
+                          growl.success("", {title: 'New schema added successfully.', ttl: 2000});
+                          self.listSubjects();
                           if (self.projectIsGuide) {
                             self.tourService.currentStep_TourThree = 2;
                           }
@@ -186,24 +209,43 @@ angular.module('hopsWorksApp')
               });
             };
 
-            self.listSchemas = function () {
-                
-                KafkaService.getSchemasForTopics(self.projectId).then(
-                 function (success) {
-                 self.schemas = success.data;
-                 var size = self.schemas.length;
-                for(var i =0; i<size;i++){
-                    self.schemaVersions[i] = Math.max.apply(null, self.schemas[i].versions);
+            self.listSubjects = function () {
+              self.schemas = [];
+              self.schemaVersions = [];
+              KafkaService.getSubjects(self.projectId).then(
+                function (success) {
+                  var data = new TextDecoder('utf-8').decode(success.data);
+                  self.schemaNames = data.slice(1,-1).replace(/\s/g,'').split(",");
+                  //get versions for each subject
+                  for (var i=0; i < self.schemaNames.length; i++) {
+                    (function(e){
+                      KafkaService.getSubjectVersions(self.projectId, self.schemaNames[i]).then(
+                        function(success) {
+                          var obj = {};
+                          obj.name = self.schemaNames[e];
+                          var data = new TextDecoder('utf-8').decode(success.data);
+                          obj.versions = data.slice(1,-1).replace(/\s/g,'').split(",");
+                          self.schemaVersions.push(Math.max.apply(null, obj.versions));
+                          self.schemas.push(obj);
+                        }, function (error) {
+                          console.log(error);
+                          if (typeof error.data.usrMsg !== 'undefined') {
+                            growl.error(error.data.usrMsg, {title: error.data.errorMsg, ttl: 8000, referenceId: 10});
+                          } else {
+                            growl.error("", {title: error.data.errorMsg, ttl: 8000, referenceId: 10});
+                          }
+                        });
+                    })(i);
+                  }
                 }
-                 }, function (error) {
-                    if (typeof error.data.usrMsg !== 'undefined') {
-                        growl.error(error.data.usrMsg, {title: error.data.errorMsg, ttl: 8000, referenceId: 10});
-                    } else {
-                        growl.error("", {title: error.data.errorMsg, ttl: 8000, referenceId: 10});
-                    }
-                 });
-            
-                
+                , function (error) {
+                  if (typeof error.data.usrMsg !== 'undefined') {
+                      growl.error(error.data.usrMsg, {title: error.data.errorMsg, ttl: 8000, referenceId: 10});
+                  } else {
+                      growl.error("", {title: error.data.errorMsg, ttl: 8000, referenceId: 10});
+                  }
+                }
+              );
             };
             
             self.deleteSchema = function(schemaName, index){
@@ -217,7 +259,7 @@ angular.module('hopsWorksApp')
                       .then(function (success) {
                           KafkaService.deleteSchema(self.projectId, schemaName, self.schemaVersions[index]).then(
                  function (success) {
-                     self.listSchemas();
+                     self.listSubjects();
                  }, function (error) {
                   if (typeof error.data.usrMsg !== 'undefined') {
                       growl.error(error.data.usrMsg, {title: error.data.errorMsg, ttl: 8000, referenceId: 10});
@@ -244,6 +286,16 @@ angular.module('hopsWorksApp')
                 //The user changed their mind.
               });
             };
+
+            self.viewSharedSchemaContent = function(schemaName, schemaContent){
+
+              ModalService.viewSharedSchemaContent('lg', self.projectId, schemaName, schemaContent).then(
+                function (success) {
+
+                }, function (error) {
+                  //The user changed their mind.
+                });
+            };
             
             self.updateSchemaContent = function(schema){
                 
@@ -252,7 +304,7 @@ angular.module('hopsWorksApp')
                 
                  ModalService.updateSchemaContent('lg', self.projectId, schema.name, self.version).then(
                       function (success) {
-                         self.listSchemas();
+                         self.listSubjects();
                       }, function (error) {
                 //The user changed their mind.
               });
@@ -269,7 +321,7 @@ angular.module('hopsWorksApp')
               ModalService.createTopic('lg', self.projectId, self.projectIsGuide)
               .then(
                       function (success) {
-                          growl.success(success.data.successMessage, {title: 'New topic created successfully.', ttl: 2000});
+                          growl.success("", {title: 'New topic created successfully.', ttl: 2000});
                           self.getAllTopics();
                           if (self.projectIsGuide) {
                             self.tourService.currentStep_TourThree = 4;
@@ -309,7 +361,7 @@ angular.module('hopsWorksApp')
                       function (success) {
                           for(var i =0;i<self.topics.length;i++){
                               if(self.topics[i].name === topicName){
-                                  self.topics[i].acls = success.data;
+                                  self.topics[i].acls = success.data.items;
                                   return;
                               }
                           }
@@ -325,9 +377,9 @@ angular.module('hopsWorksApp')
 
             self.addAcl = function (topicName) {
                 
-                ModalService.createTopicAcl('lg', self.projectId, topicName).then(
+                ModalService.createTopicAcl('lg', self.projectId, topicName, self.projectName).then(
                       function (success) {
-                          growl.success(success.data.successMessage, {title: 'New acl added for the topic: '+topicName, ttl: 5000});
+                          growl.success("", {title: 'New acl added for the topic: '+topicName, ttl: 5000});
                           self.getAclsForTopic(topicName);
                       }, function (error) {
                 //The user changed their mind.
@@ -350,13 +402,13 @@ angular.module('hopsWorksApp')
             
             self.shareTopic = function(topicName) {
               ModalService.selectProject('lg', true, self.projectId,
-                      "Select a Project to share the topic with.").then(
+                      "Select a Project to share the topic with.", false).then(
                       function (success) {
-                        var destProj = success.projectId;
-                        KafkaService.shareTopic(self.projectId, topicName, destProj).then(
+                        KafkaService.shareTopic(self.projectId, topicName, success).then(
                                 function (success) {
                                   self.topicIsSharedTo(topicName);
-                                  growl.success(success.data.successMessage, {title: 'Topic shared successfully with project: ' + destProj.name, ttl: 5000});
+                                  growl.success("", {
+                                      title: 'Topic shared successfully.',ttl: 5000});
                                 }, function (error) {
                                 if (typeof error.data.usrMsg !== 'undefined') {
                                     growl.error(error.data.usrMsg, {title: error.data.errorMsg, ttl: 8000, referenceId: 10});
@@ -369,29 +421,31 @@ angular.module('hopsWorksApp')
                 //The user changed their mind.
               });
             };
-            
-            //operation done from topic
-            self.unshareTopic = function(topicName, project) {
 
-                        KafkaService.unshareTopic(self.projectId, topicName, project.id).then(
-                                function (success) {
-                                  self.topicIsSharedTo(topicName);
-                                  growl.success(success.data.successMessage, {title: 'Topic share removed (unshared) from project: ' + project.name, ttl: 2000});
-                                }, function (error) {
-                                if (typeof error.data.usrMsg !== 'undefined') {
-                                    growl.error(error.data.usrMsg, {title: error.data.errorMsg, ttl: 8000, referenceId: 10});
-                                } else {
-                                    growl.error("", {title: error.data.errorMsg, ttl: 8000, referenceId: 10});
-                                }
-                        });
-            };
+              //operation done from topic
+              self.unshareTopic = function (topicName, project) {
+                  KafkaService.unshareTopic(self.projectId, topicName, project.name).then(
+                      function (success) {
+                          self.topicIsSharedTo(topicName);
+                          growl.success("", {
+                              title: 'Topic share removed (unshared) from project: ' + project.name,
+                              ttl: 2000
+                          });
+                      }, function (error) {
+                          if (typeof error.data.usrMsg !== 'undefined') {
+                              growl.error(error.data.usrMsg, {title: error.data.errorMsg, ttl: 8000, referenceId: 10});
+                          } else {
+                              growl.error("", {title: error.data.errorMsg, ttl: 8000, referenceId: 10});
+                          }
+                      });
+              };
             
             //operation done from project
-            self.unshareTopicFromProject =function (topicName){
-                KafkaService.unshareTopicFromProject(self.projectId, topicName).then(
+            self.unshareTopicFromProject = function (ownerProjectId, topicName){
+                KafkaService.unshareTopic(self.projectId, topicName, '').then(
                         function (success) {
                                   self.getAllSharedTopics();
-                                  growl.success(success.data.successMessage, {title: 'Topic share removed (unshared) from project:.', ttl: 2000});
+                                  growl.success("", {title: 'Topic share removed (unshared) from project:.', ttl: 2000});
                                 }, function (error) {
                                     if (typeof error.data.usrMsg !== 'undefined') {
                                         growl.error(error.data.usrMsg, {title: error.data.errorMsg, ttl: 8000, referenceId: 10});
@@ -406,7 +460,7 @@ angular.module('hopsWorksApp')
                         function (success) {                         
                            for(var i =0;i<self.topics.length;i++){
                               if(self.topics[i].name === topicName){
-                                  self.topics[i].shares=success.data;
+                                  self.topics[i].shares=success.data.items;
                                   return;
                               }
                           }
@@ -423,6 +477,7 @@ angular.module('hopsWorksApp')
               ProjectService.get({}, {'id': self.projectId}).$promise.then(
                 function (success) {
                   var projectNameTour = success.projectName;
+                  self.projectName = success.projectName;
                   if (angular.equals(projectNameTour.substr(0, 5), 'demo_')) {
                     self.tourService.currentStep_TourThree = 0;
                     self.projectIsGuide = true;
@@ -434,7 +489,7 @@ angular.module('hopsWorksApp')
 
               self.getAllTopics();
               self.getAllSharedTopics();
-              self.listSchemas();
+              self.listSubjects();
              };
             
             self.init();
@@ -453,17 +508,40 @@ angular.module('hopsWorksApp')
               }
               self.showSchemas = 1;
               self.showTopics = -1;
-              self.listSchemas();
             };
 
-            self.updateSchemaVersion = function(topicName, schemaVersion) {
-                KafkaService.updateTopicSchemaVersion(self.projectId, topicName, schemaVersion).then(
-                    function(success) {
-                        growl.success("", {title: 'Schema version successfully updated.', ttl: 5000});
+            self.updateTopicSubjectVersion = function(topic, subject, version) {
+              KafkaService.updateTopicSubjectVersion(self.projectId, topic, subject, version).then(
+                function(success) {
+                  growl.success("", {title: 'Schema version successfully updated.', ttl: 5000});
+                }, function (error) {
+                  growl.error("", {title: "Error updating schema version", ttl: 8000, referenceId: 10});
+                }
+              )
+            };
+
+            self.acceptSharedTopic = function(topic) {
+              if (topic.accepted === false) {
+                ModalService.confirmShare('sm', 'Accept Shared Topic?', 'Do you want to accept this topic and add it' +
+                  ' to this project?').then(function (success) {
+                    KafkaService.acceptSharedTopic(self.projectId, topic.name).then(function(success) {
+                      growl.success("", {title: 'Topic accepted.', ttl: 5000});
+                      $location.path($location.path() + '/');
                     }, function (error) {
-                        growl.error("", {title: "Error updating schema version", ttl: 8000, referenceId: 10});
+                      growl.error("", {title: 'Error accepting topic.', ttl: 5000});
+                    })
+                }, function (error) {
+                    if (error === 'reject') {
+                      KafkaService.unshareTopic(self.projectId, topic.name, '').then(
+                        function (success) {
+                          $location.path($location.path() + '/');
+                          self.showSuccess(success, '', 4);
+                        }, function (error) {
+                          self.showError(error, 'The Dataset has been removed.', 4);
+                        });
                     }
-                )
+                });
+              }
             };
               
           }]);

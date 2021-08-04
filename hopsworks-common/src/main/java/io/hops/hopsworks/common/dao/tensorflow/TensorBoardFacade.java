@@ -16,8 +16,9 @@
 
 package io.hops.hopsworks.common.dao.tensorflow;
 
-import io.hops.hopsworks.common.dao.project.Project;
-import io.hops.hopsworks.common.dao.user.Users;
+import io.hops.hopsworks.persistence.entity.project.Project;
+import io.hops.hopsworks.persistence.entity.tensorflow.TensorBoard;
+import io.hops.hopsworks.persistence.entity.user.Users;
 
 import javax.ejb.Stateless;
 import javax.persistence.EntityManager;
@@ -105,5 +106,17 @@ public class TensorBoardFacade {
     TypedQuery<TensorBoard> q = em.createNamedQuery("TensorBoard.findByProjectId", TensorBoard.class);
     q.setParameter("projectId", project.getId());
     return q.getResultList();
+  }
+
+  public TensorBoard findByMlId(String mlId) {
+    try {
+      TypedQuery<TensorBoard> q = em.createNamedQuery("TensorBoard.findByMlId", TensorBoard.class);
+      q.setParameter("mlId", mlId);
+      TensorBoard tb = q.getSingleResult();
+      return tb;
+    } catch (NoResultException nre) {
+      //This is fine
+    }
+    return null;
   }
 }

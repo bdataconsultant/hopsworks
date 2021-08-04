@@ -43,17 +43,17 @@ import io.hops.hopsworks.api.filter.Audience;
 import io.hops.hopsworks.api.filter.NoCacheResponse;
 import io.hops.hopsworks.api.jwt.JWTHelper;
 import io.hops.hopsworks.api.user.apiKey.ApiKeyResource;
-import io.hops.hopsworks.api.util.RESTApiJsonResponse;
 import io.hops.hopsworks.api.util.Pagination;
+import io.hops.hopsworks.api.util.RESTApiJsonResponse;
 import io.hops.hopsworks.common.api.ResourceRequest;
 import io.hops.hopsworks.common.constants.message.ResponseMessages;
-import io.hops.hopsworks.common.dao.project.Project;
-import io.hops.hopsworks.common.dao.project.team.ProjectTeam;
 import io.hops.hopsworks.common.dao.project.team.ProjectTeamFacade;
 import io.hops.hopsworks.common.dao.user.*;
 import io.hops.hopsworks.common.dao.user.security.audit.AccountAuditFacade;
 import io.hops.hopsworks.common.dao.user.security.audit.AccountsAuditActions;
 import io.hops.hopsworks.common.dao.user.security.audit.RolesAuditAction;
+import io.hops.hopsworks.common.dao.user.BbcGroupFacade;
+import io.hops.hopsworks.common.dao.user.UserProjectDTO;
 import io.hops.hopsworks.common.dao.user.security.secrets.SecretPlaintext;
 import io.hops.hopsworks.common.project.ProjectController;
 import io.hops.hopsworks.common.security.secrets.SecretsController;
@@ -61,8 +61,12 @@ import io.hops.hopsworks.common.user.UsersController;
 import io.hops.hopsworks.exceptions.ProjectException;
 import io.hops.hopsworks.exceptions.ServiceException;
 import io.hops.hopsworks.exceptions.UserException;
-import io.hops.hopsworks.restutils.RESTCodes;
 import io.hops.hopsworks.jwt.annotation.JWTRequired;
+import io.hops.hopsworks.persistence.entity.project.Project;
+import io.hops.hopsworks.persistence.entity.project.team.ProjectTeam;
+import io.hops.hopsworks.persistence.entity.user.BbcGroup;
+import io.hops.hopsworks.persistence.entity.user.Users;
+import io.hops.hopsworks.restutils.RESTCodes;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.apache.commons.codec.binary.Base64;
@@ -71,13 +75,16 @@ import javax.ejb.EJB;
 import javax.ejb.Stateless;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
+import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.BeanParam;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.*;
@@ -86,9 +93,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.inject.Inject;
-import javax.ws.rs.BeanParam;
-import javax.ws.rs.PathParam;
 
 @Path("/users")
 @Stateless
@@ -133,10 +137,9 @@ public class UsersResource {
   @GET
   @Produces(MediaType.APPLICATION_JSON)
   @ApiOperation(value = "Get all users.", response = UserDTO.class)
-  public Response findAll(
-      @BeanParam Pagination pagination,
+  public Response findAll(@BeanParam Pagination pagination,
       @BeanParam UsersBeanParam usersBeanParam,
-      @Context UriInfo uriInfo) {
+      @Context UriInfo uriInfo, @Context SecurityContext sc) {
     ResourceRequest resourceRequest = new ResourceRequest(ResourceRequest.Name.USERS);
     resourceRequest.setOffset(pagination.getOffset());
     resourceRequest.setLimit(pagination.getLimit());
@@ -184,13 +187,11 @@ public class UsersResource {
   @ApiOperation(value = "Updates logged in User\'s info.", response = UserProfileDTO.class)
   public Response updateProfile(@FormParam("firstname") String firstName,
       @FormParam("lastname") String lastName,
-      @FormParam("phoneNumber") String phoneNumber,
       @FormParam("toursState") Integer toursState,
-      @Context UriInfo uriInfo,
-      @Context HttpServletRequest req,
+      @Context UriInfo uriInfo, @Context HttpServletRequest req,
       @Context SecurityContext sc) throws UserException {
     Users user = jWTHelper.getUserPrincipal(sc);
-    user = userController.updateProfile(user, firstName, lastName, phoneNumber, toursState, req);
+    user = userController.updateProfile(user, firstName, lastName, toursState);
     ResourceRequest resourceRequest = new ResourceRequest(ResourceRequest.Name.USERS);
     UserProfileDTO userDTO = usersBuilder.buildFull(uriInfo, resourceRequest, user);
     return Response.created(userDTO.getHref()).entity(userDTO).build();
@@ -201,13 +202,14 @@ public class UsersResource {
   @Produces(MediaType.APPLICATION_JSON)
   @ApiOperation(value = "Updates logedin User\'s credentials.", response = RESTApiJsonResponse.class)
   public Response changeLoginCredentials(
-      @FormParam("oldPassword") String oldPassword,
-      @FormParam("newPassword") String newPassword,
-      @FormParam("confirmedPassword") String confirmedPassword,
-      @Context HttpServletRequest req, @Context SecurityContext sc) throws UserException {
+    @FormParam("oldPassword") String oldPassword,
+    @FormParam("newPassword") String newPassword,
+    @FormParam("confirmedPassword") String confirmedPassword,
+    @Context HttpServletRequest req,
+    @Context SecurityContext sc) throws UserException {
     RESTApiJsonResponse json = new RESTApiJsonResponse();
     Users user = jWTHelper.getUserPrincipal(sc);
-    userController.changePassword(user, oldPassword, newPassword, confirmedPassword, req);
+    userController.changePassword(user, oldPassword, newPassword, confirmedPassword);
     json.setSuccessMessage(ResponseMessages.PASSWORD_CHANGED);
     return Response.ok().entity(json).build();
   }
@@ -217,7 +219,8 @@ public class UsersResource {
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   @ApiOperation(value = "Stores a secret for user")
-  public Response addSecret(SecretDTO secret, @Context SecurityContext sc) throws UserException {
+  public Response addSecret(SecretDTO secret, @Context SecurityContext sc, @Context HttpServletRequest req)
+    throws UserException {
     Users user = jWTHelper.getUserPrincipal(sc);
     secretsController.add(user, secret.getName(), secret.getSecret(), secret.getVisibility(),
         secret.getProjectIdScope());
@@ -266,8 +269,8 @@ public class UsersResource {
   @Path("secrets/{secretName}")
   @Produces(MediaType.APPLICATION_JSON)
   @ApiOperation(value = "Deletes a secret by its name")
-  public Response deleteSecret(@PathParam("secretName") String name, @Context SecurityContext sc)
-    throws UserException {
+  public Response deleteSecret(@PathParam("secretName") String name, @Context HttpServletRequest req,
+    @Context SecurityContext sc) throws UserException {
     Users user = jWTHelper.getUserPrincipal(sc);
     secretsController.delete(user, name);
     return Response.ok().build();
@@ -277,25 +280,10 @@ public class UsersResource {
   @Path("secrets")
   @Produces(MediaType.APPLICATION_JSON)
   @ApiOperation(value = "Deletes all secrets of a user")
-  public Response deleteAllSecrets(@Context SecurityContext sc) throws UserException {
+  public Response deleteAllSecrets(@Context SecurityContext sc, @Context HttpServletRequest req) throws UserException {
     Users user = jWTHelper.getUserPrincipal(sc);
     secretsController.deleteAll(user);
     return Response.ok().build();
-  }
-
-  @POST
-  @Path("securityQA")
-  @Produces(MediaType.APPLICATION_JSON)
-  @ApiOperation(value = "Updates logedin User\'s security quesion and answer.", response = RESTApiJsonResponse.class)
-  public Response changeSecurityQA(@FormParam("oldPassword") String oldPassword,
-      @FormParam("securityQuestion") String securityQuestion,
-      @FormParam("securityAnswer") String securityAnswer,
-      @Context HttpServletRequest req, @Context SecurityContext sc) throws UserException {
-    RESTApiJsonResponse json = new RESTApiJsonResponse();
-    Users user = jWTHelper.getUserPrincipal(sc);
-    userController.changeSecQA(user, oldPassword, securityQuestion, securityAnswer, req);
-    json.setSuccessMessage(ResponseMessages.SEC_QA_CHANGED);
-    return Response.ok().entity(json).build();
   }
 
   @POST
@@ -303,8 +291,8 @@ public class UsersResource {
   @Produces(MediaType.APPLICATION_JSON)
   @ApiOperation(value = "Updates logedin User\'s two factor setting.", response = RESTApiJsonResponse.class)
   public Response changeTwoFactor(@FormParam("password") String password,
-      @FormParam("twoFactor") boolean twoFactor,
-      @Context HttpServletRequest req, @Context SecurityContext sc) throws UserException {
+    @FormParam("twoFactor") boolean twoFactor, @Context HttpServletRequest req,
+    @Context SecurityContext sc) throws UserException {
     Users user = jWTHelper.getUserPrincipal(sc);
     byte[] qrCode;
     RESTApiJsonResponse json = new RESTApiJsonResponse();
@@ -312,7 +300,7 @@ public class UsersResource {
       json.setSuccessMessage("No change made.");
       return Response.ok().entity(json).build();
     }
-    qrCode = userController.changeTwoFactor(user, password, req);
+    qrCode = userController.changeTwoFactor(user, password);
     if (qrCode != null) {
       json.setQRCode(new String(Base64.encodeBase64(qrCode)));
     } else {
@@ -324,9 +312,9 @@ public class UsersResource {
   @POST
   @Path("getQRCode")
   @Produces(MediaType.APPLICATION_JSON)
-  @ApiOperation(value = "Gets the logedin User\'s QR code.", response = RESTApiJsonResponse.class)
+  @ApiOperation(value = "Gets the logged in User\'s QR code.", response = RESTApiJsonResponse.class)
   public Response getQRCode(@FormParam("password") String password, @Context HttpServletRequest req,
-      @Context SecurityContext sc) throws UserException {
+    @Context SecurityContext sc) throws UserException {
     Users user = jWTHelper.getUserPrincipal(sc);
     if (user == null) {
       throw new UserException(RESTCodes.UserErrorCode.USER_WAS_NOT_FOUND, Level.FINE);
@@ -336,7 +324,7 @@ public class UsersResource {
     }
     byte[] qrCode;
     RESTApiJsonResponse json = new RESTApiJsonResponse();
-    qrCode = userController.getQRCode(user, password, req);
+    qrCode = userController.getQRCode(user, password);
     if (qrCode != null) {
       json.setQRCode(new String(Base64.encodeBase64(qrCode)));
     } else {
@@ -348,8 +336,9 @@ public class UsersResource {
   @POST
   @Path("getRole")
   @Produces(MediaType.APPLICATION_JSON)
-  @ApiOperation(value = "Gets the logedin User\'s role in project.", response = UserProjectDTO.class)
-  public Response getRole(@FormParam("projectId") int projectId, @Context SecurityContext sc) throws ProjectException {
+  @ApiOperation(value = "Gets the logged in User\'s role in project.", response = UserProjectDTO.class)
+  public Response getRole(@FormParam("projectId") int projectId, @Context SecurityContext sc,
+    @Context HttpServletRequest req) throws ProjectException {
     Users user = jWTHelper.getUserPrincipal(sc);
     UserProjectDTO userDTO = new UserProjectDTO();
     userDTO.setEmail(user.getEmail());
@@ -362,12 +351,12 @@ public class UsersResource {
     userDTO.setRole(pt.getTeamRole());
     return Response.ok().entity(userDTO).build();
   }
-
+  
   @Path("activities")
   public UserActivitiesResource activities() {
     return this.activitiesResource;
   }
-
+  
   @Path("apiKey")
   public ApiKeyResource apiKey() {
     return this.apiKeyResource;

@@ -39,10 +39,11 @@
 
 package io.hops.hopsworks.common.jobs.yarn;
 
-import io.hops.hopsworks.common.dao.jobhistory.Execution;
+import io.hops.hopsworks.common.jobs.JobsMonitor;
+import io.hops.hopsworks.persistence.entity.jobs.history.Execution;
 import io.hops.hopsworks.common.dao.jobhistory.ExecutionFacade;
-import io.hops.hopsworks.common.jobs.jobhistory.JobFinalStatus;
-import io.hops.hopsworks.common.jobs.jobhistory.JobState;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.history.JobFinalStatus;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.history.JobState;
 import io.hops.hopsworks.common.util.Settings;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -71,7 +72,7 @@ import org.apache.hadoop.yarn.exceptions.YarnException;
 @Singleton
 @DependsOn("Settings")
 @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
-public class YarnJobsMonitor {
+public class YarnJobsMonitor implements JobsMonitor {
 
   private static final Logger LOGGER = Logger.getLogger(YarnJobsMonitor.class.getName());
 
@@ -95,28 +96,28 @@ public class YarnJobsMonitor {
       minute = "*",
       hour = "*")
   public synchronized void monitor(Timer timer) {
-    Map<String, Execution> executions = new HashMap<>();
-    List<Execution> execs = executionFacade.findNotFinished();
-    if (execs != null && !execs.isEmpty()) {
-      for (Execution exec : execs) {
-        if (exec.getAppId() != null) {
-          executions.put(exec.getAppId(), exec);
+    try {
+      Map<String, Execution> executions = new HashMap<>();
+      List<Execution> execs = executionFacade.findNotFinished();
+      if (execs != null && !execs.isEmpty()) {
+        for (Execution exec : execs) {
+          if (exec.getAppId() != null) {
+            executions.put(exec.getAppId(), exec);
+          }
         }
-      }
-      //Remove (Close) all monitors of deleted jobs
-      Iterator<Map.Entry<String, YarnMonitor>> monitorsIter = monitors.entrySet().iterator();
-      while (monitorsIter.hasNext()) {
-        Map.Entry<String, YarnMonitor> entry = monitorsIter.next();
-        // Check if Value associated with Key is 10
-        if (!executions.keySet().contains(entry.getKey())) {
-          // Remove the element
-          entry.getValue().close();
-          monitorsIter.remove();
+        //Remove (Close) all monitors of deleted jobs
+        Iterator<Map.Entry<String, YarnMonitor>> monitorsIter = monitors.entrySet().iterator();
+        while (monitorsIter.hasNext()) {
+          Map.Entry<String, YarnMonitor> entry = monitorsIter.next();
+          // Check if Value associated with Key is 10
+          if (!executions.keySet().contains(entry.getKey())) {
+            // Remove the element
+            entry.getValue().close();
+            monitorsIter.remove();
+          }
         }
-      }
-      maxStatusPollRetry = settings.getMaxStatusPollRetry();
-      List<String> toRemove = new ArrayList<>();
-      try {
+        maxStatusPollRetry = settings.getMaxStatusPollRetry();
+        List<String> toRemove = new ArrayList<>();
         for (Map.Entry<String, Execution> entry : executions.entrySet()) {
           YarnMonitor monitor = monitors.get(entry.getKey());
           if (monitor == null) {
@@ -136,12 +137,11 @@ public class YarnJobsMonitor {
           failures.remove(appID);
           monitors.remove(appID);
         }
-
         // This is here to do bookkeeping. Remove from the map all the executions which have finished copying the logs
         copyLogsFutures.entrySet().removeIf(futureResult -> futureResult.getValue().isDone());
-      } catch (Exception ex) {
-        LOGGER.log(Level.SEVERE, "Error while monitoring jobs", ex);
       }
+    } catch (Exception ex) {
+      LOGGER.log(Level.SEVERE, "Error while monitoring jobs", ex);
     }
   }
   
@@ -191,15 +191,17 @@ public class YarnJobsMonitor {
     }
     return exec;
   }
-
-  private Execution updateProgress(float progress, Execution execution) {
+  
+  @Override
+  public Execution updateProgress(float progress, Execution execution) {
     return executionFacade.updateProgress(execution, progress);
   }
-
-  private Execution updateState(JobState newState, Execution execution) {
+  
+  @Override
+  public Execution updateState(JobState newState, Execution execution) {
     return executionFacade.updateState(execution, newState);
   }
-
+  
   private Execution updateFinalStatus(JobFinalStatus finalStatus, Execution execution) {
     return executionFacade.updateFinalStatus(execution, finalStatus);
   }

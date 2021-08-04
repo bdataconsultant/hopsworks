@@ -20,19 +20,19 @@ import io.hops.hopsworks.api.filter.AllowedProjectRoles;
 import io.hops.hopsworks.api.filter.Audience;
 import io.hops.hopsworks.api.filter.NoCacheResponse;
 import io.hops.hopsworks.api.jwt.JWTHelper;
-import io.hops.hopsworks.common.dao.project.Project;
 import io.hops.hopsworks.common.dao.project.ProjectFacade;
-import io.hops.hopsworks.common.dao.user.Users;
 import io.hops.hopsworks.common.serving.ServingController;
-import io.hops.hopsworks.exceptions.ServingException;
 import io.hops.hopsworks.common.serving.ServingWrapper;
 import io.hops.hopsworks.common.serving.util.ServingCommands;
 import io.hops.hopsworks.exceptions.CryptoPasswordNotFoundException;
 import io.hops.hopsworks.exceptions.KafkaException;
 import io.hops.hopsworks.exceptions.ProjectException;
 import io.hops.hopsworks.exceptions.ServiceException;
+import io.hops.hopsworks.exceptions.ServingException;
 import io.hops.hopsworks.exceptions.UserException;
 import io.hops.hopsworks.jwt.annotation.JWTRequired;
+import io.hops.hopsworks.persistence.entity.project.Project;
+import io.hops.hopsworks.persistence.entity.user.Users;
 import io.hops.hopsworks.restutils.RESTCodes;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -57,8 +57,10 @@ import javax.ws.rs.core.GenericEntity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 /**
  * RESTful microservice for model servings on Hopsworks. Supports both Tensorflow and SKLearn models.
@@ -97,7 +99,7 @@ public class ServingService {
   private Project project;
 
   public ServingService(){ }
-
+  
   public void setProjectId(Integer projectId) {
     this.project = projectFacade.find(projectId);
   }
@@ -109,7 +111,8 @@ public class ServingService {
   @ApiOperation(value = "Get the list of serving instances for the project",
       response = ServingView.class,
       responseContainer = "List")
-  public Response getServings() throws ServingException, KafkaException, CryptoPasswordNotFoundException {
+  public Response getServings(@Context SecurityContext sc) throws ServingException, KafkaException,
+    CryptoPasswordNotFoundException {
     List<ServingWrapper> servingDAOList = servingController.getServings(project);
     
     ArrayList<ServingView> servingViewList = new ArrayList<>();
@@ -131,7 +134,7 @@ public class ServingService {
   @AllowedProjectRoles({AllowedProjectRoles.DATA_OWNER, AllowedProjectRoles.DATA_SCIENTIST})
   @JWTRequired(acceptedTokens={Audience.API}, allowedUserRoles={"HOPS_ADMIN", "HOPS_USER"})
   @ApiOperation(value = "Get info about a serving instance for the project", response = ServingView.class)
-  public Response getServing(
+  public Response getServing(@Context SecurityContext sc,
       @ApiParam(value = "Id of the Serving instance", required = true) @PathParam("servingId") Integer servingId)
       throws ServingException, KafkaException, CryptoPasswordNotFoundException {
     if (servingId == null) {
@@ -152,7 +155,7 @@ public class ServingService {
   @AllowedProjectRoles({AllowedProjectRoles.DATA_OWNER, AllowedProjectRoles.DATA_SCIENTIST})
   @JWTRequired(acceptedTokens={Audience.API, Audience.JOB}, allowedUserRoles={"HOPS_ADMIN", "HOPS_USER"})
   @ApiOperation(value = "Delete a serving instance")
-  public Response deleteServing(
+  public Response deleteServing(@Context SecurityContext sc,
       @ApiParam(value = "Id of the serving instance", required = true) @PathParam("servingId") Integer servingId)
       throws ServingException {
     if (servingId == null) {
@@ -173,7 +176,8 @@ public class ServingService {
   public Response createOrUpdate(@Context SecurityContext sc,
       @ApiParam(value = "serving specification", required = true)
         ServingView serving)
-      throws ServingException, ServiceException, KafkaException, ProjectException, UserException {
+      throws ServingException, ServiceException, KafkaException, ProjectException, UserException,
+        InterruptedException, ExecutionException, UnsupportedEncodingException {
     Users user = jWTHelper.getUserPrincipal(sc);
     if (serving == null) {
       throw new IllegalArgumentException("serving was not provided");

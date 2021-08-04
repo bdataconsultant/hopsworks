@@ -18,143 +18,186 @@
  * Controller for the Featuregroup-Info view
  */
 angular.module('hopsWorksApp')
-    .controller('featuregroupViewInfoCtrl', ['$uibModalInstance', '$scope', 'FeaturestoreService', 'ProjectService',
-        'JobService', '$location', 'growl', 'projectId', 'featuregroup', 'featurestore', 'settings',
-        function ($uibModalInstance, $scope, FeaturestoreService, ProjectService, JobService, $location, growl,
-                  projectId, featuregroup, featurestore, settings) {
+    .controller('featuregroupViewInfoCtrl', ['$scope', 'FeaturestoreService', 'ProjectService',
+        'JobService', 'StorageService', 'ModalService', '$location', 'growl',
+        function ($scope, FeaturestoreService, ProjectService, JobService, StorageService, ModalService, $location, growl) {
 
             /**
              * Initialize controller state
              */
             var self = this;
 
-            //Controller Input
-            self.projectId = projectId;
-            self.featuregroup = featuregroup;
-            self.featurestore = featurestore;
-            self.settings = settings;
-
             //Controller State
-            self.sampleWorking = false;
+            self.tgState = false;
+            self.featurestoreCtrl = null;
+            self.projectName = null;
+            self.projectId = null;
+            self.selectedFeaturegroup = null;
+            self.featuregroups = null;
+            self.activeVersion = null;
+            self.featurestore = null;
+            self.settings = null;
             self.sizeWorking = false;
-            self.size = "Not fetched"
+            self.loadingTags = false;
+            self.offlineSize = "N/A"
+            self.onlineSize = "N/A"
             self.offlineSchema ="Not fetched";
             self.onlineSchema = "Not fetched";
+            self.hiveTableType = "N/A";
+            self.inputFormat = "N/A";
             self.pythonCode = ""
             self.scalaCode = ""
-            self.schemaWorking = false;
-            self.sampleWorking = false;
+            self.offlineSchemaWorking= false;
+            self.onlineSchemaWorking= false;
             self.offlineSampleColumns = []
-            self.offlineSample = []
-            self.onlineSampleColumns = []
-            self.onlineSample = []
-            self.notFetchedSample = true;
+            self.attachedTags = [];
+            self.showDataFormat = false;
+            self.showPath = false;
 
-            //Constants
-            self.cachedFeaturegroupType = self.settings.cachedFeaturegroupType
-            self.onDemandFeaturegroupType = self.settings.onDemandFeaturegroupType
+            self.featurestoreCtrl = null;
 
             /**
-             * Get the API code to retrieve the featuregroup with the Python API
+             * Get featuregroup tags
              */
-            self.getPythonCode = function (featuregroup) {
-                var codeStr = "from hops import featurestore\n"
-                codeStr = codeStr + "featurestore.get_featuregroup('" + featuregroup.name + "')"
-                return codeStr
-            };
-
-            /**
-             * Fetches a preview of the feature group from Hopsworks
-             */
-            self.fetchSample = function () {
-                if(self.sampleWorking){
-                    return
-                }
-                self.sampleWorking = true
-                FeaturestoreService.getFeaturegroupSample(self.projectId, self.featurestore, self.featuregroup).then(
+            self.fetchTags = function () {
+                self.loadingTags = true;
+                FeaturestoreService.getFeaturegroupTags(self.projectId, self.featurestore, self.selectedFeaturegroup).then(
                     function (success) {
-                        self.sampleWorking = false;
-                        self.notFetchedSample = false;
-                        if(success.data.offlineFeaturegroupPreview != null) {
-                            var preProcessedOfflineSample = self.preprocessSample(success.data.offlineFeaturegroupPreview);
-                            self.offlineSample = preProcessedOfflineSample[0]
-                            self.offlineSampleColumns = preProcessedOfflineSample[1]
+                        self.loadingTags = false;
+                        self.attachedTags = [];
+                        if(success.data.items) {
+                            for (var i = 0; i < success.data.items.length; i++) {
+                                self.attachedTags.push({"tag": success.data.items[i].name, "value": success.data.items[i].value});
+                            }
+                        } else {
+                            self.attachedTags = [];
                         }
-                        if(success.data.onlineFeaturegroupPreview != null) {
-                            var preProcessedOnlineSample = self.preprocessSample(success.data.onlineFeaturegroupPreview);
-                            self.onlineSample = preProcessedOnlineSample[0]
-                            self.onlineSampleColumns = preProcessedOnlineSample[1]
+                      },
+                    function (error) {
+                        self.loadingTags = false;
+                        if(error.status !== 422) {
+                            if (typeof error.data.usrMsg !== 'undefined') {
+                                growl.error(error.data.usrMsg, {title: error.data.errorMsg, ttl: 8000});
+                            } else {
+                                growl.error("", {title: error.data.errorMsg, ttl: 8000});
+                            }
                         }
-                    }, function (error) {
-                        growl.error(error.data.errorMsg, {title: 'Failed to fetch data sample', ttl: 5000});
-                        self.sampleWorking = false;
                     });
             };
 
             /**
-             * Function for preprocessing the sample returned from the backend before visualizing it to the user
-             *
-             * @param rawSample the sample returned by the backend
+             * Add featuregroup tags
              */
-            self.preprocessSample = function (rawSample) {
-                var columns = []
-                var samples = []
-                var sampleRow;
-                var i;
-                var j;
-                if(rawSample.length > 0){
-                    for (i = 0; i < rawSample[0].columns.length; i++) {
-                        columns.push(self.removeTableNameFromColName(rawSample[0].columns[i].name))
-                    }
-                }
-                for (i = 0; i < rawSample.length; i++) {
-                    sampleRow = {}
-                    for (j = 0; j < rawSample[i].columns.length; j++) {
-                        sampleRow[self.removeTableNameFromColName(rawSample[i].columns[j].name)] = rawSample[i].columns[j].value
-                    }
-                    samples.push(sampleRow)
-                }
-                return [samples, columns]
-            }
+            self.addTag = function(name, value) {
+                self.loadingTags = true;
+                FeaturestoreService.updateFeaturegroupTag(self.projectId, self.featurestore, self.selectedFeaturegroup, name, value).then(
+                    function (success) {
+                        self.attachedTags = [];
+                        self.loadingTags = false;
+                        if(success.data.items) {
+                            for (var i = 0; i < success.data.items.length; i++) {
+                                self.attachedTags.push({"tag": success.data.items[i].name, "value": success.data.items[i].value});
+                            }
+                        } else {
+                            self.attachedTags = [];
+                        }
+                    },
+                    function (error) {
+                        self.loadingTags = false;
+                        if(error.status !== 404) {
+                            if (typeof error.data.usrMsg !== 'undefined') {
+                                growl.error(error.data.usrMsg, {title: error.data.errorMsg, ttl: 8000});
+                            } else {
+                                growl.error("", {title: error.data.errorMsg, ttl: 8000});
+                            }
+                        }
+                    });
+            };
 
             /**
-             * Previews are prepended with table name and a dot. Remove this prefix to make the UI more readable
-             *
-             * @param colName the colName to preprocess
-             * @returns truncated colName
+             * Delete featuregroup tag
              */
-            self.removeTableNameFromColName = function(colName) {
-                return colName.replace(self.featuregroup.name + "_" + self.featuregroup.version + ".", "")
-            }
+            self.deleteTag = function(name) {
+                self.loadingTags = true;
+                FeaturestoreService.deleteFeaturegroupTag(self.projectId, self.featurestore, self.selectedFeaturegroup, name).then(
+                    function (success) {
+                        self.attachedTags = [];
+                        self.fetchTags();
+                    },
+                    function (error) {
+                        self.loadingTags = false;
+                        if(error.status !== 404) {
+                            if (typeof error.data.usrMsg !== 'undefined') {
+                                growl.error(error.data.usrMsg, {title: error.data.errorMsg, ttl: 8000});
+                            } else {
+                                growl.error("", {title: error.data.errorMsg, ttl: 8000});
+                            }
+                        }
+                    });
+            };
 
+            self.queryFeaturegroup = $location.search()['featuregroup'];
 
             /**
-             * Get the API code to retrieve the featuregroup with the Scala API
+             * Get the API code to retrieve the featuregroup with the Python API
              */
-            self.getScalaCode = function (featuregroup) {
-                var codeStr = "import io.hops.util.Hops\n"
-                codeStr = codeStr + "Hops.getFeaturegroup('" + featuregroup.name + "').read()"
+            self.getPythonCode = function () {
+                var codeStr = "from hops import featurestore\n"
+                codeStr = codeStr + "featurestore.get_featuregroup('" + self.selectedFeaturegroup.name + "')"
                 return codeStr
             };
 
             /**
-             * Fetch schema from Hive by making a REST call to Hopsworks
+             * Get the API code to retrieve the featuregroup with the Scala API
              */
-            self.fetchSchema = function () {
+            self.getScalaCode = function () {
+                var codeStr = "import io.hops.util.Hops\n"
+                codeStr = codeStr + "Hops.getFeaturegroup(\"" + self.selectedFeaturegroup.name + "\").read()"
+                return codeStr
+            };
+
+
+            /**
+             * Fetch offline details from Hive by making a REST call to Hopsworks
+             */
+            self.fetchOfflineDetails = function () {
                 if(self.schemaWorking){
                     return
                 }
-                self.schemaWorking = true
-                FeaturestoreService.getFeaturegroupSchema(self.projectId, self.featurestore, self.featuregroup).then(
+                self.offlineSchemaWorking = true
+
+                FeaturestoreService.getFeaturegroupDetails(self.projectId, self.featurestore, 
+                                                           self.selectedFeaturegroup, "OFFLINE").then(
                     function (success) {
-                        self.schemaWorking = false;
-                        self.offlineSchema = success.data.columns[0].value;
-                        if(self.featuregroup.onlineFeaturegroupEnabled){
-                            self.onlineSchema = success.data.columns[1].value;
-                        }
+                        self.offlineSchemaWorking = false;
+                        self.offlineSchema = success.data.schema;
+                        self.inputFormat = success.data.inputFormat;
+                        self.hiveTableType = success.data.hiveTableType;
+                        self.offlineSize = success.data.size;
                     }, function (error) {
-                        growl.error(error.data.errorMsg, {title: 'Failed to fetch featuregroup schema', ttl: 5000});
-                        self.schemaWorking = false;
+                        growl.error(error.data.errorMsg, {title: 'Failed to fetch offline featuregroup details', ttl: 5000});
+                        self.offlineSchemaWorking = false;
+                    });
+            };
+
+            /**
+             * Fetch online details from Hive by making a REST call to Hopsworks
+             */
+            self.fetchOnlineDetails = function () {
+                if(self.onlineSchemaWorking){
+                    return
+                }
+                self.schemaWorking = true
+
+                FeaturestoreService.getFeaturegroupDetails(self.projectId, self.featurestore, 
+                                                           self.selectedFeaturegroup, "ONLINE").then(
+                    function (success) {
+                        self.onlineSchemaWorking = false;
+                        self.onlineSchema = success.data.schema;
+                        self.onlineSize = success.data.size;
+                    }, function (error) {
+                        growl.error(error.data.errorMsg, {title: 'Failed to fetch online featuregroup details', ttl: 5000});
+                        self.onlineSchemaWorking = false;
                     });
             };
 
@@ -172,76 +215,61 @@ angular.module('hopsWorksApp')
              */
             self.launchJob = function (jobName) {
                 JobService.setJobFilter(jobName);
-                self.close();
                 self.goToUrl("jobs")
             };
 
-            /**
-             * Send async request to hopsworks to calculate the inode size of the featuregroup
-             * this can potentially be a long running operation if the directory is deeply nested
-             */
-            self.fetchSize = function () {
-                if(self.sizeWorking){
-                    return
+            self.toggle = function(selectedFeatureGroup) {
+                if (self.selectedFeaturegroup
+                    && self.selectedFeaturegroup.id === selectedFeatureGroup.id
+                    && self.tgState === true) {
+                    self.tgState = false;
+                } else {
+                    self.tgState = true;
                 }
-                self.sizeWorking = true
-                var request = {type: "inode", inodeId: self.featuregroup.inodeId};
-                ProjectService.getMoreInodeInfo(request).$promise.then(function (success) {
-                    self.sizeWorking = false;
-                    self.size = self.sizeOnDisk(success.size)
-                }, function (error) {
-                    growl.error(error.data.errorMsg, {title: 'Failed to fetch feature group size', ttl: 5000});
-                    self.sizeWorking = false;
-                });
-            };
+            }
 
             /**
              * Initialization function
              */
-            self.init= function () {
-                self.formatCreated = self.formatDate(self.featuregroup.created)
-                self.pythonCode = self.getPythonCode(self.featuregroup)
-                self.scalaCode = self.getScalaCode(self.featuregroup)
-                self.featuregroupType = ""
-                if(self.featuregroup.featuregroupType === self.onDemandFeaturegroupType){
-                    self.featuregroupType = "ON DEMAND"
-                } else {
-                    self.featuregroupType = "CACHED"
-                    self.fetchSchema()
-                    self.fetchSize()
-                    self.fetchSample()
+            self.view = function (featurestoreCtrl, featuregroups, toggle) {
+
+                if(toggle) {
+                    self.toggle(featuregroups.versionToGroups[featuregroups.activeVersion]);
                 }
+
+                self.selectedFeaturegroup = featuregroups.versionToGroups[featuregroups.activeVersion];
+
+                self.showDataFormat = typeof self.selectedFeaturegroup.dataFormat !== 'undefined';
+                self.showPath = typeof self.selectedFeaturegroup.path !== 'undefined' 
+                                    && self.selectedFeaturegroup.path != "";
+
+                self.featurestoreCtrl = featurestoreCtrl;
+                self.projectId = featurestoreCtrl.projectId;
+                self.projectName = featurestoreCtrl.projectName;
+                self.featurestore = featurestoreCtrl.featurestore;
+                self.featuregroups = featuregroups;
+                self.activeVersion = featuregroups.activeVersion;
+                self.settings = featurestoreCtrl.settings;
+
+                self.pythonCode = self.getPythonCode();
+                self.scalaCode = self.getScalaCode();
+
+                self.featuregroupType = "";
+                if(self.selectedFeaturegroup.type === 'onDemandFeaturegroupDTO'){
+                    self.featuregroupType = "ON DEMAND";
+                } else {
+                    self.featuregroupType = "CACHED";
+                    self.fetchOfflineDetails();
+                    if (self.selectedFeaturegroup.onlineEnabled === true) {
+                        self.fetchOnlineDetails();
+                    }
+                }
+                self.fetchTags();
             };
 
-            /**
-             * Format javascript date as string (YYYY-mm-dd HH:MM:SS)
-             *
-             * @param d date to format
-             * @returns {string} formatted string
-             */
-            self.formatDate = function(javaDate) {
-                var d = new Date(javaDate)
-                var date_format_str = d.getFullYear().toString()+"-"+((d.getMonth()+1).toString().length==2?(d.getMonth()+1).toString():"0"+(d.getMonth()+1).toString())+"-"+(d.getDate().toString().length==2?d.getDate().toString():"0"+d.getDate().toString())+" "+(d.getHours().toString().length==2?d.getHours().toString():"0"+d.getHours().toString())+":"+((parseInt(d.getMinutes()/5)*5).toString().length==2?(parseInt(d.getMinutes()/5)*5).toString():"0"+(parseInt(d.getMinutes()/5)*5).toString())+":00";
-                return date_format_str
-            }
-
-            /**
-             * Closes the modal
-             */
-            self.close = function () {
-                $uibModalInstance.dismiss('cancel');
-            };
-
-            /**
-             * Format javascript date as string (YYYY-mm-dd HH:MM:SS)
-             *
-             * @param javaDate date to format
-             * @returns {string} formatted string
-             */
-            $scope.formatDate = function (javaDate) {
-                var d = new Date(javaDate);
-                return d.getFullYear().toString() + "-" + ((d.getMonth() + 1).toString().length == 2 ? (d.getMonth() + 1).toString() : "0" + (d.getMonth() + 1).toString()) + "-" + (d.getDate().toString().length == 2 ? d.getDate().toString() : "0" + d.getDate().toString()) + " " + (d.getHours().toString().length == 2 ? d.getHours().toString() : "0" + d.getHours().toString()) + ":" + ((parseInt(d.getMinutes() / 5) * 5).toString().length == 2 ? (parseInt(d.getMinutes() / 5) * 5).toString() : "0" + (parseInt(d.getMinutes() / 5) * 5).toString()) + ":00";
-            };
+            $scope.$on('featuregroupSelected', function (event, args) {
+                self.view(args.featurestoreCtrl, args.featuregroups, args.toggle);
+            });
 
             /**
              * Helper function for redirecting to another project page
@@ -252,6 +280,98 @@ angular.module('hopsWorksApp')
                 $location.path('project/' + self.projectId + '/' + serviceName);
             };
 
-            self.init()
+            self.goToStorageConnector = function () {
+                var connParam = {
+                    "storageConnector": self.selectedFeaturegroup.storageConnector.name
+                }
+
+                $location.path('project/' + self.projectId + "/featurestore").search(connParam);
+            };
+
+            /**
+             * Called when the increment-version-featuregroup-button is pressed
+             *
+             */
+            self.newFeaturegroupVersion = function () {
+                StorageService.store("featuregroup_operation", "NEW_VERSION");
+                StorageService.store(self.projectId + "_featuregroup", self.selectedFeaturegroup);
+
+                var maxVersion = -1;
+                for (var i = 0; i < self.featuregroups.versions.length; i++) {
+                    var version = parseInt(self.featuregroups.versions[i])
+                    if (version > maxVersion) {
+                        maxVersion = version
+                    }
+                }
+                StorageService.store(self.projectId + "_featuregroup_version", maxVersion + 1);
+                self.goToUrl("newfeaturegroup")
+            };
+
+            /**
+             * Called when the delete-featuregroup-button is pressed
+             *
+             */
+            self.deleteFeaturegroup = function (featurestoreCtrl) {
+                ModalService.confirm('md', 'Are you sure?',
+                    'Are you sure that you want to delete version ' + self.selectedFeaturegroup.version + ' of the ' + self.selectedFeaturegroup.name + ' featuregroup? ' +
+                                        'This action will delete the data and metadata and can not be undone.')
+                    .then(function (success) {
+                        FeaturestoreService.deleteFeaturegroup(self.projectId, self.featurestore, self.selectedFeaturegroup.id).then(
+                            function (success) {
+                                self.tgState = false;
+                                featurestoreCtrl.getFeaturegroups(self.featurestore);
+                                growl.success("Feature group deleted", {title: 'Success', ttl: 2000});
+                            },
+                            function (error) {
+                                growl.error(error.data.errorMsg, {
+                                    title: 'Failed to delete the feature group',
+                                    ttl: 15000
+                                });
+                            });
+                        growl.info("Deleting featuregroup...", {title: 'Deleting', ttl: 2000})
+                    }, function (error) {});
+            };
+
+            /**
+             * Goes to the edit page for updating a feature group
+             *
+             */
+            self.updateFeaturegroup = function () {
+                StorageService.store("featuregroup_operation", "UPDATE");
+                StorageService.store(self.projectId + "_featuregroup", self.selectedFeaturegroup);
+                StorageService.store(self.projectId + "_featuregroup_version", self.selectedFeaturegroup.version);
+                self.goToUrl("newfeaturegroup")
+            };
+
+            self.preview = function() {
+                // Close tab before showing the new section of the page
+                self.tgState = false;
+                /// call featurestoreCtrl to show the preview
+                self.featurestoreCtrl.togglePreview(self.selectedFeaturegroup);
+            }
+
+            /**
+             * Called when the view-featuregroup-statistics button is pressed
+             *
+             */
+            self.viewFeaturegroupStatistics = function () {
+                self.featurestoreCtrl.fgStatistics = self.selectedFeaturegroup;
+                self.featurestoreCtrl.showStatistics = true;
+            };
+
+            self.fgLocation = function() {
+                var locationStr = self.selectedFeaturegroup.location;
+                var locationSplits = locationStr.split("/");
+                var datasetLocation = null;
+
+                if (locationStr.includes("apps/hive/warehouse")) {
+                    // need special treatment for the warehouse dirs
+                    datasetLocation = locationSplits.slice(6).join("/");
+                } else { 
+                    // just pass the project path to the dataset
+                    datasetLocation = locationSplits.slice(3).join("/");
+                }
+                $location.path('project/' + self.projectId + '/datasets/' + datasetLocation);
+            };
         }]);
 

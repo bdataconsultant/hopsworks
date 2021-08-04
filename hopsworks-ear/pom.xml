@@ -44,16 +44,16 @@
   <parent>
     <groupId>io.hops</groupId>
     <artifactId>hopsworks</artifactId>
-    <version>1.0.0</version>
+    <version>2.2.0</version>
     <relativePath>..</relativePath>
   </parent>
   
   <groupId>io.hops.hopsworks</groupId>
-  <artifactId>giotto-ear</artifactId>
-  <version>1.0.0</version>
+  <artifactId>hopsworks-ear</artifactId>
+  <version>2.2.0</version>
   <packaging>ear</packaging>
 
-  <name>giotto-ear:1.0.0</name>
+  <name>hopsworks-ear:2.2.0</name>
 
   <properties>
     <maven.deploy.skip>true</maven.deploy.skip>
@@ -131,12 +131,6 @@
   <dependencies>
     <dependency>
       <groupId>io.hops.hopsworks</groupId>
-      <artifactId>hopsworks-persistence</artifactId>
-      <version>${project.version}</version>
-      <type>jar</type>
-    </dependency>
-    <dependency>
-      <groupId>io.hops.hopsworks</groupId>
       <artifactId>hopsworks-rest-utils</artifactId>
       <version>${project.version}</version>
       <type>jar</type>
@@ -188,7 +182,22 @@
         <dependency>
           <groupId>io.hops.hopsworks</groupId>
           <artifactId>hopsworks-cluster</artifactId>
-          <version>1.0.0</version>
+          <version>2.2.0</version>
+          <type>war</type>
+        </dependency>
+      </dependencies>
+    </profile>
+
+    <profile>
+      <id>testing</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>io.hops.hopsworks</groupId>
+          <artifactId>hopsworks-testing</artifactId>
+          <version>2.2.0</version>
           <type>war</type>
         </dependency>
       </dependencies>

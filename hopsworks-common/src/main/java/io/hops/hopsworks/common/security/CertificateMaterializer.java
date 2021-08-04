@@ -39,15 +39,15 @@
 package io.hops.hopsworks.common.security;
 
 import io.hops.hopsworks.common.dao.certificates.CertsFacade;
-import io.hops.hopsworks.common.dao.certificates.UserCerts;
-import io.hops.hopsworks.common.dao.project.Project;
+import io.hops.hopsworks.persistence.entity.certificates.UserCerts;
+import io.hops.hopsworks.persistence.entity.project.Project;
 import io.hops.hopsworks.common.dao.user.UserFacade;
-import io.hops.hopsworks.common.dao.user.Users;
+import io.hops.hopsworks.persistence.entity.user.Users;
 import io.hops.hopsworks.common.hdfs.DistributedFileSystemOps;
 import io.hops.hopsworks.common.hdfs.DistributedFsService;
 import io.hops.hopsworks.common.hdfs.HdfsUsersController;
-import io.hops.hopsworks.common.security.dao.RemoteMaterialRefID;
-import io.hops.hopsworks.common.security.dao.RemoteMaterialReferences;
+import io.hops.hopsworks.persistence.entity.security.RemoteMaterialRefID;
+import io.hops.hopsworks.persistence.entity.security.RemoteMaterialReferences;
 import io.hops.hopsworks.common.util.HopsUtils;
 import io.hops.hopsworks.common.util.Settings;
 import io.hops.hopsworks.exceptions.CryptoPasswordNotFoundException;
@@ -91,8 +91,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static io.hops.hopsworks.common.util.Settings.CERT_PASS_SUFFIX;
 import static io.hops.hopsworks.common.util.Settings.KEYSTORE_SUFFIX;
@@ -104,7 +102,6 @@ import static io.hops.hopsworks.common.util.Settings.TRUSTSTORE_SUFFIX;
 public class CertificateMaterializer {
   private static final Logger LOG = Logger.getLogger(CertificateMaterializer.class.getName());
   
-  private final static Pattern HDFS_SCHEME = Pattern.compile("^hdfs://.*");
   private final static int MAX_NUMBER_OF_RETRIES = 3;
   private final static long RETRY_WAIT_TIMEOUT = 10;
   
@@ -1130,11 +1127,11 @@ public class CertificateMaterializer {
   }
   
   private String normalizeURI(String uri) {
-    Matcher uriMatcher = HDFS_SCHEME.matcher(uri);
-    if (!uriMatcher.matches()) {
-      uri = "hdfs://" + uri;
+    Path path = new Path(uri);
+    if(path.toUri().getScheme()==null){
+      path.setScheme("hopsfs");
     }
-    return uri;
+    return path.toString();
   }
 
   /**
@@ -1312,13 +1309,15 @@ public class CertificateMaterializer {
         Map<String, LocalFileRemover> materialRemovers = fileRemovers.get(key);
         if (materialRemovers != null) {
           materialRemovers.remove(materializationDirectory);
+          boolean noMoreRef = false;
           if (materialRemovers.isEmpty()) {
             fileRemovers.remove(key);
-          }
+            noMoreRef=true;
+          } 
         
           // No more references to that crypto material, wipe out password
           Bag materialBag = materializedCerts.get(key);
-          if (materialBag != null && materialBag.isEmpty()) {
+          if (noMoreRef && materialBag != null && materialBag.isEmpty()) {
             materializedCerts.remove(key);
             CryptoMaterial material = materialCache.remove(key);
             if (material != null) {

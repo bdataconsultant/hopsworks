@@ -39,25 +39,24 @@
 
 package io.hops.hopsworks.admin.security.ua;
 
-import java.io.Serializable;
+import io.hops.hopsworks.admin.user.administration.UserAdministrationController;
+import io.hops.hopsworks.common.dao.user.UserFacade;
+import io.hops.hopsworks.common.user.UsersController;
+import io.hops.hopsworks.persistence.entity.user.Users;
+import io.hops.hopsworks.persistence.entity.user.security.ua.UserAccountStatus;
+
 import javax.ejb.EJB;
 import javax.faces.bean.ManagedBean;
 import javax.faces.bean.RequestScoped;
 import javax.faces.context.ExternalContext;
 import javax.faces.context.FacesContext;
+import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
-
-import io.hops.hopsworks.admin.user.administration.UserAdministrationController;
-import io.hops.hopsworks.common.dao.user.UserFacade;
-import io.hops.hopsworks.common.dao.user.security.ua.UserAccountStatus;
-import io.hops.hopsworks.common.dao.user.Users;
-import io.hops.hopsworks.common.user.AuthController;
-import io.hops.hopsworks.common.user.UsersController;
 import java.io.IOException;
+import java.io.Serializable;
 import java.security.Principal;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.servlet.ServletException;
 
 @ManagedBean
 @RequestScoped
@@ -66,11 +65,11 @@ public class RoleEnforcementPoint implements Serializable {
   @EJB
   protected UsersController usersController;
   @EJB
-  protected AuthController authController;
-  @EJB
   private UserFacade userFacade;
   @EJB
   protected UserAdministrationController userAdministrationController;
+  @EJB
+  private AuditedUserAuth auditedUserAuth;
 
   private int tabIndex;
   private Users user;
@@ -157,12 +156,8 @@ public class RoleEnforcementPoint implements Serializable {
     try {
       this.user = getUserFromSession();
       HttpServletRequest req = getRequest();
-      req.getSession().invalidate();
-      req.logout(); 
-      if (user != null) {
-        authController.registerLogout(user, req);
-      }
-      FacesContext.getCurrentInstance().getExternalContext().redirect("/giotto-web/#!/home");
+      auditedUserAuth.logout(this.user, req);
+      FacesContext.getCurrentInstance().getExternalContext().redirect("/hopsworks/#!/home");
     } catch (IOException | ServletException ex) {
       Logger.getLogger(RoleEnforcementPoint.class.getName()).log(Level.SEVERE, null, ex);
     }

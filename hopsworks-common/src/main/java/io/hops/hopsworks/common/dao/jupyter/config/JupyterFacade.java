@@ -39,10 +39,10 @@
 
 package io.hops.hopsworks.common.dao.jupyter.config;
 
-import io.hops.hopsworks.common.dao.hdfsUser.HdfsUsers;
+import io.hops.hopsworks.persistence.entity.hdfs.user.HdfsUsers;
 import io.hops.hopsworks.common.dao.hdfsUser.HdfsUsersFacade;
-import io.hops.hopsworks.common.dao.jupyter.JupyterProject;
-import io.hops.hopsworks.common.dao.project.Project;
+import io.hops.hopsworks.persistence.entity.jupyter.JupyterProject;
+import io.hops.hopsworks.persistence.entity.project.Project;
 import io.hops.hopsworks.common.util.Settings;
 
 import javax.ejb.EJB;
@@ -158,8 +158,8 @@ public class JupyterFacade {
 
   public JupyterProject saveServer(String host,
       Project project, String secretConfig, int port,
-      int hdfsUserId, String token, long pid, Date expires) {
-    JupyterProject jp = new JupyterProject(project, secretConfig, port, hdfsUserId, host, token, pid, expires);
+      int hdfsUserId, String token, String cid, Date expires) {
+    JupyterProject jp = new JupyterProject(project, secretConfig, port, hdfsUserId, host, token, cid, expires);
     persist(jp);
     return jp;
   }

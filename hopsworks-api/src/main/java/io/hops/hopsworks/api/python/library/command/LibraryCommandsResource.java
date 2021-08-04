@@ -22,11 +22,11 @@ import io.hops.hopsworks.api.python.command.CommandBuilder;
 import io.hops.hopsworks.api.python.command.CommandDTO;
 import io.hops.hopsworks.api.util.Pagination;
 import io.hops.hopsworks.common.api.ResourceRequest;
-import io.hops.hopsworks.common.dao.project.Project;
 import io.hops.hopsworks.common.python.commands.CommandsController;
 import io.hops.hopsworks.common.python.environment.EnvironmentController;
 import io.hops.hopsworks.exceptions.PythonException;
 import io.hops.hopsworks.jwt.annotation.JWTRequired;
+import io.hops.hopsworks.persistence.entity.project.Project;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 
@@ -44,6 +44,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
 @Api(value = "Python Environment Library Commands Resource")
@@ -67,10 +68,6 @@ public class LibraryCommandsResource {
     return this;
   }
 
-  public Project getProject() {
-    return project;
-  }
-
   @ApiOperation(value = "Get all commands for this library", response = CommandDTO.class)
   @GET
   @Produces(MediaType.APPLICATION_JSON)
@@ -79,8 +76,8 @@ public class LibraryCommandsResource {
   public Response get(@PathParam("library") String library,
       @BeanParam Pagination pagination,
       @BeanParam CommandBeanParam libraryCommandBeanParam,
-      @Context UriInfo uriInfo) throws PythonException {
-    environmentController.checkCondaEnabled(project, pythonVersion);
+      @Context UriInfo uriInfo, @Context SecurityContext sc) throws PythonException {
+    environmentController.checkCondaEnabled(project, pythonVersion, true);
     ResourceRequest resourceRequest = new ResourceRequest(ResourceRequest.Name.COMMANDS);
     resourceRequest.setOffset(pagination.getOffset());
     resourceRequest.setLimit(pagination.getLimit());
@@ -97,8 +94,8 @@ public class LibraryCommandsResource {
   @AllowedProjectRoles({AllowedProjectRoles.DATA_OWNER, AllowedProjectRoles.DATA_SCIENTIST})
   @JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
   public Response getByName(@PathParam("library") String library, @PathParam("commandId") Integer commandId,
-    @Context UriInfo uriInfo) throws PythonException {
-    environmentController.checkCondaEnabled(project, pythonVersion);
+    @Context UriInfo uriInfo, @Context SecurityContext sc) throws PythonException {
+    environmentController.checkCondaEnabled(project, pythonVersion, true);
     ResourceRequest resourceRequest = new ResourceRequest(ResourceRequest.Name.COMMANDS);
     CommandDTO dto = commandBuilder.build(uriInfo, resourceRequest, project, library, commandId);
     return Response.ok().entity(dto).build();
@@ -108,9 +105,10 @@ public class LibraryCommandsResource {
   @PUT
   @AllowedProjectRoles({AllowedProjectRoles.DATA_OWNER, AllowedProjectRoles.DATA_SCIENTIST})
   @JWTRequired(acceptedTokens={Audience.API}, allowedUserRoles={"HOPS_ADMIN", "HOPS_USER"})
-  public Response update(@PathParam("library") String library, @Context UriInfo uriInfo) throws PythonException {
-    environmentController.checkCondaEnabled(project, pythonVersion);
-    commandsController.retryFailedCondaOps(project, library);
+  public Response update(@PathParam("library") String library, @Context UriInfo uriInfo, @Context SecurityContext sc)
+    throws PythonException {
+    environmentController.checkCondaEnabled(project, pythonVersion, true);
+    commandsController.retryFailedCondaLibraryOps(project, library);
     return Response.noContent().build();
   }
   
@@ -118,8 +116,8 @@ public class LibraryCommandsResource {
   @DELETE
   @AllowedProjectRoles({AllowedProjectRoles.DATA_OWNER, AllowedProjectRoles.DATA_SCIENTIST})
   @JWTRequired(acceptedTokens={Audience.API}, allowedUserRoles={"HOPS_ADMIN", "HOPS_USER"})
-  public Response delete(@PathParam("library") String library) throws PythonException {
-    environmentController.checkCondaEnabled(project, pythonVersion);
+  public Response delete(@PathParam("library") String library, @Context SecurityContext sc) throws PythonException {
+    environmentController.checkCondaEnabled(project, pythonVersion, true);
     commandsController.deleteCommands(project, library);
     return Response.noContent().build();
   }

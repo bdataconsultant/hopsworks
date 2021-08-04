@@ -41,9 +41,8 @@ package io.hops.hopsworks.api.agent;
 import io.hops.hopsworks.api.filter.NoCacheResponse;
 import io.hops.hopsworks.common.agent.AgentController;
 import io.hops.hopsworks.common.dao.command.HeartbeatReplyDTO;
-import io.hops.hopsworks.common.dao.command.SystemCommand;
 import io.hops.hopsworks.exceptions.ServiceException;
-import io.hops.hopsworks.common.dao.python.CondaCommands;
+import io.hops.hopsworks.persistence.entity.command.SystemCommand;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -59,8 +58,10 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.SecurityContext;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -100,7 +101,7 @@ public class AgentResource {
       @ApiParam(value = "Agent request", required = true) AgentView request,
       @ApiParam(value = "Action to be performed on agent resource", required = true)
       @QueryParam("action")
-      @DefaultValue("NONE") AgentAction action) throws ServiceException {
+      @DefaultValue("NONE") AgentAction action, @Context SecurityContext sc) throws ServiceException {
 
     switch (action) {
       case PING:
@@ -117,11 +118,8 @@ public class AgentResource {
             .entity(agentHBReply).build();
       case REGISTER:
         logger.log(Level.FINE, "AgentResource: Register");
-        final String hadoopHome = handleRegister(request);
-        final AgentView agentRegReply = new AgentView();
-        agentRegReply.setHadoopHome(hadoopHome);
-        return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK)
-            .entity(agentRegReply).build();
+        handleRegister(request);
+        return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).build();
       case NONE:
         throw new IllegalArgumentException("Action on AgentResource not specified");
       default:
@@ -135,7 +133,7 @@ public class AgentResource {
     for (SystemCommand sc : hbReply.getSystemCommands()) {
       systemCommands.add(scvBuilder.reset()
           .setOp(sc.getOp())
-          .setStatus(sc.getStatus())
+          .setStatus(sc.getCommandStatus())
           .setCommandId(sc.getId())
           .setArguments(sc.getCommandArgumentsAsString())
           .setPriority(sc.getPriority())
@@ -143,28 +141,8 @@ public class AgentResource {
           .build());
     }
     
-    final List<CondaCommandView> condaCommands = new ArrayList<>(hbReply.getCondaCommands().size());
-    final CondaCommandView.Builder ccvBuilder = new CondaCommandView.Builder();
-    for (CondaCommands cc : hbReply.getCondaCommands()) {
-      condaCommands.add(ccvBuilder.reset()
-          .setCondaOp(cc.getOp())
-          .setUser(cc.getUser())
-          .setProject(cc.getProj())
-          .setCommandId(cc.getId())
-          .setArguments(cc.getArg())
-          .setStatus(cc.getStatus())
-          .setVersion(cc.getVersion())
-          .setChannelUrl(cc.getChannelUrl())
-          .setInstallType(cc.getInstallType())
-          .setLib(cc.getLib())
-          .setEnvironmentYml(cc.getEnvironmentYml())
-          .setInstallJupyter(cc.getInstallJupyter())
-          .build());
-    }
-    
     final AgentView agentReply = new AgentView();
     agentReply.setSystemCommands(systemCommands);
-    agentReply.setCondaCommands(condaCommands);
     return agentReply;
   }
   
@@ -179,7 +157,7 @@ public class AgentResource {
     return agentController.heartbeat(request.toAgentHeartbeatDTO());
   }
   
-  private String handleRegister(AgentView request) {
+  private void handleRegister(AgentView request) throws ServiceException {
     logger.log(Level.FINE, "Handling register");
     if (request == null) {
       throw new IllegalArgumentException("Registration request is null");
@@ -188,6 +166,6 @@ public class AgentResource {
       throw new IllegalArgumentException("Invalid registration request");
     }
     
-    return agentController.register(request.getHostId(), request.getPassword());
+    agentController.register(request.getHostId(), request.getPassword());
   }
 }

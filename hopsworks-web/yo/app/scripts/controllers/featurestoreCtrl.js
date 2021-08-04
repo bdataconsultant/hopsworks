@@ -20,11 +20,10 @@
 'use strict';
 
 angular.module('hopsWorksApp')
-    .controller('featurestoreCtrl', ['$scope', '$routeParams', 'growl', 'FeaturestoreService', '$location', '$interval',
-        '$mdSidenav', 'ModalService', 'TourService', 'ProjectService', 'StorageService', 'JobService',
-        function ($scope, $routeParams, growl, FeaturestoreService, $location, $interval, $mdSidenav, ModalService,
-                  TourService, ProjectService, StorageService, JobService) {
-
+    .controller('featurestoreCtrl', ['$scope', '$routeParams', '$q', 'growl', 'FeaturestoreService', '$location',
+        'ModalService', 'TourService', 'ProjectService', 'StorageService', 'JobService', 'VariablesService',
+        function ($scope, $routeParams, $q, growl, FeaturestoreService, $location, ModalService,
+                  TourService, ProjectService, StorageService, JobService, VariablesService) {
 
             /**
              * Initialize controller state
@@ -34,9 +33,9 @@ angular.module('hopsWorksApp')
             self.projectId = $routeParams.projectID;
 
             //State
-            self.projectName = null;
+            self.projectFeaturestoreName = null;
+            self.projectTrainingdatasetsName = null;
             self.featurestores = [];
-            self.features = [];
             self.trainingDatasets = [];
             self.storageConnectors = [];
             self.settings = null;
@@ -44,7 +43,6 @@ angular.module('hopsWorksApp')
             self.featuregroupsPageSize = 20;
             self.trainingDatasetsPageSize = 20;
             self.storageConnectorsPageSize = 20;
-            self.featuresPageSize = 20;
             self.currentPage = 1;
             self.featurestore = null;
             self.featureSearchTerm = "";
@@ -58,7 +56,6 @@ angular.module('hopsWorksApp')
             self.storageConnectorsReverse = false;
             self.tdFilter = "";
             self.fgFilter = "";
-            self.fFilter = "";
             self.scFilter = "";
             self.featuregroupsDictList = [];
             self.trainingDatasetsDictList = [];
@@ -80,44 +77,53 @@ angular.module('hopsWorksApp')
             self.quotaChart = null;
             self.quotas = null;
             self.featureSearchFilterForm = false;
-            self.featuregroupsToDate = new Date();
-            self.featuregroupsToDate.setMinutes(self.featuregroupsToDate.getMinutes() + 60*24);
-            self.featuregroupsFromDate = new Date();
-            self.featuregroupsFromDate.setMinutes(self.featuregroupsFromDate.getMinutes() - 60*24*30*4);
-            self.trainingDatasetsToDate = new Date();
-            self.trainingDatasetsToDate.setMinutes(self.trainingDatasetsToDate.getMinutes() + 60*24);
-            self.trainingDatasetsFromDate = new Date();
-            self.trainingDatasetsFromDate.setMinutes(self.trainingDatasetsFromDate.getMinutes() - 60*24*30*4);
-            self.featuresToDate = new Date();
-            self.featuresToDate.setMinutes(self.featuresToDate.getMinutes() + 60*24);
-            self.featuresFromDate = new Date();
-            self.featuresFromDate.setMinutes(self.featuresFromDate.getMinutes() - 60*24*30*4);
+            self.featuregroupsToDate = null; 
+            self.featuregroupsFromDate = null; 
+            self.trainingDatasetsToDate = null;
+            self.trainingDatasetsFromDate = null;
             self.searchInFeaturegroups = true
             self.searchInTrainingDatasets = false
             self.featureSearchFgFilter = ""
             self.featureSearchFgVersionFilter = ""
-            self.fgFeatures = []
+            self.fgFeatures = [];
 
             //Constants
             self.hopsfsConnectorType = ""
             self.s3ConnectorType = ""
             self.jdbcConnectorType = ""
+            self.redshiftConnectorType = "";
             self.hopsfsTrainingDatasetType = ""
             self.externalTrainingDatasetType = ""
-            self.featuregroupType = ""
             self.trainingDatasetType = ""
+            self.isEnterprise = ""
 
+            // UI 
+            self.showPreview = false;
+            self.previewFg = null;
+
+            self.featurestoreSelectedTab = 0;
+            self.selectedTrainingDataset = undefined;
+            self.selectedFeaturegroup = undefined;
+            self.selectedFeature = undefined;
+            self.queryFeaturestore = $location.search()['featurestore'];
+            self.queryFeaturegroup = $location.search()['featureGroup'];
+            self.queryTrainingDataset = $location.search()['trainingDataset'];
+            self.queryStorageConnector = $location.search()['storageConnector'];
+            self.queryFeature = $location.search()['features'];
+            self.queryVersion = $location.search()['version'];
+
+
+            // Statistics
+            self.showStatistics = false;
+            self.fgStatistics = null;
+            self.tdStatistics = null;
 
             /**
              * Boolean parameter in the feature search that indicates whether features inside feature groups should
              * be included
              */
             self.setSearchInFeaturegroups = function() {
-                if(self.searchInFeaturegroups){
-                    self.searchInFeaturegroups = false
-                } else {
-                    self.searchInFeaturegroups = true
-                }
+                self.searchInFeaturegroups = !self.searchInFeaturegroups;
             }
 
 
@@ -126,24 +132,9 @@ angular.module('hopsWorksApp')
              * be included
              */
             self.setSearchInTrainingDatasets = function() {
-                if(self.searchInTrainingDatasets){
-                    self.searchInTrainingDatasets = false
-                } else {
-                    self.searchInTrainingDatasets = true
-                }
+                self.searchInTrainingDatasets = !self.searchInTrainingDatasets 
             }
 
-
-            /**
-             * Whether to show the filter search advanced filter form in the UI
-             */
-            self.setFeatureSearchFilterForm = function() {
-                if(self.featureSearchFilterForm) {
-                    self.featureSearchFilterForm = false;
-                } else {
-                    self.featureSearchFilterForm = true;
-                }
-            }
 
             /**
              * Gets the name of the project using the id
@@ -152,6 +143,8 @@ angular.module('hopsWorksApp')
                 ProjectService.get({}, {'id': self.projectId}).$promise.then(
                     function (success) {
                         self.projectName = success.projectName;
+                        self.projectFeaturestoreName = self.projectName.toLowerCase() + "_featurestore";
+                        self.projectTrainingdatasetsName = self.projectName + "_Training_Datasets";
                         StorageService.store("projectName", self.projectName)
                         self.selectProjectFeaturestore()
                     }, function (error) {
@@ -237,7 +230,7 @@ angular.module('hopsWorksApp')
              * Function to stop the loading screen
              */
             self.stopLoading = function () {
-                if(self.featuregroupsLoaded && self.trainingDatasetsLoaded && self.settingsLoaded) {
+                if(self.featuregroupsLoaded) {
                     self.collectAllFeatures();
                 }
                 if(self.storageConnectorsLoaded && self.settingsLoaded) {
@@ -259,6 +252,7 @@ angular.module('hopsWorksApp')
              * Shows the Modal for creating new feature groups through the UI
              */
             self.showCreateFeaturegroupForm = function () {
+                StorageService.store(self.projectId + "_featuregroup_version", 1);
                 StorageService.store("featuregroup_operation", "CREATE");
                 self.goToUrl("newfeaturegroup")
             };
@@ -299,16 +293,15 @@ angular.module('hopsWorksApp')
                             + "</code>"
                     }
                 }
-            }
 
+            }
             /**
              * Delete a storage connector
              *
              * @param connector the connector to delete
              */
             self.deleteStorageConnector = function (connector) {
-                FeaturestoreService.deleteStorageConnector(self.projectId, self.featurestore, connector.id,
-                    connector.storageConnectorType).then(
+                FeaturestoreService.deleteStorageConnector(self.projectId, self.featurestore, connector.name).then(
                     function (success) {
                         self.getStorageConnectors(self.featurestore);
                         growl.success("Storage connector deleted", {title: 'Success', ttl: 1000});
@@ -327,8 +320,85 @@ angular.module('hopsWorksApp')
              */
             self.showCreateTrainingDatasetForm = function () {
                 StorageService.store("trainingdataset_operation", "CREATE");
+                StorageService.store(self.projectId + "_trainingDataset_version", 1);
                 StorageService.store(self.projectId + "_fgFeatures", self.fgFeatures);
                 self.goToUrl("newtrainingdataset")
+            };
+
+            var selectFeaturegroupByNameAndVersion = function() {
+                const deferred = $q.defer();
+                if (typeof self.queryFeaturegroup !== 'undefined' &&
+                    typeof self.queryVersion !== 'undefined') {
+                    for (var i = 0; i < self.featuregroups.length; i++) {
+                        if(self.featuregroups[i].name === self.queryFeaturegroup &&
+                            self.featuregroups[i].version === self.queryVersion) {
+                            self.featurestoreSelectedTab = 0;
+                            deferred.resolve(self.featuregroups[i]);
+                            break;
+                        }
+                    }
+                } else {
+                    deferred.reject('No select Featuregroup');
+                }
+                return deferred.promise;
+            };
+
+            var selectTrainingDatasetByNameAndVersion = function() {
+                const deferred = $q.defer();
+                if (typeof self.queryTrainingDataset !== 'undefined' &&
+                    typeof self.queryVersion !== 'undefined') {
+                    for (var i = 0; i < self.trainingDatasets.length; i++) {
+                        if(self.trainingDatasets[i].name === self.queryTrainingDataset &&
+                            self.trainingDatasets[i].version === self.queryVersion) {
+                            self.featurestoreSelectedTab = 1;
+                            deferred.resolve(self.trainingDatasets[i]);
+                            break;
+                        }
+                    }
+                } else {
+                    deferred.reject('No select TrainingDataset');
+                }
+                return deferred.promise;
+            };
+
+            
+            var selectStorageConnectorByName = function() {
+                const deferred = $q.defer();
+                if (typeof self.queryStorageConnector !== 'undefined') {
+                    for (var i = 0; i < self.storageConnectors.length; i++){
+                        if (self.storageConnectors[i].name === self.queryStorageConnector) {
+                            self.featurestoreSelectedTab = 4;
+                            deferred.resolve(self.storageConnectors[i]);
+                            break;
+                        }
+                    }
+                } else {
+                    deferred.reject("No select StorageConnector");
+                }
+                return deferred.promise;
+
+            };
+
+            var broadcastFeaturegroupSelect = function () {
+                $scope.$broadcast('featuregroupSelected', {
+                    featurestoreCtrl: self,
+                    featuregroups: self.selectedFeaturegroup,
+                    toggle: true });
+            };
+
+            var broadcastTrainingDatasetSelect = function () {
+                $scope.$broadcast('trainingDatasetSelected', {
+                    featurestoreCtrl: self,
+                    trainingDatasets: self.selectedTrainingDataset,
+                    toggle: true });
+            };
+
+
+            var broadcastFeatureSelect = function () {
+                $scope.$broadcast('featureSelected', {
+                    featurestoreCtrl: self,
+                    feature: self.selectedFeature,
+                    toggle: true });
             };
 
             /**
@@ -338,10 +408,13 @@ angular.module('hopsWorksApp')
                 FeaturestoreService.getFeaturestores(self.projectId).then(
                     function (success) {
                         self.featurestores = success.data;
-                        if(self.featurestore === null || self.featurestore === 'undefined'){
-                            self.selectProjectFeaturestore()
+                        if (typeof self.queryFeaturestore !== 'undefined' &&
+                            (self.featurestore === null || self.featurestore === 'undefined')) {
+                            self.selectFeaturestoreById(self.queryFeaturestore);
+                        } else if(self.featurestore === null || self.featurestore === 'undefined'){
+                            self.selectProjectFeaturestore();
                         } else {
-                            self.selectFeaturestore(self.featurestore)
+                            self.selectFeaturestore(self.featurestore.featurestoreName);
                         }
                     },
                     function (error) {
@@ -360,16 +433,26 @@ angular.module('hopsWorksApp')
              * @param featurestore the featurestore to query
              */
             self.getFeaturestoreSettings = function() {
+
+                VariablesService.isEnterprise().then(function(success) {
+                  self.isEnterprise = success.data.successMessage == "true";
+                },
+                function (error) {
+                        growl.error(error.data.errorMsg, {
+                            title: 'Failed to fetch if enterprise is enabled',
+                            ttl: 15000
+                        });
+                    }
+                );
+
                 FeaturestoreService.getFeaturestoreSettings(self.projectId).then(
                     function (success) {
                         self.settings = success.data
                         self.hopsfsConnectorType = self.settings.hopsfsConnectorType
                         self.s3ConnectorType = self.settings.s3ConnectorType
                         self.jdbcConnectorType = self.settings.jdbcConnectorType
-                        self.featuregroupType = self.settings.featuregroupType
+                        self.redshiftConnectorType = self.settings.redshiftConnectorType;
                         self.trainingDatasetType = self.settings.trainingDatasetType
-                        self.onDemandFeaturegroupType = self.settings.onDemandFeaturegroupType
-                        self.cachedFeaturegroupType = self.settings.cachedFeaturegroupType
                         self.hopsfsTrainingDatasetType = self.settings.hopsfsTrainingDatasetType
                         self.externalTrainingDatasetType = self.settings.externalTrainingDatasetType
                         StorageService.store(self.projectId + "_fssettings", success.data);
@@ -395,6 +478,11 @@ angular.module('hopsWorksApp')
                 FeaturestoreService.getStorageConnectors(self.projectId, featurestore).then(
                     function (success) {
                         self.storageConnectors = success.data
+                        selectStorageConnectorByName().then(
+                            function (selected) {
+                                self.viewStorageConnectorInfo(selected);
+                            });
+
                         StorageService.store(self.projectId + "_storageconnectors", success.data);
                         self.storageConnectorsLoaded = true
                         self.stopLoading()
@@ -402,10 +490,9 @@ angular.module('hopsWorksApp')
                     function (error) {
                         self.storageConnectorsLoaded = true
                         self.stopLoading()
-                        growl.error(error.data.errorMsg, {
-                            title: 'Failed to fetch the storage connectors for the featurestore',
-                            ttl: 15000
-                        });
+                        var errorMsg = (typeof error.data.usrMsg !== 'undefined')? error.data.usrMsg : msg;
+                        growl.error(errorMsg, {title: 'Failed to fetch the storage connectors for the featurestore',
+                            ttl: 15000});
                     });
             }
 
@@ -420,10 +507,10 @@ angular.module('hopsWorksApp')
                 if(name === self.projectName){
                     return true
                 }
-                if(name === (self.projectName + "_featurestore")){
+                if(name === (self.projectFeaturestoreName)){
                     return true
                 }
-                if(name === (self.projectName + "_Training_Datasets")){
+                if(name === (self.projectTrainingdatasetsName)){
                     return true
                 }
                 if(name.includes("_onlinefeaturestore")) {
@@ -438,30 +525,9 @@ angular.module('hopsWorksApp')
              *
              * @param fs the feature store to select.
              */
-            self.selectFeaturestore = function(fs) {
+            self.selectFeaturestore = function(featurestoreName) {
                 for (var i = 0; i < self.featurestores.length; i++) {
-                    if(self.featurestores[i].featurestoreName === fs.featurestoreName) {
-                        self.featurestore = self.featurestores[i];
-                        StorageService.store(self.projectId + "_featurestore", self.featurestore);
-                        self.fetchFeaturestoreSize();
-                        self.getStorageConnectors(self.featurestore);
-                        self.getTrainingDatasets(self.featurestore);
-                        self.getFeaturegroups(self.featurestore);
-                        return
-                    }
-                }
-            }
-
-            /**
-             * Selects the project feature store (in case there is a list of multiple feature stores shared with
-             * the project).
-             */
-            self.selectProjectFeaturestore = function() {
-                if(self.projectName == null || self.featurestores.length < 1){
-                    return
-                }
-                for (var i = 0; i < self.featurestores.length; i++) {
-                    if(self.featurestores[i].projectName == self.projectName) {
+                    if(self.featurestores[i].featurestoreName === featurestoreName) {
                         self.featurestore = self.featurestores[i];
                         StorageService.store(self.projectId + "_featurestore", self.featurestore);
                         self.setupStorageConnectors()
@@ -472,29 +538,41 @@ angular.module('hopsWorksApp')
                         return
                     }
                 }
-            }
-
-            /**
-             * Goes to the edit page for updating a feature group
-             *
-             * @param featuregroup
-             */
-            self.updateFeaturegroup = function (featuregroup) {
-                StorageService.store("featuregroup_operation", "UPDATE");
-                StorageService.store(self.projectId + "_featuregroup", featuregroup);
-                self.goToUrl("newfeaturegroup")
             };
 
             /**
-             * Shows the page for updating an existing training dataset.
+             * Selects a particular feature store (select means that the feature groups/training datasets/features for
+             * that featurestore will be shown in the UI.
              *
-             * @param trainingDataset
+             * @param id the feature store id to select.
              */
-            self.updateTrainingDatasetMetadata = function (trainingDataset) {
-                StorageService.store("trainingdataset_operation", "UPDATE");
-                StorageService.store(self.projectId + "_fgFeatures", self.fgFeatures);
-                StorageService.store(self.projectId + "_trainingDataset", trainingDataset);
-                self.goToUrl("newtrainingdataset")
+            self.selectFeaturestoreById = function(id) {
+                for (var i = 0; i < self.featurestores.length; i++) {
+                    if(self.featurestores[i].featurestoreId === id) {
+                        self.featurestore = self.featurestores[i];
+                        StorageService.store(self.projectId + "_featurestore", self.featurestore);
+                        self.setupStorageConnectors()
+                        self.fetchFeaturestoreSize();
+                        self.getStorageConnectors(self.featurestore);
+                        self.getTrainingDatasets(self.featurestore);
+                        self.getFeaturegroups(self.featurestore);
+                        return
+                    }
+                }
+            };
+
+            /**
+             * Selects the project feature store (in case there is a list of multiple feature stores shared with
+             * the project).
+             */
+            self.selectProjectFeaturestore = function() {
+                if (typeof self.queryFeaturestore !== 'undefined' && self.featurestores.length > 0 &&
+                    (self.featurestore === null || self.featurestore === 'undefined')) {
+                    self.selectFeaturestoreById(self.queryFeaturestore);
+                } else if(self.projectFeaturestoreName != null && self.featurestores.length > 0 &&
+                    (self.featurestore === null || self.featurestore === 'undefined')){
+                    self.selectFeaturestore(self.projectFeaturestoreName);
+                }
             };
 
             /**
@@ -506,123 +584,6 @@ angular.module('hopsWorksApp')
                 StorageService.store("connector_operation", "UPDATE");
                 StorageService.store(self.projectId + "_connector", storageConnector);
                 self.goToUrl("newstorageconnector")
-            };
-
-            /**
-             * Called when the delete-featuregroup-button is pressed
-             *
-             * @param featuregroup
-             */
-            self.deleteFeaturegroup = function (featuregroup) {
-                ModalService.confirm('sm', 'Are you sure?',
-                    'Are you sure that you want to delete this version of the feature group? ' +
-                    'this action will delete all the data in the feature group with the selected version')
-                    .then(function (success) {
-                        FeaturestoreService.deleteFeaturegroup(self.projectId, self.featurestore, featuregroup.id).then(
-                            function (success) {
-                                self.getFeaturegroups(self.featurestore);
-                                growl.success("Feature group deleted", {title: 'Success', ttl: 1000});
-                            },
-                            function (error) {
-                                growl.error(error.data.errorMsg, {
-                                    title: 'Failed to delete the feature group',
-                                    ttl: 15000
-                                });
-                            });
-                        growl.info("Deleting featuregroup... wait", {title: 'Deleting', ttl: 1000})
-                    }, function (error) {
-                        $uibModalInstance.close()
-                    });
-            };
-
-            /**
-             * Called when the delete-trainingDataset-button is pressed
-             *
-             * @param trainingDataset
-             */
-            self.deleteTrainingDataset = function (trainingDataset) {
-                ModalService.confirm('sm', 'Are you sure?',
-                    'Are you sure that you want to delete this version of the training dataset? ' +
-                    'this action will delete all the data in the training dataset of this version together with its metadata')
-                    .then(function (success) {
-                        FeaturestoreService.deleteTrainingDataset(self.projectId, self.featurestore, trainingDataset.id).then(
-                            function (success) {
-                                self.getTrainingDatasets(self.featurestore)
-                                growl.success("Training Dataset deleted", {title: 'Success', ttl: 1000});
-                            },
-                            function (error) {
-                                growl.error(error.data.errorMsg, {
-                                    title: 'Failed to delete the training dataset',
-                                    ttl: 15000
-                                });
-                            });
-                        growl.info("Deleting training dataset... wait", {title: 'Deleting', ttl: 1000})
-                    }, function (error) {
-                        $uibModalInstance.close()
-                    });
-            };
-
-            /**
-             * Called when the increment-version-featuregroup-button is pressed
-             *
-             * @param featuregroups list of featuregroup versions
-             * @param versions list
-             */
-            self.newFeaturegroupVersion = function (featuregroups, versions) {
-                var i;
-                var maxVersion = -1;
-                for (i = 0; i < versions.length; i++) {
-                    if (versions[i] > maxVersion)
-                        maxVersion = versions[i]
-                }
-                StorageService.store("featuregroup_operation", "NEW_VERSION");
-                StorageService.store(self.projectId + "_featuregroup", featuregroups[maxVersion]);
-                self.goToUrl("newfeaturegroup")
-            };
-
-            /**
-             * Called when the increment-version-trainingDataset-button is pressed
-             *
-             * @param trainingDatasets list of featuregroup versions
-             * @param versions list
-             */
-            self.newTrainingDatasetVersion = function (trainingDatasets, versions) {
-                var i;
-                var maxVersion = -1;
-                for (i = 0; i < versions.length; i++) {
-                    if (versions[i] > maxVersion)
-                        maxVersion = versions[i]
-                }
-                StorageService.store("trainingdataset_operation", "NEW_VERSION");
-                StorageService.store(self.projectId + "_fgFeatures", self.fgFeatures);
-                StorageService.store(self.projectId + "_trainingDataset", trainingDatasets[maxVersion]);
-                self.goToUrl("newtrainingdataset")
-            };
-
-            /**
-             * Called when the view-featuregroup-statistics button is pressed
-             *
-             * @param featuregroup
-             */
-            self.viewFeaturegroupStatistics = function (featuregroup) {
-                ModalService.viewFeaturegroupStatistics('lg', self.projectId, featuregroup, self.projectName,
-                    self.featurestore, self.settings).then(
-                    function (success) {
-                    }, function (error) {
-                    });
-            };
-
-            /**
-             * Called when the view-training-dataset-statistics button is pressed
-             *
-             * @param trainingDataset
-             */
-            self.viewTrainingDatasetStatistics = function (trainingDataset) {
-                ModalService.viewTrainingDatasetStatistics('lg', self.projectId, trainingDataset, self.projectName,
-                    self.featurestore, self.settings).then(
-                    function (success) {
-                    }, function (error) {
-                    });
             };
 
             /**
@@ -643,7 +604,21 @@ angular.module('hopsWorksApp')
                 FeaturestoreService.getFeaturegroups(self.projectId, featurestore).then(
                     function (success) {
                         self.featuregroups = success.data;
-                        self.groupFeaturegroupsByVersion();
+                        selectFeaturegroupByNameAndVersion().then(function (selected) {
+                            self.groupFeaturegroupsByVersion(selected);
+                        }, function (error) {
+                            self.groupFeaturegroupsByVersion();
+                        });
+                        // Compute from-to dates for feature groups
+                        var dates = self.featuregroups.map(function(f) { return f.created});
+                        dates.sort(function(a, b) {
+                            return new Date(b) - new Date(a)
+                        });
+                        self.featuregroupsFromDate = new Date(dates[dates.length -1]);
+                        self.featuregroupsFromDate.setDate(self.featuregroupsFromDate.getDate() - 1);
+                        self.featuregroupsToDate = new Date(dates[0]);
+                        self.featuregroupsToDate.setDate(self.featuregroupsToDate.getDate() + 1);
+
                         self.featuregroupsLoaded = true;
                         self.stopLoading()
                     },
@@ -667,7 +642,23 @@ angular.module('hopsWorksApp')
                 FeaturestoreService.getTrainingDatasets(self.projectId, featurestore).then(
                     function (success) {
                         self.trainingDatasets = success.data;
-                        self.groupTrainingDatasetsByVersion();
+                        selectTrainingDatasetByNameAndVersion().then(function (selected) {
+                            self.groupTrainingDatasetsByVersion(selected);
+                        }, function (error) {
+                            self.groupTrainingDatasetsByVersion();
+                        });
+
+                        // Compute from-to dates for training datasets 
+                        var dates = self.trainingDatasets.map(function(f) { return f.created });
+                        dates.sort(function(a, b) {
+                            return new Date(b) - new Date(a)
+                        });
+
+                        self.trainingDatasetsFromDate = new Date(dates[dates.length - 1]);
+                        self.trainingDatasetsFromDate.setDate(self.trainingDatasetsFromDate.getDate() - 1);
+                        self.trainingDatasetsToDate = new Date(dates[0]);
+                        self.trainingDatasetsToDate.setDate(self.trainingDatasetsToDate.getDate() + 1);
+
                         self.trainingDatasetsLoaded = true;
                         self.stopLoading()
                     },
@@ -686,14 +677,10 @@ angular.module('hopsWorksApp')
              * single list
              */
             self.collectAllFeatures = function () {
-                var featuresTemp = [];
-                var fgFeaturesTemp = [];
-                var i;
-                var j;
-                for (i = 0; i < self.featuregroups.length; i++) {
-                    var fgFeatures = [];
-                    for (j = 0; j < self.featuregroups[i].features.length; j++) {
-                        fgFeatures.push({
+                self.fgFeatures = [];
+                for (var i = 0; i < self.featuregroups.length; i++) {
+                    for (var j = 0; j < self.featuregroups[i].features.length; j++) {
+                        var feature = {
                             name: self.featuregroups[i].features[j].name,
                             type: self.featuregroups[i].features[j].type,
                             description: self.featuregroups[i].features[j].description,
@@ -701,29 +688,18 @@ angular.module('hopsWorksApp')
                             featuregroup: self.featuregroups[i],
                             date: self.featuregroups[i].created,
                             version: self.featuregroups[i].version,
-                            entity: 1
-                        })
+                        };
+                        if(typeof self.queryFeature !== 'undefined' && typeof self.queryVersion !== 'undefined' &&
+                            feature.name === self.queryFeature && feature.version === self.queryVersion) {
+                            self.fgFeatures.unshift(feature); // selected
+                            self.selectedFeature = feature;
+                            self.featurestoreSelectedTab = 2;
+                            broadcastFeatureSelect();
+                        } else {
+                            self.fgFeatures.push(feature);
+                        }
                     }
-                    fgFeaturesTemp = fgFeaturesTemp.concat(fgFeatures)
-                    featuresTemp = featuresTemp.concat(fgFeatures)
                 }
-                self.fgFeatures = fgFeaturesTemp
-                for (i = 0; i < self.trainingDatasets.length; i++) {
-                    var tdFeatures = [];
-                    for (j = 0; j < self.trainingDatasets[i].features.length; j++) {
-                        tdFeatures.push({
-                            name: self.trainingDatasets[i].features[j].name,
-                            type: self.trainingDatasets[i].features[j].type,
-                            description: self.trainingDatasets[i].features[j].description,
-                            trainingDataset: self.trainingDatasets[i],
-                            date: self.trainingDatasets[i].created,
-                            version: self.trainingDatasets[i].version,
-                            entity: 0
-                        })
-                    }
-                    featuresTemp = featuresTemp.concat(tdFeatures)
-                }
-                self.features = featuresTemp;
             };
 
             /**
@@ -733,14 +709,18 @@ angular.module('hopsWorksApp')
              * @returns {*}
              */
             self.trainingDatasetSortFn = function (td) {
-                if(self.trainingDatasetsSortKey == "created"){
+                if (typeof self.selectedTrainingDataset !== 'undefined') {
+                    return undefined;
+                } else if(self.trainingDatasetsSortKey == "created"){
                     return td.versionToGroups[td.activeVersion].created
-                }
-                if(self.trainingDatasetsSortKey == "dataFormat"){
+                } else if (self.trainingDatasetsSortKey === "description") {
+                    return td.versionToGroups[td.activeVersion].description
+                } else if (self.trainingDatasetsSortKey == "dataFormat"){
                     return td.versionToGroups[td.activeVersion].dataFormat
+                } else {
+                    return td.name
                 }
-                return td.name
-            }
+            };
 
             /**
              * Returns the sort field for a feature group
@@ -749,22 +729,25 @@ angular.module('hopsWorksApp')
              * @returns {*}
              */
             self.featuregroupsSortFn = function (featuregroup) {
-                if(self.featuregroupsSortKey == "created"){
+                if (typeof self.selectedFeaturegroup !== 'undefined') {
+                    return undefined;
+                } else if(self.featuregroupsSortKey == "created"){
                     return featuregroup.versionToGroups[featuregroup.activeVersion].created
-                }
-                if(self.featuregroupsSortKey == "featuregroupType"){
-                    return featuregroup.versionToGroups[featuregroup.activeVersion].featuregroupType
-                }
-                if(self.featuregroupsSortKey == "onlineEnabled"){
-                    if(featuregroup.versionToGroups[featuregroup.activeVersion].featuregroupType == self.cachedFeaturegroupType
-                        && featuregroup.versionToGroups[featuregroup.activeVersion].onlineFeaturegroupEnabled){
+                } else if(self.featuregroupsSortKey == "featuregroupType"){
+                    return featuregroup.versionToGroups[featuregroup.activeVersion].type
+                } else if (self.featuregroupsSortKey === "description") {
+                    return featuregroup.versionToGroups[featuregroup.activeVersion].description
+                } else if(self.featuregroupsSortKey == "onlineEnabled"){
+                    if(featuregroup.versionToGroups[featuregroup.activeVersion].type === 'cachedFeaturegroupDTO' 
+                        && featuregroup.versionToGroups[featuregroup.activeVersion].onlineEnabled){
                        return "Yes"
                     } else {
                         return "No"
                     }
+                } else { 
+                    return featuregroup.name
                 }
-                return featuregroup.name
-            }
+            };
 
             /**
              * Returns the sort field for a storage connector
@@ -785,7 +768,7 @@ angular.module('hopsWorksApp')
             /**
              * Goes through a list of featuregroups and groups them by name so that you get name --> versions mapping
              */
-            self.groupFeaturegroupsByVersion = function () {
+            self.groupFeaturegroupsByVersion = function (selected) {
                 var dict = {};
                 var i;
                 var versionVar;
@@ -807,8 +790,15 @@ angular.module('hopsWorksApp')
                     item.versionToGroups = dict[key];
                     var versions = Object.keys(item.versionToGroups);
                     item.versions = versions;
-                    item.activeVersion = versions[versions.length - 1];
-                    dictList.push(item);
+                    if (typeof selected !== "undefined" && key === selected.name) {
+                        item.activeVersion = selected.version.toString();
+                        self.selectedFeaturegroup = item;
+                        broadcastFeaturegroupSelect();
+                        dictList.unshift(item); //keep it on top so it wont end up in a different page
+                    } else {
+                        item.activeVersion = versions[versions.length - 1];
+                        dictList.push(item);
+                    }
                 }
                 self.featuregroupsDictList = dictList
             };
@@ -816,7 +806,7 @@ angular.module('hopsWorksApp')
             /**
              * Goes through a list of training datasets and groups them by name so that you get name --> versions mapping
              */
-            self.groupTrainingDatasetsByVersion = function () {
+            self.groupTrainingDatasetsByVersion = function (selected) {
                 var dict = {};
                 var i;
                 var versionVar;
@@ -838,35 +828,17 @@ angular.module('hopsWorksApp')
                     item.versionToGroups = dict[key];
                     var versions = Object.keys(item.versionToGroups);
                     item.versions = versions;
-                    item.activeVersion = versions[versions.length - 1];
-                    dictList.push(item);
+                    if (typeof selected !== "undefined" && key === selected.name) {
+                        item.activeVersion = selected.version.toString();
+                        self.selectedTrainingDataset = item;
+                        broadcastTrainingDatasetSelect();
+                        dictList.unshift(item); //keep it on top so it wont end up in a different page
+                    } else {
+                        item.activeVersion = versions[versions.length - 1];
+                        dictList.push(item);
+                    }
                 }
                 self.trainingDatasetsDictList = dictList
-            };
-
-            /**
-             * Opens the modal to view featuregroup information
-             *
-             * @param featuregroup
-             */
-            self.viewFeaturegroupInfo = function (featuregroup) {
-                ModalService.viewFeaturegroupInfo('lg', self.projectId, featuregroup, self.featurestore, self.settings).then(
-                    function (success) {
-                    }, function (error) {
-                    });
-            };
-
-            /**
-             * Opens the modal to view training dataset information
-             *
-             * @param trainingDataset
-             */
-            self.viewTrainingDatasetInfo = function (trainingDataset) {
-                ModalService.viewTrainingDatasetInfo('lg', self.projectId, trainingDataset, self.featurestore,
-                    self.settings).then(
-                    function (success) {
-                    }, function (error) {
-                    });
             };
 
             /**
@@ -935,13 +907,6 @@ angular.module('hopsWorksApp')
                 return null;
             };
 
-
-            self.goToDataValidation = function (featureGroup) {
-                StorageService.store("dv_featuregroup",
-                    featureGroup.versionToGroups[featureGroup.activeVersion]);
-                $location.path('project/' + self.projectId + "/featurestore/datavalidation");
-            }
-
             /**
              * Called when a new featurestore is selected in the dropdown list in the UI
              *
@@ -984,37 +949,6 @@ angular.module('hopsWorksApp')
             self.goToFeaturegroup = function (featuregroupName) {
                 self.fgFilter = featuregroupName;
             };
-
-            /**
-             * Get range of days for the featureProgressPlot
-             *
-             * @param startDate the startDate of the range
-             * @param endDate the endDate of the range
-             * @param dateFormat the format (string)
-             * @param interval the inverval between the dates in the range
-             * @param maxDays the max number of days in the range
-             * @returns {*}
-             */
-            self.getDateRange = function (startDate, endDate, dateFormat, interval, maxDays) {
-                var dates = []
-                var end = moment(endDate)
-                var start = moment(startDate)
-                var diff = end.diff(start, 'days');
-                dates.push({"formatted": start.format(dateFormat), "raw": start.toDate()});
-                if(!start.isValid() || !end.isValid() || diff <= 0) {
-                    return dates;
-                }
-                for(var i = 0; i < (diff/interval); i++) {
-                    if(dates.length < maxDays){
-                        dates.push({"formatted": start.add(interval,'d').format(dateFormat), "raw": start.toDate()});
-                    }
-                }
-
-                if(dates.length > 0) {
-                    dates[dates.length-1] = {"formatted": end.format(dateFormat), "raw": end.toDate()}
-                }
-                return dates;
-            }
 
             /**
              * Convert bytes into bytes + suitable unit (e.g KB, MB, GB etc)
@@ -1179,28 +1113,7 @@ angular.module('hopsWorksApp')
                     self.quotaChart.render();
                 }
             }
-
-            /**
-             * Returns a formatted date string
-             *
-             * @param dateStr the date string to format
-             */
-            self.createdOn = function(dateStr) {
-                return FeaturestoreService.formatDate(new Date(dateStr))
-            }
-
-            /**
-             * Opens the modal to view feature information
-             *
-             * @param feature
-             */
-            self.viewFeatureInfo = function (feature) {
-                ModalService.viewFeatureInfo('lg', self.projectId, feature, self.featurestore, self.settings).then(
-                    function (success) {
-                    }, function (error) {
-                    });
-            };
-
+            
             /**
              * Opens the modal to view storage connector information
              *
@@ -1213,6 +1126,28 @@ angular.module('hopsWorksApp')
                     });
             };
 
+            self.closeStatistics = function() {
+                self.showStatistics = false;
+                self.fgStatistics = null;
+                self.tdStatistics = null;
+            };
+
+            /**
+             * Show preview of a featuregroup
+             */
+            self.togglePreview = function(featuregroup) {
+                self.showPreview = !self.showPreview;
+                self.previewFg = featuregroup;
+            };
+
+            /**
+             * Close preview 
+             */
+            self.closePreview = function() {
+                self.showPreview = false;
+                self.previewFg = null;
+            };
+
             /**
              * Utility function for switching tabs
              *
@@ -1222,7 +1157,7 @@ angular.module('hopsWorksApp')
                 $scope.featurestoreSelectedTab = tabIndex
             }
 
-            self.init()
-        }
+            self.init();
+       }
     ])
 ;

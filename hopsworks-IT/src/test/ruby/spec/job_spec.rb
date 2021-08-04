@@ -14,14 +14,12 @@
  If not, see <https://www.gnu.org/licenses/>.
 =end
 describe "On #{ENV['OS']}" do
+  after(:all) {clean_all_test_projects(spec: "job")}
   job_spark_1 = "demo_job_1"
   job_spark_2 = "demo_job_2"
   job_spark_3 = "demo_job_3"
   job_flink =  "job_flink"
   job_flink_2 =  "job_flink_2"
-  job_flink_beam =  "job_flink_beam"
-  job_flink_beam_2 =  "job_flink_beam_2"
-  job_flink_properties_beam = "job_flink_properties_beam"
   job_flink_properties = "job_flink_properties"
 
   describe 'job' do
@@ -31,7 +29,7 @@ describe "On #{ENV['OS']}" do
         reset_session
       end
       it "should fail" do
-        get_job(@project[:id], 1, nil)
+        get_job(@project[:id], 1)
         expect_json(errorCode: 200003)
         expect_status(401)
       end
@@ -54,24 +52,22 @@ describe "On #{ENV['OS']}" do
       it "should update a job with different job_config" do
         create_sparktour_job(@project, job_spark_1, "jar", nil)
         #get job, change args and config params and put it
-        get_job(@project[:id], job_spark_1, nil)
+        get_job(@project[:id], job_spark_1)
         config = json_body[:config]
-        config[:args] = '100'
         config[:'spark.executor.memory'] = '2048'
         create_sparktour_job(@project, job_spark_1, "jar", config)
         expect_status(200)
-        get_job(@project[:id], job_spark_1, nil)
-        expect(json_body[:config][:args]).to eq "100"
+        get_job(@project[:id], job_spark_1)
         expect(json_body[:config][:'spark.executor.memory']).to eq 2048
       end
       it "should get a single spark job" do
         create_sparktour_job(@project, job_spark_1, "jar", nil)
-        get_job(@project[:id], job_spark_1, nil)
+        get_job(@project[:id], job_spark_1)
         expect_status(200)
       end
       it "should get spark job dto with href" do
         create_sparktour_job(@project, job_spark_1, "jar", nil)
-        get_job(@project[:id], job_spark_1, nil)
+        get_job(@project[:id], job_spark_1)
         expect_status(200)
         #validate href
         expect(URI(json_body[:href]).path).to eq "#{ENV['HOPSWORKS_API']}/project/#{@project[:id]}/jobs/demo_job_1"
@@ -102,20 +98,14 @@ describe "On #{ENV['OS']}" do
         expect_status(404)
       end
       it "should create one flink job" do
-        create_flink_job(@project, job_flink, nil, false)
-      end
-      it "should create one flink job with beam" do
-        create_flink_beam_job(@project, job_flink_beam, nil)
+        create_flink_job(@project, job_flink, nil)
       end
       it "should create one flink job with properties" do
-        create_flink_job(@project, job_flink_properties, "key1=val1\nkey2=val2", false)
-      end
-      it "should create one flink job with beam and properties" do
-        create_flink_beam_job(@project, job_flink_properties_beam, "key1=val1\nkey2=val2")
+        create_flink_job(@project, job_flink_properties, "key1=val1\nkey2=val2")
       end
       it "should get a single flink job" do
-        create_flink_job(@project, job_flink, nil, false)
-        get_job(@project[:id], job_flink, nil)
+        create_flink_job(@project, job_flink, nil)
+        get_job(@project[:id], job_flink)
         expect_status(200)
       end
       it "should fail to delete job as Data Scientist" do #this test must be the last in this `describe` unit
@@ -126,35 +116,39 @@ describe "On #{ENV['OS']}" do
         delete_job(@project[:id], job_spark_1)
         expect_status(403)
       end
+      it "should fail to create or update spark job if executor memory is less than the minimum" do
+          create_sparktour_job(@project, job_spark_1, "jar", nil)
+          #get job, change args and config params and put it.
+          get_job(@project[:id], job_spark_1)
+          config = json_body[:config]
+          config[:'spark.executor.memory'] = '1023'
+          json_result = create_sparktour_job(@project, job_spark_1, "jar", config)
+          expect_status_details(400)
+          parsed_json = JSON.parse(json_result)
+          expect(parsed_json.key?("errorCode")).to be true
+          expect(parsed_json.key?("errorMsg")).to be true
+          expect(parsed_json.key?("usrMsg")).to be true
+          expect(parsed_json["errorCode"] == 130029).to be true
+      end
     end
-    context 'with authentication test Flink and Beam jobs' do
+    context 'with authentication test Flink jobs' do
       before :all do
         with_valid_tour_project("spark")
-        create_flink_job(@project, job_flink_beam, nil, true)
+        create_flink_job(@project, job_flink, nil)
       end
       after :each do
         clean_jobs(@project[:id])
       end
       it "start a flink session cluster, test proxy servlet" do
-        start_execution(@project[:id], job_flink_beam)
+        start_execution(@project[:id], job_flink)
         execution_id = json_body[:id]
-        app_id = ''
-        wait_for_execution do
-          get_execution(@project[:id], job_flink_beam, execution_id)
-          json_body[:state].eql? 'RUNNING'
-          app_id = json_body[:appId]
-        end
+        app_id = wait_for_execution_active(@project[:id], job_flink, execution_id, 'RUNNING', "appId")
         #Get flink master
         get "#{ENV['HOPSWORKS_BASE_API']}/flinkmaster/#{app_id}"
         expect_status(200)
         #Kill job
-        stop_execution(@project[:id], job_flink_beam)
+        stop_execution(@project[:id], job_flink, execution_id)
       end
-      # it "get flink history server" do
-      #   #Get flink master
-      #   get "#{ENV['HOPSWORKS_BASE_API']}/flinkhistoryserver/"
-      #   expect_status(200)
-      # end
     end
   end
   describe 'deleting running jobs' do
@@ -171,43 +165,28 @@ describe "On #{ENV['OS']}" do
         start_execution(@project[:id], job_spark_1)
         execution_id = json_body[:id]
         hdfsUser = json_body[:hdfsUser]
-        appId = ''
-        wait_for_execution do
-          get_execution(@project[:id], job_spark_1, execution_id)
-          json_body[:state].eql? 'ACCEPTED'
-          appId = json_body[:appId]
-        end
+        appId = wait_for_execution_active(@project[:id], job_spark_1, execution_id, 'ACCEPTED', "appId")
         #kill job
-        stop_execution(@project[:id], job_spark_1)
+        stop_execution(@project[:id], job_spark_1, execution_id)
         start_execution(@project[:id], job_spark_2)
         execution_id = json_body[:id]
-        wait_for_execution do
-          get_execution(@project[:id], job_spark_2, execution_id)
-          json_body[:state].eql? 'FINISHED'
-        end
+        wait_for_execution_completed(@project[:id], job_spark_2, execution_id, 'FINISHED')
+
         #check for cleanup files under /user/hdfs/kafkacerts
         hdfs_super_user = Variables.find_by(id: "hdfs_user").value
         kafka_certs_dir = "/user/#{hdfs_super_user}/kafkacerts/#{hdfsUser}/#{appId}"
         expect(test_dir(kafka_certs_dir)).to be false
       end
       it 'should delete flink job with non-finished execution and cleanup tmp files and get status of new job correctly' do
-        create_flink_job(@project, job_flink, nil, false)
+        create_flink_job(@project, job_flink, nil)
         start_execution(@project[:id], job_flink)
         execution_id = json_body[:id]
         hdfsUser = json_body[:hdfsUser]
-        appId = ''
-        wait_for_execution do
-          get_execution(@project[:id], job_flink, execution_id)
-          json_body[:state].eql? 'RUNNING'
-          appId = json_body[:appId]
-        end
+        appId = wait_for_execution_active(@project[:id], job_flink, execution_id, 'RUNNING', "appId")
         #kill job
-        stop_execution(@project[:id], job_flink)
+        stop_execution(@project[:id], job_flink, execution_id)
         execution_id = json_body[:id]
-        wait_for_execution do
-          get_execution(@project[:id], job_flink, execution_id)
-          json_body[:state].eql? 'KILLED'
-        end
+        wait_for_execution_completed(@project[:id], job_flink, execution_id, 'KILLED')
         #check for cleanup files under /user/hdfs/kafkacerts
         hdfs_super_user = Variables.find_by(id: "hdfs_user").value
         kafka_certs_dir = "/user/#{hdfs_super_user}/kafkacerts/#{hdfsUser}/#{appId}"
@@ -228,10 +207,8 @@ describe "On #{ENV['OS']}" do
         create_sparktour_job(@project, "demo_job_5", "jar", nil)
         create_sparktour_job(@project, "demo_py_job_2", "py", nil)
         create_sparktour_job(@project, "demo_ipynb_job_2", "ipynb", nil)
-        create_flink_job(@project, job_flink, nil, false)
-        create_flink_job(@project, job_flink_2, nil, false)
-        create_flink_job(@project, job_flink_beam, nil, true)
-        create_flink_job(@project, job_flink_beam_2, nil, true)
+        create_flink_job(@project, job_flink, nil)
+        create_flink_job(@project, job_flink_2, nil)
       end
       after :all do
         clean_jobs(@project[:id])
@@ -280,7 +257,7 @@ describe "On #{ENV['OS']}" do
           sorted = jobs.sort
           get_jobs(@project[:id], "?sort_by=date_created:asc")
           sorted_res = json_body[:items].map {|job| job[:creationTime]}
-          expect(sorted_res).to eq(sorted)
+          time_expect_to_be_eq(sorted_res, sorted)
         end
         it "should get all jobs sorted by date created descending" do
           #sort in memory and compare with query
@@ -289,7 +266,7 @@ describe "On #{ENV['OS']}" do
           sorted = jobs.sort.reverse
           get_jobs(@project[:id], "?sort_by=date_created:desc")
           sorted_res = json_body[:items].map {|job| job[:creationTime]}
-          expect(sorted_res).to eq(sorted)
+          time_expect_to_be_eq(sorted_res, sorted)
         end
         it "should get all jobs sorted by type ascending and name ascending" do
           #sort in memory and compare with query
@@ -422,11 +399,6 @@ describe "On #{ENV['OS']}" do
           expect_status(200)
           expect(json_body[:items].count).to be 2
         end
-        it "should find jobs with type beam flink" do
-          get_jobs(@project[:id], "?filter_by=jobtype:beam_flink")
-          expect_status(200)
-          expect(json_body[:items].count).to be 2
-        end
         it "should find jobs with name like 'demo'" do
           get_jobs(@project[:id], "?filter_by=name:demo")
           expect_status(200)
@@ -447,16 +419,10 @@ describe "On #{ENV['OS']}" do
           it "should execute two jobs and search based on finalStatus" do
             start_execution(@project[:id], job_spark_1)
             execution_id = json_body[:id]
-            wait_for_execution do
-              get_execution(@project[:id], job_spark_1, execution_id)
-              json_body[:state].eql? "FINISHED"
-            end
+            wait_for_execution_completed(@project[:id], job_spark_1, execution_id, 'FINISHED')
             start_execution(@project[:id], job_spark_2)
             execution_id = json_body[:id]
-            wait_for_execution do
-              get_execution(@project[:id], job_spark_2, execution_id)
-              json_body[:state].eql? "FINISHED"
-            end
+            wait_for_execution_completed(@project[:id], job_spark_2, execution_id, 'FINISHED')
             get_jobs(@project[:id], "?filter_by=latest_execution:finished")
             expect_status(200)
             expect(json_body[:items].count).to eq 2

@@ -40,10 +40,10 @@
 package io.hops.hopsworks.common.jobs;
 
 import io.hops.hopsworks.common.dao.jobs.description.JobFacade;
-import io.hops.hopsworks.common.dao.jobs.description.Jobs;
+import io.hops.hopsworks.persistence.entity.jobs.description.Jobs;
 import io.hops.hopsworks.common.dao.project.team.ProjectTeamFacade;
-import io.hops.hopsworks.common.jobs.configuration.ScheduleDTO;
-import io.hops.hopsworks.common.jobs.configuration.ScheduleDTO.TimeUnit;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.ScheduleDTO;
+import io.hops.hopsworks.persistence.entity.jobs.configuration.ScheduleDTO.TimeUnit;
 import io.hops.hopsworks.common.jobs.execution.ExecutionController;
 
 import javax.annotation.Resource;
@@ -54,6 +54,9 @@ import javax.ejb.Timeout;
 import javax.ejb.Timer;
 import javax.ejb.TimerConfig;
 import javax.ejb.TimerService;
+import javax.ejb.TransactionAttribute;
+import javax.ejb.TransactionAttributeType;
+import javax.inject.Inject;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Date;
@@ -71,7 +74,7 @@ public class JobScheduler {
 
   @EJB
   private JobFacade jobFacade;
-  @EJB
+  @Inject
   private ExecutionController executionController;
   @Resource
   private TimerService timerService;
@@ -84,6 +87,7 @@ public class JobScheduler {
    * @param timer
    */
   @Timeout
+  @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
   public void timeout(Timer timer) {
     Serializable jobId = timer.getInfo();
     try {
@@ -107,7 +111,7 @@ public class JobScheduler {
         return;
       }
       //Run scheduled job
-      executionController.start(job, job.getCreator());
+      executionController.start(job, null, job.getCreator());
     } catch(Exception e) {
       logger.log(Level.SEVERE, "Failed to start an execution for job " + jobId, e);
     }
