@@ -102,7 +102,7 @@ public class UserAccountsEmailMessages {
   /*
    * Account deactivation
    */
-  public final static String ACCOUNT_DEACTIsublimo account has expired";
+  public final static String ACCOUNT_DEACTIVATED = "Your Giotto account has expired";
   
   public final static String API_KEY_CREATED_SUBJECT = "Api key created";
   public final static String API_KEY_DELETED_SUBJECT = "Api key deleted";
@@ -177,7 +177,7 @@ public class UserAccountsEmailMessages {
     String l1 = GREETINGS_HEADER + ",\n\n We received a password recovery request for Giotto on your behalf.\n\n";
     String l2 = "Please click on the following link to recover your password: \n";
 
-    String url = path + "/hopsworks/#!/passwordRecovery?key=" + key;
+    String url = path + "/giotto-web/#!/passwordRecovery?key=" + key;
 
     String l3 = url + " \n\n";
     String l4 = "If you did not request a password reset, please ignore this email. This password reset link is only " +

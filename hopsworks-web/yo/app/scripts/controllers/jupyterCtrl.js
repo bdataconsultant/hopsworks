@@ -467,7 +467,7 @@ angular.module('hopsWorksApp')
                 JupyterService.running(self.projectId).then(
                     function(success) {
                         self.config = success.data;
-                        self.ui = "/hopsworks-api/jupyter/" + self.config.port + "/?token=" + self.config.token;
+                        self.ui = "/giotto-api/jupyter/" + self.config.port + "/?token=" + self.config.token;
                         timeToShutdown();
                         if (typeof self.gitRepositoryPoller === 'undefined') {
                             gitRepositoryStatusPoller();

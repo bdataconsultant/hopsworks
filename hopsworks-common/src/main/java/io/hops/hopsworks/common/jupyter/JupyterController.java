@@ -325,7 +325,7 @@ public class JupyterController {
       if (!Strings.isNullOrEmpty(relativeNotebookPath)) {
         JSONObject notebookContents = new JSONObject(ClientBuilder.newClient()
             .target("http://" + jupyterManager.getJupyterHost() + ":" + jp.getPort() +
-                "/hopsworks-api/jupyter/" + jp.getPort() + "/api/contents/" + relativeNotebookPath
+                "/giotto-api/jupyter/" + jp.getPort() + "/api/contents/" + relativeNotebookPath
                 + "?content=1&token=" + jp.getToken())
             .request()
             .method("GET")
@@ -374,7 +374,7 @@ public class JupyterController {
     String relativeNotebookPath = null;
     JupyterProject jp = jupyterFacade.findByUser(hdfsUser);
     JSONArray sessionsArray = new JSONArray(ClientBuilder.newClient()
-        .target("http://" + jupyterManager.getJupyterHost() + ":" + jp.getPort() + "/hopsworks-api/jupyter/" +
+        .target("http://" + jupyterManager.getJupyterHost() + ":" + jp.getPort() + "/giotto-api/jupyter/" +
             jp.getPort() + "/api/sessions?token=" + jp.getToken())
         .request()
         .method("GET")

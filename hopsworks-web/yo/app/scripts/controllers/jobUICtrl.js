@@ -316,7 +316,7 @@ angular.module('hopsWorksApp')
             };
 
             var grafanaUIInt = function () {
-              self.ui = "/hopsworks-api/grafana/d/spark/spark?var-applicationId=" + self.appId
+              self.ui = "/giotto-api/grafana/d/spark/spark?var-applicationId=" + self.appId
               self.current = "grafanaUI";
               var iframe = document.getElementById('ui_iframe');
               if (iframe !== null) {
@@ -334,7 +334,7 @@ angular.module('hopsWorksApp')
             var tensorboardInt = function (tfSession) {
               TensorBoardService.ping(self.appId + "/" + tfSession.url + "/").then(
                       function (success) {
-                          self.ui = "/hopsworks-api/tensorboard/" + self.appId + "/" + tfSession.url + "/";
+                          self.ui = "/giotto-api/tensorboard/" + self.appId + "/" + tfSession.url + "/";
                           self.current = "tensorboardUI";
                           self.session = tfSession;
                           var iframe = document.getElementById('ui_iframe');

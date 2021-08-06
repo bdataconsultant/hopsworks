@@ -61,8 +61,8 @@ public class RecoveryIT {
   
   
   private final static By ERROR_MSG = By.id("error-msg");
-  private final static String PASSWORD_RECOVERY_URL = "/hopsworks/#!/passwordRecovery?key=";
-  private final static String QR_CODE_RECOVERY_URL = "/hopsworks/#!/qrRecovery?key=";
+  private final static String PASSWORD_RECOVERY_URL = "/giotto-web/#!/passwordRecovery?key=";
+  private final static String QR_CODE_RECOVERY_URL = "/giotto-web/#!/qrRecovery?key=";
   private String password = "12345Ab";
   
   @Before

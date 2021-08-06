@@ -275,7 +275,7 @@ angular.module('hopsWorksApp')
                * @returns {*}
                */
               getFlinkMaster: function (appId) {
-                return $http.get('/hopsworks-api/flinkmaster/' + appId +"/");
+                return $http.get('/giotto-api/flinkmaster/' + appId +"/");
               },
               /**
                * Gets the state from the json configuration of the job

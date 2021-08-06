@@ -1681,7 +1681,7 @@ public class Settings implements Serializable {
   
   public synchronized String getKibanaAppUri() {
     checkCache();
-    return "/hopsworks-api/kibana/app/kibana?";
+    return "/giotto-api/kibana/app/kibana?";
   }
   
   public synchronized String getKibanaAppUri(String jwtToken) {

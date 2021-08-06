@@ -157,7 +157,7 @@ public class LoginBean implements Serializable {
       this.user = getUserFromSession();
       HttpServletRequest req = (HttpServletRequest) FacesContext.getCurrentInstance().getExternalContext().getRequest();
       auditedUserAuth.logout(this.user, req);
-      FacesContext.getCurrentInstance().getExternalContext().redirect("/hopsworks/#!/home");
+      FacesContext.getCurrentInstance().getExternalContext().redirect("/giotto-web/#!/home");
     } catch (IOException | ServletException ex) {
       LOGGER.log(Level.SEVERE, null, ex);
     }
