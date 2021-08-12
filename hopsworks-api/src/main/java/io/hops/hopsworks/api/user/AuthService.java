@@ -103,7 +103,7 @@ import static javax.ws.rs.core.HttpHeaders.AUTHORIZATION;
 @Path("/auth")
 @Stateless
 @Api(value = "Auth",
-description = "Authentication service")
+    description = "Authentication service")
 @TransactionAttribute(TransactionAttributeType.NEVER)
 public class AuthService {
 
@@ -131,11 +131,10 @@ public class AuthService {
   @JWTRequired(acceptedTokens = {Audience.API},
       allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
   @Produces(MediaType.APPLICATION_JSON)
-  public Response session(@Context HttpServletRequest req,@Context SecurityContext sc) {
-    return jwtSession(sc);
-	//RESTApiJsonResponse json = new RESTApiJsonResponse();
-    //json.setData(req.getRemoteUser());
-    //return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).entity(json).build();
+  public Response session(@Context HttpServletRequest req) {
+    RESTApiJsonResponse json = new RESTApiJsonResponse();
+    json.setData(req.getRemoteUser());
+    return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).entity(json).build();
   }
 
   @GET
@@ -323,22 +322,10 @@ public class AuthService {
       json.setQRCode(new String(Base64.encodeBase64(qrCode)));
     } else {
       json.setSuccessMessage("We registered your account request. Please validate you email and we will "
-              + "review your account within 48 hours.");
+          + "review your account within 48 hours.");
     }
     return Response.ok(json).build();
   }
-  
-  @POST
-  @Path("createUser")
-  @Produces(MediaType.APPLICATION_JSON)
-  @Consumes(MediaType.APPLICATION_JSON)
-  public Response create(UserDTO newUser, @Context HttpServletRequest req) throws NoSuchAlgorithmException,
-      UserException {
-    UserDTO createdUser;
-    createdUser = userController.registerAndActivateUser(newUser, req);
-    return  noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).entity(createdUser).build();
-  }
-
 
   @POST
   @Path("/recover/password")
@@ -509,7 +496,7 @@ public class AuthService {
     roles.append(req.isUserInRole("HOPS_ADMIN") ? " admin" : "");
     roles.append(req.isUserInRole("AGENT") ? " agent" : "");
     roles.append(req.isUserInRole("CLUSTER_AGENT") ? " cluster-agent}" : "}");
-    LOGGER.log(Level.FINEST, "[/giotto-api] login:\n email: {0}\n session: {1}\n in roles: {2}", new Object[]{
+    LOGGER.log(Level.FINEST, "[/hopsworks-api] login:\n email: {0}\n session: {1}\n in roles: {2}", new Object[]{
       req.getUserPrincipal(), req.getSession().getId(), roles});
   }
 }

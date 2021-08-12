@@ -48,11 +48,8 @@ import io.hops.hopsworks.api.util.RESTApiJsonResponse;
 import io.hops.hopsworks.common.api.ResourceRequest;
 import io.hops.hopsworks.common.constants.message.ResponseMessages;
 import io.hops.hopsworks.common.dao.project.team.ProjectTeamFacade;
-import io.hops.hopsworks.common.dao.user.*;
-import io.hops.hopsworks.common.dao.user.security.audit.AccountAuditFacade;
-import io.hops.hopsworks.common.dao.user.security.audit.AccountsAuditActions;
-import io.hops.hopsworks.common.dao.user.security.audit.RolesAuditAction;
 import io.hops.hopsworks.common.dao.user.BbcGroupFacade;
+import io.hops.hopsworks.common.dao.user.UserFacade;
 import io.hops.hopsworks.common.dao.user.UserProjectDTO;
 import io.hops.hopsworks.common.dao.user.security.secrets.SecretPlaintext;
 import io.hops.hopsworks.common.project.ProjectController;
@@ -131,8 +128,6 @@ public class UsersResource {
   private UserFacade userFacade;
   @EJB
   private NoCacheResponse noCacheResponse;
-  @EJB
-  private AccountAuditFacade auditManager;
 
   @GET
   @Produces(MediaType.APPLICATION_JSON)
@@ -372,9 +367,6 @@ public class UsersResource {
       if (user.getStatus() != null) {
         u.setStatus(user.getStatus());
         u = userFacade.update(u);
-        Users initiator = jWTHelper.getUserPrincipal(sc);
-        auditManager.registerRoleChange(initiator, AccountsAuditActions.CHANGEDSTATUS.name(),
-                AccountsAuditActions.SUCCESS.name(), u.getStatusName(), u, req);
       }
       if (user.getFname() != null) {
         u.setFname(user.getFname());

@@ -71,15 +71,41 @@ angular.module('hopsWorksApp')
                     sessionStorage.setItem("isAdmin", null);
                 });
               }
-              self.resultPages = Math.ceil(self.searchResult.length / self.pageSize);
-              self.resultItems = self.searchResult.length;
-              DelaService.search(self.searchTerm).then(function (response2) {
-                global_data = response2.data;
-                if (global_data.length > 0) {
-                  self.searchResult = concatUnique(searchHits, global_data);
-                  self.searching = false;
+            };
+            checkeIsAdmin();
+            self.isAdmin = function () {
+              return sessionStorage.getItem("isAdmin");
+            };
+
+            self.goToAdminPage = function () {
+              $window.location.href = '/giotto-admin/security/protected/admin/adminIndex.xhtml';
+            };
+
+            self.getEmailHash = function (email) {
+              return md5.createHash(email || '');
+            };
+
+            self.logout = function () {
+              AirflowService.logout();
+
+              AuthService.logout(self.user).then(
+                      function (success) {
+                        AuthService.cleanSession();
+                        AuthService.removeToken();
+                        $location.url('/login');
+                      }, function (error) {
+                self.errorMessage = error.data.msg;
+              });
+            };
+
+            var checkDelaEnabled = function () {
+              
+              HopssiteService.getServiceInfo("dela").then(function (success) {
+                self.delaServiceInfo = success.data;
+                if (self.delaServiceInfo.status === 1) {
+                  $rootScope['isDelaEnabled'] = true;
                 } else {
-                  self.searching = false;
+                  $rootScope['isDelaEnabled'] = false;
                 }
               }, function (error) {
                 $rootScope['isDelaEnabled'] = false;
@@ -210,8 +236,10 @@ angular.module('hopsWorksApp')
                   self.delaHopsService.unshareFromHops(result.publicId, true).then(function (success) {
                     growl.info("Download cancelled.", {title: 'Info', ttl: 1000});
                   }, function (error) {
-                    growl.error(error.data.errorMsg, { title: 'Error', ttl: 5000 });
+                    growl.warning(error, {title: 'Warning', ttl: 1000});
                   });
+                });
+              }, function (error) {
               });
             };
 

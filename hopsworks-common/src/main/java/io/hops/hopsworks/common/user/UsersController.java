@@ -48,6 +48,7 @@ import io.hops.hopsworks.common.dao.user.BbcGroupFacade;
 import io.hops.hopsworks.common.dao.user.UserDTO;
 import io.hops.hopsworks.common.dao.user.UserFacade;
 import io.hops.hopsworks.persistence.entity.user.Users;
+import io.hops.hopsworks.persistence.entity.user.cluster.RegistrationStatusEnum;
 import io.hops.hopsworks.persistence.entity.user.security.audit.AccountAudit;
 import io.hops.hopsworks.common.dao.user.security.audit.AccountAuditFacade;
 import io.hops.hopsworks.persistence.entity.user.security.audit.RolesAudit;
@@ -73,6 +74,7 @@ import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
 import javax.mail.Message;
 import javax.mail.MessagingException;
+import javax.servlet.http.HttpServletRequest;
 import javax.validation.ConstraintViolationException;
 import java.io.IOException;
 import java.sql.Timestamp;
@@ -157,6 +159,35 @@ public class UsersController {
     }
     userFacade.persist(user);
     return user;
+  }
+
+  public UserDTO registerAndActivateUser(UserDTO newUser, String validationKeyUrl) throws UserException {
+    userValidator.isValidNewUser(newUser);
+    Users user = createNewUser(newUser, UserAccountStatus.ACTIVATED_ACCOUNT, UserAccountType.M_ACCOUNT_TYPE);
+
+    //to prevent sending email for test user emails
+    try {
+      if (!newUser.isTestUser()) {
+        // Notify user about the request if not test user.
+        authController.sendEmailValidationKey(user, user.getValidationKey(), validationKeyUrl);
+      }
+      // Only register the user if i can send the email. To prevent fake emails
+      userFacade.persist(user);
+
+      user = userFacade.findByEmail(user.getEmail());
+
+      if(newUser.getBbcRole() != null) {
+        BbcGroup bbcGroup = bbcGroupFacade.findByGroupName(newUser.getBbcRole());
+        user.getBbcGroupCollection().add(bbcGroup);
+        userFacade.update(user);
+      }
+
+    } catch (MessagingException ex) {
+      throw new UserException(RESTCodes.UserErrorCode.ACCOUNT_REGISTRATION_ERROR, Level.SEVERE,
+              "user: " + newUser.getUsername(), ex.getMessage(), ex);
+    }
+
+    return  new UserDTO(user);
   }
   
   public void addRole(String role, Integer id) throws UserException {

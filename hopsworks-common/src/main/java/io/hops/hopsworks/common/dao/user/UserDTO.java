@@ -51,18 +51,28 @@ public class UserDTO {
   private String firstName;
   private String lastName;
   private int status;
+  private String securityQuestion;
+  private String securityAnswer;
   private String secret;
   private String chosenPassword;
   private String repeatedPassword;
   private boolean tos;
   private boolean twoFactor;
   private int toursState;
+  private String orgName;
+  private String dep;
+  private String street;
+  private String city;
+  private String postCode;
+  private String country;
   private int maxNumProjects;
   private int numCreatedProjects;
   private boolean testUser;
   private String userAccountType;
   private int numActiveProjects;
   private int numRemainingProjects;
+  private String bbcRole;
+
 
   public UserDTO() {
   }
@@ -117,6 +127,22 @@ public class UserDTO {
     this.status = status;
   }
 
+  public String getSecurityQuestion() {
+    return securityQuestion;
+  }
+
+  public void setSecurityQuestion(String securityQuestion) {
+    this.securityQuestion = securityQuestion;
+  }
+
+  public String getSecurityAnswer() {
+    return securityAnswer;
+  }
+
+  public void setSecurityAnswer(String securityAnswer) {
+    this.securityAnswer = securityAnswer;
+  }
+
   public String getSecret() {
     return secret;
   }
@@ -160,9 +186,57 @@ public class UserDTO {
   public int getToursState() {
     return toursState;
   }
-  
+
   public void setToursState(int toursState) {
     this.toursState = toursState;
+  }
+
+  public String getOrgName() {
+    return orgName;
+  }
+
+  public void setOrgName(String orgName) {
+    this.orgName = orgName;
+  }
+
+  public String getDep() {
+    return dep;
+  }
+
+  public void setDep(String dep) {
+    this.dep = dep;
+  }
+
+  public String getStreet() {
+    return street;
+  }
+
+  public void setStreet(String street) {
+    this.street = street;
+  }
+
+  public String getCity() {
+    return city;
+  }
+
+  public void setCity(String city) {
+    this.city = city;
+  }
+
+  public String getPostCode() {
+    return postCode;
+  }
+
+  public void setPostCode(String postCode) {
+    this.postCode = postCode;
+  }
+
+  public String getCountry() {
+    return country;
+  }
+
+  public void setCountry(String country) {
+    this.country = country;
   }
 
   public int getMaxNumProjects() {
@@ -186,11 +260,11 @@ public class UserDTO {
   public int getNumRemainingProjects(){
     return numRemainingProjects;
   }
-  
+
   public void setNumRemainingProjects(int numRemainingProjects){
     this.numRemainingProjects = numRemainingProjects;
   }
-  
+
   public int getNumActiveProjects() {
     return numActiveProjects;
   }
@@ -214,24 +288,28 @@ public class UserDTO {
   public void setUserAccountType(String userAccountType) {
     this.userAccountType = userAccountType;
   }
-  
+
+
+
+  public String getBbcRole() {
+    return bbcRole;
+  }
+
+  public void setBbcRole(String bbcRole) {
+    this.bbcRole = bbcRole;
+  }
+
   @Override
   public String toString() {
-    return "UserDTO{" +
-      "username='" + username + '\'' +
-      ", email='" + email + '\'' +
-      ", firstName='" + firstName + '\'' +
-      ", lastName='" + lastName + '\'' +
-      ", status=" + status +
-      ", tos=" + tos +
-      ", twoFactor=" + twoFactor +
-      ", toursState=" + toursState +
-      ", maxNumProjects=" + maxNumProjects +
-      ", numCreatedProjects=" + numCreatedProjects +
-      ", testUser=" + testUser +
-      ", userAccountType='" + userAccountType + '\'' +
-      ", numActiveProjects=" + numActiveProjects +
-      ", numRemainingProjects=" + numRemainingProjects +
-      '}';
+    return "UserDTO{username=" + username + ", email=" + email
+            + ", firstName=" + firstName + ", lastName=" + lastName
+            + ", status=" + status + ", securityQuestion=" + securityQuestion
+            + ", securityAnswer=" + securityAnswer + ", secret=" + secret
+            + ", chosenPassword=" + chosenPassword + ", repeatedPassword="
+            + repeatedPassword + ", ToS=" + tos + ", orgName=" + orgName
+            + ", dep=" + dep + ", street=" + street + ", city=" + city
+            + ", postCode= " + postCode + ", country=" + country
+            + ", maxNumProjects= " + maxNumProjects + '}';
   }
+
 }

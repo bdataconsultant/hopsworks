@@ -38,8 +38,6 @@
  */
 package io.hops.hopsworks.api.project;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
 import io.hops.hopsworks.api.activities.ProjectActivitiesResource;
 import io.hops.hopsworks.api.airflow.AirflowService;
 import io.hops.hopsworks.api.dataset.DatasetResource;
@@ -68,15 +66,8 @@ import io.hops.hopsworks.common.dao.dataset.DatasetFacade;
 import io.hops.hopsworks.common.dao.hdfs.inode.InodeFacade;
 import io.hops.hopsworks.common.dao.project.ProjectFacade;
 import io.hops.hopsworks.common.dao.project.pia.PiaFacade;
-import io.hops.hopsworks.common.dao.project.service.ProjectServiceEnum;
-import io.hops.hopsworks.common.dao.project.service.ProjectServiceFacade;
-import io.hops.hopsworks.common.dao.project.team.ProjectTeam;
-import io.hops.hopsworks.common.dao.project.team.ProjectTeamFacade;
 import io.hops.hopsworks.common.dao.user.UserFacade;
-import io.hops.hopsworks.common.dao.user.Users;
 import io.hops.hopsworks.common.dao.user.activity.ActivityFacade;
-import io.hops.hopsworks.common.dao.user.activity.ActivityFlag;
-import io.hops.hopsworks.common.dao.user.security.apiKey.ApiScope;
 import io.hops.hopsworks.common.dao.util.ErrorMessage;
 import io.hops.hopsworks.common.dataset.DatasetController;
 import io.hops.hopsworks.common.dataset.FilePreviewDTO;
@@ -121,14 +112,12 @@ import io.hops.hopsworks.persistence.entity.user.security.apiKey.ApiScope;
 import io.hops.hopsworks.restutils.RESTCodes;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-import org.json.JSONObject;
 
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
 import javax.inject.Inject;
-import javax.json.Json;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.FormParam;
@@ -144,7 +133,10 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
@@ -163,8 +155,6 @@ public class ProjectService {
 
   @EJB
   private ProjectFacade projectFacade;
-  @EJB
-  private ProjectTeamFacade projectTeamFacade;
   @EJB
   private ProjectController projectController;
   @EJB
@@ -728,51 +718,6 @@ public class ProjectService {
 
     };
     return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).entity(entity).build();
-  }
-
-  @GET
-  @Path("{projectId}/importPublicDataset/{projectName}/{inodeId}")
-  @AllowedProjectRoles({AllowedProjectRoles.DATA_OWNER})
-  public Response quotasByProjectID(
-      @PathParam("projectId") Integer id,
-      @PathParam("projectName") String projectName,
-      @PathParam("inodeId") Long dsId,
-      @Context SecurityContext sc) throws ProjectException, DatasetException {
-
-    Project destProj = projectController.findProjectById(id);
-    Project dsProject = projectFacade.findByName(projectName);
-
-    Inode inode = inodes.findById(dsId);
-    Dataset ds = datasetFacade.findByProjectAndInode(dsProject, inode);
-    if (ds == null) {
-      throw new DatasetException(RESTCodes.DatasetErrorCode.DATASET_NOT_FOUND, Level.FINE, "project: " + projectName
-          + ", inodeId:" + dsId);
-    }
-
-    if (!ds.isPublicDs()) {
-      throw new DatasetException(RESTCodes.DatasetErrorCode.DATASET_NOT_PUBLIC, Level.FINE, "datasetId: " + ds.getId());
-    }
-
-    Dataset newDS = new Dataset(inode, destProj);
-    newDS.setShared(true);
-
-    if (ds.getDescription() != null) {
-      newDS.setDescription(ds.getDescription());
-    }
-    if (ds.isPublicDs()) {
-      newDS.setPublicDs(ds.getPublicDs());
-    }
-    newDS.setEditable(DatasetPermissions.OWNER_ONLY);
-    datasetFacade.persistDataset(newDS);
-    Users user = jWTHelper.getUserPrincipal(sc);
-
-    activityFacade.
-        persistActivity(ActivityFacade.SHARED_DATA + newDS.toString() + " with project " + destProj.getName(),
-             destProj, user, ActivityFlag.DATASET);
-
-    hdfsUsersBean.shareDataset(destProj, ds);
-
-    return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).build();
   }
 
   @POST
