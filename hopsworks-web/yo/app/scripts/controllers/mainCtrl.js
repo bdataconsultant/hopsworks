@@ -47,17 +47,119 @@ angular.module('hopsWorksApp')
           '$http', 'AuthService', 'UtilsService', 'ElasticService', 'DelaProjectService',
           'DelaService', 'md5', 'ModalService', 'ProjectService', 'growl',
           'MessageService', '$routeParams', '$window', 'HopssiteService', 'BannerService',
-          'AirflowService', 'PaginationService', 'VariablesService',
+          'AirflowService', 'PaginationService', 'VariablesService','customerConfig', 'CustomizationService',
           function ($q, $interval, $cookies, $location, $scope, $rootScope, $http, AuthService, UtilsService,
                   ElasticService, DelaProjectService, DelaService, md5, ModalService, 
                   ProjectService, growl,
                   MessageService, $routeParams, $window, HopssiteService, BannerService,
-                  AirflowService, PaginationService, VariablesService) {
-            var self = this;
+                  AirflowService, PaginationService, VariablesService,
+                  customerConfig, ConfigurationService) {
 
+            if (!!document.getElementById("platform-header")) {
+              document.getElementById("platform-header").remove();
+            }
+            var wrapper = document.getElementById('hwWrapper');
+            var headerDiv = document.createElement("platform-header");
+            headerDiv.setAttribute("id", "platform-header");
+            wrapper.appendChild(headerDiv)
+
+
+            function headerLogout() {
+              self.logout();
+            }
+            // HEADER PLUGIN INIZIALIZATION
+
+
+            var platformHeader;
+            function initizializeHeader(header) {
+              platformHeader = new GiottoPlatformHeader(
+                headerDiv,
+                {
+                  logoDir: header.logoDir,
+                  appContext: 'bigdata',
+                  appTitle: header.appTitle,
+                  logout: headerLogout,
+                  oauth2LogOutUrl: header.oauth2LogOutUrl,
+                  logoutOnCloseSession: header.logoutOnCloseSession,
+                  logOutRedirectUrl: header.logOutRedirectUrl,
+                  federatedLogoutUrl: header.federatedLogoutUrl,
+                  appUrlsConfig: header.appUrlsConfig
+                }
+              );
+              platformHeader.init();
+              document.getElementById('gph__logo').setAttribute("src", header.logoDir);
+            }
+
+            function loadThemeAndImages(configObject) {
+              $scope.platformHeaderLogo = configObject.platformHeaderLogo;
+              $scope.footerImage = configObject.footerImage;
+              $scope.navbarLogo = configObject.logo;
+              $scope.loginLogo = configObject.loginLogo;
+              $scope.favIcon = configObject.favIcon;
+              document.getElementById("favicon").setAttribute("href", configObject.favIcon);
+              document.documentElement.style.setProperty("--main", configObject.main);
+              document.documentElement.style.setProperty("--gradient-secondary", configObject.gradientSecondary);
+              document.documentElement.style.setProperty("--border", configObject.border);
+              document.documentElement.style.setProperty("--hover", configObject.hover);
+              document.documentElement.style.setProperty("--header-primary", configObject.headerPrimary);
+              document.documentElement.style.setProperty("--header-secondary", configObject.headerSecondary);
+              document.documentElement.style.setProperty("--header-title-color", configObject.headerTitleColor);
+              document.documentElement.style.setProperty("--header-logo-height", configObject.headerLogoHeight);
+              document.documentElement.style.setProperty("--footer-img-width", configObject.footerImgWidth);
+            }
+
+            var self = this;
             const MAX_IN_MEMORY_ITEMS = 1000;
             self.ui = "/giotto-api/airflow/login?q=username=";
 
+            ConfigurationService.getCustomization().then(function (response) {
+              self.header = response.data.header;
+              self.theme = response.data.bigdata;
+              $scope.$applyAsync(function() {
+                initizializeHeader(self.header);
+                loadThemeAndImages(self.theme);
+      
+              });
+            }).catch(function() {
+              customerConfig
+              initizializeHeader(customerConfig.header);
+              loadThemeAndImages(customerConfig);
+            }
+            );
+      
+            self.showPonFooter = customerConfig.showPonFooter;
+      
+            self.ui = "/giotto-api/airflow/login?q=username=";
+      
+            self.email = $cookies.get('email');
+            self.emailHash = md5.createHash(self.email || '');
+            var elasticService = ElasticService();
+      
+            self.navProjectName = "";
+            if (!!$routeParams.projectID) {
+              ProjectService.get({ id: $routeParams.projectID }).$promise.then(
+                function (response) {
+                  self.navProjectName = response.projectName;
+                }
+              );
+            }
+
+            var checkeIsAdmin = function () {
+              var isAdmin = sessionStorage.getItem("isAdmin");
+              if (isAdmin != 'true' && isAdmin != 'false') {
+                AuthService.isAdmin().then(
+                  function (success) {
+                    sessionStorage.setItem("isAdmin", success.data.data.value);
+                  }, function (error) {
+                    sessionStorage.setItem("isAdmin", null);
+                  });
+              }
+            };
+            checkeIsAdmin();
+            self.isAdmin = function () {
+              return sessionStorage.getItem("isAdmin");
+            };
+    
             self.email = $cookies.get('email');
             self.emailHash = md5.createHash(self.email || '');
 
@@ -87,15 +189,23 @@ angular.module('hopsWorksApp')
 
             self.logout = function () {
               AirflowService.logout();
-
+      
               AuthService.logout(self.user).then(
-                      function (success) {
-                        AuthService.cleanSession();
-                        AuthService.removeToken();
-                        $location.url('/login');
-                      }, function (error) {
-                self.errorMessage = error.data.msg;
-              });
+                function (success) {
+                  var redirectUrl;
+                  if(!!customerConfig.header.oauth2LogOutUrl)
+                    redirectUrl = platformHeader.logOut()();
+                  AuthService.cleanSession();
+                  AuthService.removeToken();
+                  localStorage.clear();
+                  sessionStorage.clear();
+                  if(!!customerConfig.header.oauth2LogOutUrl && !!redirectUrl)
+                    location.href = redirectUrl;
+                  else 
+                    $location.url('/oneadmin/');
+                }, function (error) {
+                  self.errorMessage = error.data.msg;
+                }); 
             };
 
             var checkDelaEnabled = function () {
