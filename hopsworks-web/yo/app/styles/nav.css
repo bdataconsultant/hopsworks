@@ -368,3 +368,86 @@ ul.dropdown-messages .dropdown-header {
 .container-fluid > div.navbar-header > div {
     padding-right: 10px
 }
+
+md-toolbar:not(.md-menu-toolbar) {
+    background: linear-gradient(to right, #337ab7, #555);
+    background-color: transparent;
+    color: #fff;
+    border-bottom: solid 1px;
+    border-color: #305680;
+    height: 80px;
+}
+
+md-toolbar:not(.md-hue-1), .md-fab {
+    fill: #eee;
+}
+
+.md-whiteframe-z1 {
+    box-shadow: 0 1px 3px 0 rgba(0,0,0,.2), 0 1px 1px 0 rgba(0,0,0,.14), 0 2px 1px -1px rgba(0,0,0,.12);
+}
+
+md-toolbar {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    z-index: 2;
+    font-size: 20px;
+    min-height: 64px;
+    width: 70px;
+}
+
+.giotto-header-container {
+    display: flex;
+    justify-content: space-between;
+    margin: 0
+}
+
+.giotto-header-left-items {
+    display: flex;
+    margin: 0;
+    align-items: center;
+}
+
+.giotto-header-right-items {
+    display: flex;
+    padding-top: 15px;
+    margin: 0;
+    color: white;
+} */
+
+.navbar-project-name {
+    color: white;
+    font-size: 32px;
+    width: fit-content;
+    margin-top: 6px;
+    margin-left: 30px;
+}
+
+.sidebar-warning-icon {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 3000;
+}
+
+.pon-footer {
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 10px;
+    text-align: center;
+    background-color: white;
+}
+
+.pon-footer-fixed {
+    position: sticky;
+}
+
+.pon-footer-sticky {
+    position: sticky;
+}
+
+.pon-footer img {
+    width: var(--footer-img-width)
+}

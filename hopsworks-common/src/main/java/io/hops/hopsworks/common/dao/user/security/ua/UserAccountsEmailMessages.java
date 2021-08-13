@@ -90,8 +90,8 @@ public class UserAccountsEmailMessages {
    * Subject of rejected accounts
    */
   public final static String ACCOUNT_REJECT
-          = "Your Hopsworks account request has been rejected";
-  public final static String ACCOUNT_STATUS_CHANGED = "Your Hopsworks account status was changed";
+          = "Your Giotto account request has been rejected";
+  public final static String ACCOUNT_STATUS_CHANGED = "Your Giotto account status was changed";
   /*
    * Default accpount acitvation period
    */
@@ -130,7 +130,7 @@ public class UserAccountsEmailMessages {
     String url = path + "/giotto-admin/security/validate_account.xhtml?key=" + key;
 
     String l3 = "To confirm your email click " + url + " \n\n";
-    String l4 = "If you have any questions please visit https://community.hopsworks.ai/";
+    String l4 = "";
 
     message = l1 + l2 + l3 + l4;
     return message;
@@ -156,7 +156,7 @@ public class UserAccountsEmailMessages {
     String l3 = "To confirm your email click " + url + " \n\n";
     String l4 = "If you did not request an account, please ignore this email. This link is only valid for"
       + formatTime(validFor) + ". \n\n";
-    String l5 = "If you have any questions please visit https://community.hopsworks.ai/";
+    String l5 = "";
 
     message = l1 + l2 + l3 + l4 + l5;
 
@@ -182,7 +182,7 @@ public class UserAccountsEmailMessages {
     String l3 = url + " \n\n";
     String l4 = "If you did not request a password reset, please ignore this email. This password reset link is only " +
       "valid for " + formatTime(validFor) + ". \n\n";
-    String l5 = "If you have any questions please visit https://community.hopsworks.ai/";
+    String l5 = "";
 
     message = l1 + l2 + l3 + l4 + l5;
 
@@ -201,7 +201,7 @@ public class UserAccountsEmailMessages {
     String l3 = url + " \n\n";
     String l4 = "If you did not request a QR code reset, please ignore this email. This QR code reset link is only " +
       "valid for " + formatTime(validFor) + ". \n\n";
-    String l5 = "If you have any questions please visit https://community.hopsworks.ai/";
+    String l5 = "";
 
     message = l1 + l2 + l3 + l4 + l5;
     
@@ -230,7 +230,7 @@ public class UserAccountsEmailMessages {
             + "Your Giotto account has been blocked.\n\n";
     String l2
             = "If you have any questions please visit www.hops.io or contact support@hops.io";
-    String l3 = "If you have any questions please visit https://community.hopsworks.ai/";
+    String l3 = "";
 
     message = l1 + l2 + l3;
     return message;
@@ -248,7 +248,7 @@ public class UserAccountsEmailMessages {
     String l1 = GREETINGS_HEADER + ",\n\n"
             + "A password reset has been requested on your behalf.\n\n";
     String l2 = "Your password has been changed successfully.\n\n\n";
-    String l3 = "If you have any questions please visit https://community.hopsworks.ai/";
+    String l3 = "";
     message = l1 + l2 + l3;
 
     return message;
@@ -264,7 +264,7 @@ public class UserAccountsEmailMessages {
     String l1 =
       GREETINGS_HEADER + ",\n\n" + "Your password was reset by a platform administrator (" + initiator + ").\n\n";
     String l2 = "Your password has been changed successfully.\n\n\n";
-    String l3 = "If you have any questions please visit https://community.hopsworks.ai/";
+    String l3 = "";
     message = l1 + l2 + l3;
     return message;
   }
@@ -273,7 +273,7 @@ public class UserAccountsEmailMessages {
     String message;
     String l1 = GREETINGS_HEADER + ",\n\n A lost device has been reported on Giotto.\n\n";
     String l2 = "Your QR code has been changed successfully.\n\n\n";
-    String l3 = "If you have any questions please visit https://community.hopsworks.ai/";
+    String l3 = "";
     message = l1 + l2 + l3;
     return message;
   }
@@ -285,7 +285,7 @@ public class UserAccountsEmailMessages {
             + "Your account request to access Giotto has been approved.\n\n";
     String l2 = "You can login with your username: " + username
             + " and other credentials you setup.\n\n\n";
-    String l3 = "If you have any questions please visit https://community.hopsworks.ai/";
+    String l3 = "";
     message = l1 + l2 + l3;
 
     return message;
@@ -295,8 +295,8 @@ public class UserAccountsEmailMessages {
     String message;
 
     String l1 = GREETINGS_HEADER + ",\n\n"
-            + "Your Hopsworks account request has been rejected.\n\n";
-    String l2 = "If you have any questions please visit https://community.hopsworks.ai/";
+            + "Your Giotto account request has been rejected.\n\n";
+    String l2 = "";
     message = l1 + l2;
 
     return message;
@@ -306,8 +306,8 @@ public class UserAccountsEmailMessages {
     String message;
     
     String l1 = GREETINGS_HEADER + ",\n\n"
-      + "Your Hopsworks account status was changed to " + status + ".\n\n";
-    String l2 = "If you have any questions please visit https://community.hopsworks.ai/";
+      + "Your Giotto account status was changed to " + status + ".\n\n";
+    String l2 = "";
     message = l1 + l2;
     
     return message;
@@ -326,7 +326,7 @@ public class UserAccountsEmailMessages {
     String url = path + "/giotto-cluster/api/cluster/register/confirm/" + key;
 
     String l3 = "To confirm your email click " + url + " \n\n";
-    String l4 = "If you have any questions please visit https://community.hopsworks.ai/";
+    String l4 = "";
 
     message = l1 + l2 + l3 + l4;
 
@@ -346,7 +346,7 @@ public class UserAccountsEmailMessages {
     String url = path + "/giotto-cluster/api/cluster/unregister/confirm/" + key;
 
     String l3 = "To confirm this request click " + url + " \n\n";
-    String l4 = "If you have any questions please visit https://community.hopsworks.ai/";
+    String l4 = "";
 
     message = l1 + l2 + l3 + l4;
 
@@ -360,7 +360,7 @@ public class UserAccountsEmailMessages {
       "\" on " + createdOn + ".\n" +
       "This api key will allow you to access your Giotto account from a device or application that can not login " +
       "with a username and password. Attaching this api key on a request authentication header will allow you to " +
-      "access any hopsworks service in the scope: " + scopes + ".\n";
+      "access any Giotto service in the scope: " + scopes + ".\n";
     String l2 = "Don't recognize this activity? please contact your administrator";
 
     message = l1 + l2;

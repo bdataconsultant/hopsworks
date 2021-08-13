@@ -53,7 +53,7 @@
   <version>2.2.0</version>
   <packaging>ear</packaging>
 
-  <name>hopsworks-ear:2.2.0</name>
+  <name>giotto-ear:2.2.0</name>
 
   <properties>
     <maven.deploy.skip>true</maven.deploy.skip>
