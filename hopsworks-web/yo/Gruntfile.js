@@ -118,7 +118,7 @@ module.exports = function (grunt) {
       proxies: [
         {
           context: '/giotto-api',
-          host: '10.206.195.38',
+          host: '10.206.221.143',
           port: 8181,
           https: false,
           secure: false,
