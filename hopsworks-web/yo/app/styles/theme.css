@@ -18,7 +18,7 @@
     --hopsworks-border-color: #e7e7e7;
     --hopsworks-header-color: #000000;
     --hopsworks-sidebar-color: #1d1d1b;
-    --hopsworks-primary-color: #1eb182;
+    --hopsworks-primary-color: var(--main);
     --hopsworks-secondary-color: #f7bb38;
     --hopsworks-danger-color: rgb(247, 61, 69);
     --hopsworks-info-color: rgb(2, 46, 69);
@@ -187,7 +187,7 @@ md-checkbox:not([disabled]).md-primary.md-checked .md-icon {
 
 .sidebar-nav li a:hover,
 .sidebar-nav li a.active{
-    color: var(--hopsworks-primary-color)  !important;
+    color: var(#a1e4ff)  !important;
     transition: color 0.5s ease;
 }
 

@@ -42,8 +42,9 @@
     <div growl class="pull-right" ng-cloak></div>
     <div class="navbar-header">
       <div>
-        <a class="navbar-brand" href="#!/home">
-          <img alt="hopsworks icon" height="45" src="images/hopsworks-logo/Hopsworkslogowhite.svg">
+        <a class="navbar-brand" href="{{getLocationBase()}}"
+          style="font-family: Roboto; font-size: 30px; color: #fff;padding:1;">
+          <img alt="giotto icon" class="nav-logo" ng-src="{{navbarLogo}}" />
         </a>
       </div>
     </div>
@@ -107,13 +108,6 @@
           </li>          
         </ul>
         <!--ng-show="showDatasets"-->
-        <form class="navbar-form">
-          <hw-search scopes="mainCtrl.searchScopes"
-                     project-view="projectView"
-                     searching="mainCtrl.searching"
-                     click-fn="mainCtrl.searchInScope(scope, searchTerm)">
-          </hw-search>
-        </form>
       </div>
     </div>
 </nav>
