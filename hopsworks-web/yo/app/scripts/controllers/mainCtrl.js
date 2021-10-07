@@ -81,6 +81,8 @@ angular.module('hopsWorksApp')
             logout: headerLogout,
             oauth2LogOutUrl: header.oauth2LogOutUrl,
             logoutOnCloseSession: header.logoutOnCloseSession,
+            disableBigdataLogout: header.disableBigdataLogout,
+            disableIotLogout: header.disableIotLogout,
             logOutRedirectUrl: header.logOutRedirectUrl,
             federatedLogoutUrl: header.federatedLogoutUrl,
             appUrlsConfig: header.appUrlsConfig
@@ -178,24 +180,7 @@ angular.module('hopsWorksApp')
       };
 
       self.logout = function () {
-        AirflowService.logout();
-
-        AuthService.logout(self.user).then(
-          function (success) {
-            var redirectUrl;
-            if(!!customerConfig.header.oauth2LogOutUrl)
-              redirectUrl = platformHeader.logOut()();
-            AuthService.cleanSession();
-            AuthService.removeToken();
-            localStorage.clear();
-            sessionStorage.clear();
-            if(!!customerConfig.header.oauth2LogOutUrl && !!redirectUrl)
-              location.href = redirectUrl;
-            else 
-              $location.url('/oneadmin/');
-          }, function (error) {
-            self.errorMessage = error.data.msg;
-          }); 
+        platformHeader.logOut()();
       };
 
       var checkDelaEnabled = function () {

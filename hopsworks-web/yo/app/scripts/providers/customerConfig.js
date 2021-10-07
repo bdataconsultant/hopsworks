@@ -10,6 +10,8 @@
         oauth2LogOutUrl: "https://smartcityplatform.develop.it/oidc/logout",
         logOutRedirectUrl: "https://smartcityplatform.develop.it/oneadmin/login",
         logoutOnCloseSession: false,
+        disableBigdataLogout: false,
+        disableIotLogout: false,
         federatedLogoutUrl: null,
         appUrlsConfig: {
           bigdata: "/giotto-web",
