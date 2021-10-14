@@ -56,7 +56,7 @@ angular.module('hopsWorksApp')
             var self = this;
 
             const MAX_IN_MEMORY_ITEMS = 1000;
-            self.ui = "/hopsworks-api/airflow/login?q=username=";
+            self.ui = "/bigdata-api/airflow/login?q=username=";
 
             self.email = $cookies.get('email');
             self.emailHash = md5.createHash(self.email || '');

@@ -70,6 +70,18 @@
           <defaultLibBundleDir>lib</defaultLibBundleDir>
           <fileNameMapping>standard</fileNameMapping>
           <!--<generateModuleId>true</generateModuleId>-->
+          <modules>
+            <webModule>
+              <groupId>io.hops.hopsworks</groupId>
+              <artifactId>hopsworks-api</artifactId>
+              <contextRoot>/bigdata-api</contextRoot>
+            </webModule>
+            <webModule>
+              <groupId>io.hops.hopsworks</groupId>
+              <artifactId>hopsworks-admin</artifactId>
+              <contextRoot>/hopsworks-admin</contextRoot>
+            </webModule>
+          </modules>
         </configuration>
       </plugin>
     </plugins>

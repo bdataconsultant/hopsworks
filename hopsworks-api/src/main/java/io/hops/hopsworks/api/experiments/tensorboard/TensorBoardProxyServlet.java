@@ -85,7 +85,7 @@ public class TensorBoardProxyServlet extends ProxyServlet {
   private final static Logger LOGGER = Logger.getLogger(TensorBoardProxyServlet.class.getName());
 
   // A request will come in with the format: 
-  // http://127.0.0.1:8080/hopsworks-api/tensorboard/application_1507065031551_0005/hopsworks0:59460/#graphs
+  // http://127.0.0.1:8080/bigdata-api/tensorboard/application_1507065031551_0005/hopsworks0:59460/#graphs
   // 
   @Override
   protected void service(HttpServletRequest servletRequest,

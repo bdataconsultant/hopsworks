@@ -101,7 +101,7 @@ public class LocalHostJupyterProcessMgr extends JupyterManagerImpl implements Ju
   private static final Logger LOGGER = Logger.getLogger(LocalHostJupyterProcessMgr.class.getName());
   private static final int TOKEN_LENGTH = 48;
   private static final String JUPYTER_HOST_TEMPLATE = "http://%s:%d";
-  private static final String PING_PATH = "/hopsworks-api/jupyter/%d/api/status";
+  private static final String PING_PATH = "/bigdata-api/jupyter/%d/api/status";
 
   @EJB
   private Settings settings;

@@ -48,7 +48,7 @@ angular.module('hopsWorksApp')
                 var host = $location.host()
                 var port = $location.port()
                 var protocol = $location.protocol()
-                return protocol + "://" + host + ":" + port + "/hopsworks-api/api/project/" + projectId + "/inference/models/" + modelName + ":"
+                return protocol + "://" + host + ":" + port + "/bigdata-api/api/project/" + projectId + "/inference/models/" + modelName + ":"
             }
 
             /**

@@ -371,7 +371,7 @@ angular.module('hopsWorksApp')
               // If that instance is running, URL redirect to that instance
               // If not running, start a new instance
 
-//              http://localhost:8080/hopsworks/#!/project/1/settings
+//              http://localhost:8080/bigdata-web/#!/project/1/settings
               if (self.tourService.currentStep_TourTwo > -1) {
                   self.tourService.resetTours();
               }

@@ -342,23 +342,23 @@ public class YarnUIProxyServlet extends ProxyServlet {
     }
     
     ui = ui.replaceAll("(?<=(href|src)=\")/(?=[a-zA-Z])",
-      "/hopsworks-api/yarnui/" + source + "/");
+      "/bigdata-api/yarnui/" + source + "/");
     ui = ui.replaceAll("(?<=(href|src)=\')/(?=[a-zA-Z])",
-      "/hopsworks-api/yarnui/" + source + "/");
-    ui = ui.replaceAll("(?<=(href|src)=\")//", "/hopsworks-api/yarnui/");
-    ui = ui.replaceAll("(?<=(href|src)=\')//", "/hopsworks-api/yarnui/");
+      "/bigdata-api/yarnui/" + source + "/");
+    ui = ui.replaceAll("(?<=(href|src)=\")//", "/bigdata-api/yarnui/");
+    ui = ui.replaceAll("(?<=(href|src)=\')//", "/bigdata-api/yarnui/");
     ui = ui.replaceAll("(?<=(href|src)=\")(?=http)",
-      "/hopsworks-api/yarnui/");
+      "/bigdata-api/yarnui/");
     ui = ui.replaceAll("(?<=(href|src)=\')(?=http)",
-      "/hopsworks-api/yarnui/");
+      "/bigdata-api/yarnui/");
     ui = ui.replaceAll("(?<=(href|src)=\")(?=[a-zA-Z])",
-        "/hopsworks-api/yarnui/" + source + "/" + path + "/");
+        "/bigdata-api/yarnui/" + source + "/" + path + "/");
     ui = ui.replaceAll("(?<=(href|src)=\')(?=[a-zA-Z])",
-        "/hopsworks-api/yarnui/" + source + "/" + path + "/");
-    ui = ui.replaceAll("(?<=(url: '))/(?=[a-zA-Z])", "/hopsworks-api/yarnui/");
-    ui = ui.replaceAll("(?<=(location\\.href = '))/(?=[a-zA-Z])", "/hopsworks-api/yarnui/");
+        "/bigdata-api/yarnui/" + source + "/" + path + "/");
+    ui = ui.replaceAll("(?<=(url: '))/(?=[a-zA-Z])", "/bigdata-api/yarnui/");
+    ui = ui.replaceAll("(?<=(location\\.href = '))/(?=[a-zA-Z])", "/bigdata-api/yarnui/");
     ui = ui.replaceAll("(?<=\"(stdout\"|stderr\") : \")(?=[a-zA-Z])",
-      "/hopsworks-api/yarnui/");
+      "/bigdata-api/yarnui/");
     ui = ui.replaceAll("for full log", "for latest " + settings.getSparkUILogsOffset()
       + " bytes of logs");
     ui = ui.replace("/?start=0", "/?start=-" + settings.getSparkUILogsOffset());

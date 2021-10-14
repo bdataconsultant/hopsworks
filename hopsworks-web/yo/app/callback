@@ -68,7 +68,7 @@
   var urlEncodedData = "";
   var urlEncodedDataPairs = [];
   var baseUrl = location.protocol + "//" + location.hostname + (location.port? ":" + location.port : "");
-  location.replace(baseUrl + '/hopsworks/#!/callback?code=' + encodeURIComponent(data['code']) + '&state=' + encodeURIComponent(data['state']));
+  location.replace(baseUrl + '/bigdata-web/#!/callback?code=' + encodeURIComponent(data['code']) + '&state=' + encodeURIComponent(data['state']));
 </script>
 </body>
 </html>

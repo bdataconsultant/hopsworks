@@ -52,7 +52,7 @@
     <link rel="icon" type="image/png" href="#{resource['images/hops-black.png']}" />
     <link rel="stylesheet" type="text/css" href="#{resource['/css/main.css']}" />
     <link rel="stylesheet" type="text/css" href="#{resource['/css/theme.css']}" />
-    <meta http-equiv="refresh" content="#{facesContext.externalContext.sessionMaxInactiveInterval};url=/hopsworks/#!/login"/>
+    <meta http-equiv="refresh" content="#{facesContext.externalContext.sessionMaxInactiveInterval};url=/bigdata-web/#!/login"/>
     <ui:insert name="css"> </ui:insert>
   </h:head>
 
@@ -62,8 +62,8 @@
     <h:form id="monitorToolbarForm"> 
       <p:toolbar>
         <f:facet name="left" rendered="#{roleEnforcementPoint.loggedIn}">
-          <p:commandButton value="Hopsworks" action="#{facesContext.externalContext.redirect('/hopsworks')}" ajax="false" process="@monitorToolbarForm" icon="ui-icon-extlink"/>
-          <p:commandButton value="Admin Home" action="#{facesContext.externalContext.redirect('/hopsworks-admin/security/protected/admin/adminIndex.xhtml')}" ajax="false" process="@monitorToolbarForm" icon="ui-icon-arrowrefresh-1-w"/>
+          <p:commandButton value="Hopsworks" action="#{facesContext.externalContext.redirect('/bigdata-web')}" ajax="false" process="@monitorToolbarForm" icon="ui-icon-extlink"/>
+          <p:commandButton value="Admin Home" action="#{facesContext.externalContext.redirect('/bigdata-web-admin/security/protected/admin/adminIndex.xhtml')}" ajax="false" process="@monitorToolbarForm" icon="ui-icon-arrowrefresh-1-w"/>
         </f:facet>
         <f:facet name="right">
           <p:menuButton value=" #{loginBean.loginUsername()}" id="userBtn">

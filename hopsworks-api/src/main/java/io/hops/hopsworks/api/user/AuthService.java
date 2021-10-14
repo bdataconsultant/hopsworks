@@ -496,7 +496,7 @@ public class AuthService {
     roles.append(req.isUserInRole("HOPS_ADMIN") ? " admin" : "");
     roles.append(req.isUserInRole("AGENT") ? " agent" : "");
     roles.append(req.isUserInRole("CLUSTER_AGENT") ? " cluster-agent}" : "}");
-    LOGGER.log(Level.FINEST, "[/hopsworks-api] login:\n email: {0}\n session: {1}\n in roles: {2}", new Object[]{
+    LOGGER.log(Level.FINEST, "[/bigdata-api] login:\n email: {0}\n session: {1}\n in roles: {2}", new Object[]{
       req.getUserPrincipal(), req.getSession().getId(), roles});
   }
 }

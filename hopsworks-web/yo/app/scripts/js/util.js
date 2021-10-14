@@ -160,7 +160,7 @@ function getPort() {
 };
 
 function getPathname() {
-  return "/hopsworks-api";
+  return "/bigdata-api";
 }
 
 function getRemoteUserAuthPathname() {
@@ -168,11 +168,11 @@ function getRemoteUserAuthPathname() {
 }
 
 function getApiPath() {
-  return "/hopsworks-api/api";
+  return "/bigdata-api/api";
 }
 
 function getLocationBase() {
-  return location.protocol + "//" + location.hostname +":" + getPort() + "/hopsworks";
+  return location.protocol + "//" + location.hostname +":" + getPort() + "/bigdata-web";
 };
 
 function getApiLocationBase() {

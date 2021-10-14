@@ -345,7 +345,7 @@ public class JobsResource {
     try {
       String trackingUrl = yarnApplicationAttemptStateFacade.findTrackingUrlByAppId(appId);
       if (trackingUrl != null && !trackingUrl.isEmpty()) {
-        trackingUrl = "/hopsworks-api/yarnui/" + trackingUrl;
+        trackingUrl = "/bigdata-api/yarnui/" + trackingUrl;
         urls.add(new YarnAppUrlsDTO("spark", trackingUrl));
       }
     } catch (Exception e) {

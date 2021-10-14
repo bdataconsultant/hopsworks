@@ -157,7 +157,7 @@ public class RoleEnforcementPoint implements Serializable {
       this.user = getUserFromSession();
       HttpServletRequest req = getRequest();
       auditedUserAuth.logout(this.user, req);
-      FacesContext.getCurrentInstance().getExternalContext().redirect("/hopsworks/#!/home");
+      FacesContext.getCurrentInstance().getExternalContext().redirect("/bigdata-web/#!/home");
     } catch (IOException | ServletException ex) {
       Logger.getLogger(RoleEnforcementPoint.class.getName()).log(Level.SEVERE, null, ex);
     }

@@ -170,7 +170,7 @@ public class UserAccountsEmailMessages {
     String l1 = GREETINGS_HEADER + ",\n\n We received a password recovery request for Hopsworks on your behalf.\n\n";
     String l2 = "Please click on the following link to recover your password: \n";
 
-    String url = path + "/hopsworks/#!/passwordRecovery?key=" + key;
+    String url = path + "/bigdata-web/#!/passwordRecovery?key=" + key;
 
     String l3 = url + " \n\n";
     String l4 = "If you did not request a password reset, please ignore this email. This password reset link is only " +
@@ -189,7 +189,7 @@ public class UserAccountsEmailMessages {
     String l1 = GREETINGS_HEADER + ",\n\n We received a lost mobile recovery request for Hopsworks on your behalf.\n\n";
     String l2 = "Please click on the following link to recover your QR code: \n";
     
-    String url = path + "/hopsworks/#!/qrRecovery?key=" + key;
+    String url = path + "/bigdata-web/#!/qrRecovery?key=" + key;
     
     String l3 = url + " \n\n";
     String l4 = "If you did not request a QR code reset, please ignore this email. This QR code reset link is only " +

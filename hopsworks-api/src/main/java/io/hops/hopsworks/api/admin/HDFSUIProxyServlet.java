@@ -280,24 +280,24 @@ public class HDFSUIProxyServlet extends ProxyServlet {
   private String hopify(String ui, String source) {
 
     ui = ui.replaceAll("<a href='http://hadoop.apache.org/core'>Hadoop</a>, 2018.", "");
-    ui = ui.replaceAll("(?<=(url=))(?=[a-zA-Z])", "/hopsworks-api/hdfsui/");
+    ui = ui.replaceAll("(?<=(url=))(?=[a-zA-Z])", "/bigdata-api/hdfsui/");
     ui = ui.replaceAll("(?<=(href|src)=\")/(?=[a-zA-Z])",
-        "/hopsworks-api/hdfsui/" + source + "/");
+        "/bigdata-api/hdfsui/" + source + "/");
     ui = ui.replaceAll("(?<=(href|src)=\')/(?=[a-zA-Z])",
-        "/hopsworks-api/hdfsui/" + source + "/");
-    ui = ui.replaceAll("(?<=(href|src)=\")//", "/hopsworks-api/hdfsui/");
-    ui = ui.replaceAll("(?<=(href|src)=\')//", "/hopsworks-api/hdfsui/");
+        "/bigdata-api/hdfsui/" + source + "/");
+    ui = ui.replaceAll("(?<=(href|src)=\")//", "/bigdata-api/hdfsui/");
+    ui = ui.replaceAll("(?<=(href|src)=\')//", "/bigdata-api/hdfsui/");
     ui = ui.replaceAll("(?<=(href|src)=\")(?=(http|https))",
-        "/hopsworks-api/hdfsui/");
+        "/bigdata-api/hdfsui/");
     ui = ui.replaceAll("(?<=(href|src)=\')(?=(http|https))",
-        "/hopsworks-api/hdfsui/");
+        "/bigdata-api/hdfsui/");
     ui = ui.replaceAll("(?<=(href|src)=\")(?=[a-zA-Z])",
-        "/hopsworks-api/hdfsui/" + source + "/");
+        "/bigdata-api/hdfsui/" + source + "/");
     ui = ui.replaceAll("(?<=(href|src)=\')(?=[a-zA-Z])",
-        "/hopsworks-api/hdfsui/" + source + "/");
+        "/bigdata-api/hdfsui/" + source + "/");
     ui = ui.replaceAll("(?<=(href|src)=)/(?=[a-zA-Z])",
-        "/hopsworks-api/hdfsui/" + source + "/");
-    ui = ui.replaceAll("(?<=(action)=\")(?=[a-zA-Z/]*.jsp)", "/hopsworks-api/hdfsui/" + source + "/");
+        "/bigdata-api/hdfsui/" + source + "/");
+    ui = ui.replaceAll("(?<=(action)=\")(?=[a-zA-Z/]*.jsp)", "/bigdata-api/hdfsui/" + source + "/");
     return ui;
 
   }
