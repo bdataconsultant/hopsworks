@@ -314,6 +314,7 @@ public class AuthService {
   @Consumes(MediaType.APPLICATION_JSON)
   @JWTNotRequired
   public Response register(UserDTO newUser, @Context HttpServletRequest req) throws UserException {
+    if(newUser != null) newUser.setTos(true);
     byte[] qrCode;
     RESTApiJsonResponse json = new RESTApiJsonResponse();
     String linkUrl = FormatUtils.getUserURL(req) + settings.getEmailVerificationEndpoint();

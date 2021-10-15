@@ -157,7 +157,7 @@ public class Jobs implements Serializable {
   private Collection<JobAlert> jobAlertCollection;
 
   public Jobs() {
-    this.name = "Hopsworks job";
+    this.name = "Big Data job";
   }
 
   public Jobs(JobConfiguration config, Project project,
@@ -178,7 +178,7 @@ public class Jobs implements Serializable {
   protected Jobs(JobConfiguration config, Project project,
           Users creator, String jobname, Date creationTime) {
     if (Strings.isNullOrEmpty(jobname)) {
-      this.name = "Hopsworks job";
+      this.name = "Big Data job";
     } else {
       this.name = jobname;
     }

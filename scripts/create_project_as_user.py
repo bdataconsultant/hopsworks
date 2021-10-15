@@ -5,7 +5,7 @@ import requests
 import json
 
 def create_project(endpoint, user, password, owner, project_name):
-    "Login to Hopsworks as admin <admin@hopsworks.ai> user and create a Project with owner as Project Owner"
+    "Login to Big Data Platform as admin <admin@hopsworks.ai> user and create a Project with owner as Project Owner"
     login_url = endpoint.strip('/') + '/bigdata-api/api/auth/login'
     login_headers = {'Content-Type': 'application/x-www-form-urlencoded',
                      'User-Agent': 'pyRequests'}
@@ -38,9 +38,9 @@ def create_project(endpoint, user, password, owner, project_name):
             print "ERROR - Login response status {0}. Text: {1}".format(response.status_code, response.text)
             
 if __name__=='__main__':
-    parser = argparse.ArgumentParser(description='Create Hopsworks project for other user.')
+    parser = argparse.ArgumentParser(description='Create Big Data Platform project for other user.')
     parser.add_argument('-e', '--endpoint', required=True,
-                        help='Hopsworks host')
+                        help='Big Data Platform host')
     parser.add_argument('-u', '--user', default='admin@hopsworks.ai',
                         help='Admin user')
     parser.add_argument('-o', '--owner', required=True,

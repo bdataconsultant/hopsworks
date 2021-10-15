@@ -42,7 +42,7 @@ public class VariablesIT {
     driver = WebDriverFactory.getWebDriver();
     dbHelper = new DBHelper();
     user = LoginHelper.loginAsAdmin(driver, dbHelper);
-    Helpers.driverGet("hopsworks-admin/security/protected/admin/refreshVariables.xhtml", driver);
+    Helpers.driverGet("bigdata-admin/security/protected/admin/refreshVariables.xhtml", driver);
   }
 
   @Test

@@ -183,7 +183,7 @@ public class LoginBean implements Serializable {
   }
 
   public void gotoLoginHelp() throws IOException {
-    String link = "/hopsworks-admin/security/login_issue.xhtml";
+    String link = "/bigdata-admin/security/login_issue.xhtml";
     ExternalContext externalContext = FacesContext.getCurrentInstance().getExternalContext();
     externalContext.redirect(link.trim());
   }

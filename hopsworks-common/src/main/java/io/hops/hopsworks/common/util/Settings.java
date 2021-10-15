@@ -2466,7 +2466,7 @@ public class Settings implements Serializable {
     return "hops-examples-featurestore-tour-" + HOPS_EXAMPLES_VERSION + ".jar";
   }
 
-  private String VERIFICATION_PATH = "/hopsworks-admin/security/validate_account.xhtml";
+  private String VERIFICATION_PATH = "/bigdata-admin/security/validate_account.xhtml";
 
   public synchronized String getEmailVerificationEndpoint() {
     checkCache();

@@ -58,7 +58,7 @@ public class SettingsController implements Serializable {
 
   public SettingsController() {
     LOGGER.log(Level.FINE, "SettingsController");
-    name = "Hopsworks";
+    name = "Big Data Platform";
     logLines = 2;
   }
 

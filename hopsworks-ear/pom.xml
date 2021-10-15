@@ -79,13 +79,13 @@
             <webModule>
               <groupId>io.hops.hopsworks</groupId>
               <artifactId>hopsworks-admin</artifactId>
-              <contextRoot>/hopsworks-admin</contextRoot>
+              <contextRoot>/bigdata-admin</contextRoot>
             </webModule>
           </modules>
         </configuration>
       </plugin>
     </plugins>
-    <finalName>hopsworks-ear</finalName>
+    <finalName>bigdata-ear</finalName>
   </build>
 
   <dependencies>

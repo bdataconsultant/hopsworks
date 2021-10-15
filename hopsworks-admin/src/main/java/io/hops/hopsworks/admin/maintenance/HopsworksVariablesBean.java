@@ -107,7 +107,7 @@ public class HopsworksVariablesBean implements Serializable {
   public void refreshVariables() {
     settings.refreshCache();
     allVariables = settings.getAllVariables();
-    MessagesController.addInfoMessage("Hopsworks variables refreshed");
+    MessagesController.addInfoMessage("Big Data Platform variables refreshed");
     RequestContext.getCurrentInstance().update("updateVariablesForm:variablesTable");
   }
 }

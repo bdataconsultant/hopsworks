@@ -49,20 +49,6 @@
     </div>
       <div class="collapse navbar-collapse" id="navbar">
         <ul class="nav navbar-nav navbar-right" style="margin-right:10px;">
-          <li class="dropdown">
-            <a class="dropdown-toggle" data-toggle="dropdown" style="padding:7px 10px 8px 10px; text-decoration:none;"  aria-expanded="false" id="navbarProfile">
-              <img alt="" src="https://gravatar.com/avatar/{{mainCtrl.emailHash}}?d=retro&s=50" style="height: 35px; margin-right: 10px;border: 0.5px solid gray;" class="profile-image img-circle">
-              {{mainCtrl.email}} <b class="caret"></b>
-            </a>
-            <ul class="dropdown-menu">
-              <li ng-show="mainCtrl.isAdmin() === 'true'">
-                <a ng-click="mainCtrl.goToAdminPage()"><i class="fa fa-user-secret"></i> Admin</a></li>
-              <li><a href="#!/settings"><i class="fa fa-cog"></i> Settings</a></li>
-              <li><a href="#!/" ng-click="mainCtrl.logout()"><i class="fa fa-sign-out"></i> Sign out</a></li>
-            </ul>
-          </li>
-        </ul>
-        <ul class="nav navbar-nav navbar-right" style="margin-right:10px;">
           <li class="dropdown" ng-click="mainCtrl.getMessages()">
             <a class="dropdown-toggle" data-toggle="dropdown" style="padding:5px 15px 0px 20px; margin-top: 13px;" aria-expanded="false">
               <i ng-if="mainCtrl.unreadMessages" class="fa fa-envelope fa-lg" title="Unread messages">
@@ -75,7 +61,7 @@
               <li class="dropdown-header text-muted" ng-if="!mainCtrl.messages.length"><h4>Inbox empty.</h4></li>
               <li ng-repeat="msg in mainCtrl.messages| limitTo:5">
                 <div>
-                  <div ng-click="mainCtrl.openMessageModal(msg)">                    
+                  <div ng-click="mainCtrl.openMessageModal(msg)">
                     <div class="message-subject text-muted">
                       <i ng-if="msg.unread" class="fa fa-circle pull-left" style="color:#f89406; margin-top: 4px;" title="Unread message"></i>
                       <i ng-if="!msg.unread" class="fa fa-circle pull-left" style="color:grey; margin-top: 4px;" title="Read message"></i>
@@ -89,7 +75,19 @@
               <a class="pull-right" ng-if="mainCtrl.messages.length" ng-click="mainCtrl.openMessageModal()" style="text-decoration:none;"> See all messages</a>
               <a class="pull-right" ng-if="!mainCtrl.messages.length" ng-click="mainCtrl.openMessageModal()" style="text-decoration:none;"> Goto messages</a>
             </ul>
-          </li>          
+          </li>
+          <li class="dropdown">
+            <a class="dropdown-toggle" data-toggle="dropdown" style="padding:7px 10px 8px 10px; text-decoration:none;"  aria-expanded="false" id="navbarProfile">
+              <img alt="" src="https://gravatar.com/avatar/{{mainCtrl.emailHash}}?d=retro&s=50" style="height: 35px; margin-right: 10px;border: 0.5px solid gray; visibility: hidden !important; width:0;" class="profile-image img-circle">
+              {{mainCtrl.email}} <b class="caret"></b>
+            </a>
+            <ul class="dropdown-menu">
+              <li ng-show="mainCtrl.isAdmin() === 'true'">
+                <a ng-click="mainCtrl.goToAdminPage()"><i class="fa fa-user-secret"></i> Admin</a></li>
+              <li><a href="#!/settings"><i class="fa fa-cog"></i> Settings</a></li>
+              <li><a href="#!/" ng-click="mainCtrl.logout()"><i class="fa fa-sign-out"></i> Sign out</a></li>
+            </ul>
+          </li>
         </ul>
         <!--ng-show="showDatasets"-->
         <form class="navbar-form">

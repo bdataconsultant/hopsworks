@@ -120,7 +120,7 @@ public class UserAccountsEmailMessages {
             + ACCOUNT_ACTIVATION_PERIOD
             + " hours after validating your email address.\n\n\n";
 
-    String url = path + "/hopsworks-admin/security/validate_account.xhtml?key=" + key;
+    String url = path + "/bigdata-admin/security/validate_account.xhtml?key=" + key;
 
     String l3 = "To confirm your email click " + url + " \n\n";
     String l4 = "If you have any questions please visit https://community.hopsworks.ai/";
