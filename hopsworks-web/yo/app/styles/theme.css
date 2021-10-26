@@ -16,9 +16,9 @@
 :root {
     --hopsworks-bg-color: #f1efee;
     --hopsworks-border-color: #e7e7e7;
-    --hopsworks-header-color: #000000;
-    --hopsworks-sidebar-color: #1d1d1b;
-    --hopsworks-primary-color: #1eb182;
+    --hopsworks-header-color: #1C2833;
+    --hopsworks-sidebar-color: #1C2833;
+    --hopsworks-primary-color: #007dff;
     --hopsworks-secondary-color: #f7bb38;
     --hopsworks-danger-color: rgb(247, 61, 69);
     --hopsworks-info-color: rgb(2, 46, 69);

@@ -46,7 +46,7 @@
     <div>
     <ul class="nav sidebar-nav" ng-cloak ng-controller="ClusterUtilisationCtrl as clusterUtilCtrl">
 
-      <li style="background: #1a1a1a;">
+      <li style="background: #070780;">
         <a href="#!/project/{{projectCtrl.currentProject.projectId}}" class="project-name" id="project_nav_title"
            title="{{projectCtrl.currentProject.projectName.length > 12 ? projectCtrl.currentProject.projectName:''}}"
            ng-class="{active: projectCtrl.activeService === 'home'}">
@@ -206,18 +206,18 @@
       </div>
     </ul>
     </div>
-    <div class="footer navbar-fixed-bottom project-sidebar-footer">
+    <!--div class="footer navbar-fixed-bottom project-sidebar-footer">
       <hr>
       <div class="footer-content">
-        <!--ul class="footer-content-list" style="padding-left: 0">
+        <ul class="footer-content-list" style="padding-left: 0">
           <li><a target="_blank" rel="noopener noreferrer" href="https://community.hopsworks.ai">Support
             <i class="pull-right hopsworks-icon hopsworks-icon-phone"/></a></li>
           <li><a target="_blank" rel="noopener noreferrer"
                  href="https://hopsworks.readthedocs.io/en/{{mainCtrl.hopsworksDocVersion}}">Documentation
             <i class="pull-right hopsworks-icon hopsworks-icon-book"/></a></li>
-        </ul-->
+        </ul>
       </div>
-    </div>
+    </div-->
   </nav>
 </aside>
 
