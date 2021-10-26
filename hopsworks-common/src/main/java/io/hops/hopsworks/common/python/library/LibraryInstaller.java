@@ -438,6 +438,14 @@ public class LibraryInstaller {
         //As we find library names and versions using that command we need to make sure it does not break
         writer.write(" && " + getCleanupCommand() + " && " + anaconda_dir + "/bin/conda list -n "
             + settings.getCurrentCondaEnvironment());
+        writer.write(" && " + "sed -i 's/hopsworks-api/bigdata-api/g' " + anaconda_dir +
+                "/envs/theenv/lib/python3.7/site-packages/hops/constants.py");
+        writer.write(" && " + "sed -i 's/hopsworks-api/bigdata-api/g' " + anaconda_dir +
+                "/envs/theenv/lib/python3.7/site-packages/hsfs/client/base.py");
+        writer.write(" && " + "sed -i 's/hopsworks-api/bigdata-api/g' " + anaconda_dir +
+                "/envs/theenv/lib/python3.7/site-packages/sparkmagic/livyclientlib/livysession.py");
+        writer.write(" && " + "sed -i 's/hopsworks-api/bigdata-api/g' " + anaconda_dir +
+                "/sparkmagic/sparkmagic/sparkmagic/livyclientlib/livysession.py");
       }
       
       String nextDockerImageName = getNextDockerImageName(project);

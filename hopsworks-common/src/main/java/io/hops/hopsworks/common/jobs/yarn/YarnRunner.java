@@ -238,7 +238,7 @@ public class YarnRunner {
       //Set application name and type
       appContext = app.getApplicationSubmissionContext();
       appContext.setApplicationName(appName);
-      appContext.setApplicationType("Hopsworks-Yarn");
+      appContext.setApplicationType("BDPlatform-Yarn");
 
       //Add local resources to AM container
       Map<String, LocalResource> localResources = addAllToLocalResources(dfso);
@@ -633,7 +633,7 @@ public class YarnRunner {
     //Number of cores for appMaster
     private int amVCores = 1;
     // Application name
-    private String appName = "Hopsworks-Yarn";
+    private String appName = "BDPlatform-Yarn";
     //Arguments to pass on in invocation of Application master
     private String amArgs;
     //List of paths to resources that are already in HDFS, but AM should know about
