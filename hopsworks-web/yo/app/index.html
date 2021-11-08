@@ -38,37 +38,38 @@
   -->
 
 <html>
+
 <head>
     <meta charset="utf-8">
-    <title>Hopsworks</title>
+    <title>Big Data Platform</title>
     <meta name="description" content="">
     <meta name="viewport" content="width=device-width">
-    <link rel="icon" type="image/png" href="images/hopsworks-logo/HopsworksIcon.svg"/>
+    <link rel="icon" type="image/png" href="images/giotto-favi.png"/>
     <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Varela+Round'>
     <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Roboto:500'>
     <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Source+Sans+Pro'>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css"/>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" />
     <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
     <!-- build:css(.) styles/vendor.css -->
     <!-- bower:css -->
-    <link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap.css"/>
-    <link rel="stylesheet" href="bower_components/angular-hamburger-toggle/dist/angular-hamburger-toggle.css"/>
-    <link rel="stylesheet" href="bower_components/jstree/dist/themes/default/style.css"/>
-    <link rel="stylesheet" href="bower_components/ng-prettyjson/src/ng-prettyjson.css"/>
-    <link rel="stylesheet" href="bower_components/ng-sortable/dist/ng-sortable.css"/>
+    <link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap.css" />
+    <link rel="stylesheet" href="bower_components/angular-hamburger-toggle/dist/angular-hamburger-toggle.css" />
+    <link rel="stylesheet" href="bower_components/jstree/dist/themes/default/style.css" />
+    <link rel="stylesheet" href="bower_components/ng-prettyjson/src/ng-prettyjson.css" />
+    <link rel="stylesheet" href="bower_components/ng-sortable/dist/ng-sortable.css" />
     <link rel="stylesheet"
-          href="bower_components/eonasdan-bootstrap-datetimepicker/build/css/bootstrap-datetimepicker.min.css"/>
-    <link rel="stylesheet" href="bower_components/bootstrap-switch/dist/css/bootstrap3/bootstrap-switch.css"/>
-    <link rel="stylesheet" href="bower_components/angular-ui-select/dist/select.css"/>
-    <link rel="stylesheet" href="bower_components/v-accordion/dist/v-accordion.css"/>
-    <link rel="stylesheet" href="bower_components/angular-growl-v2/build/angular-growl.css"/>
-    <link rel="stylesheet" href="bower_components/angular-xeditable/dist/css/xeditable.css"/>
-    <link rel="stylesheet" href="bower_components/isteven-angular-multiselect/isteven-multi-select.css"/>
-    <link rel="stylesheet" href="bower_components/angular-material/angular-material.css"/>
-    <link rel="stylesheet" href="bower_components/angular-material-data-table/dist/md-data-table.css"/>
-    <link rel="stylesheet" href="bower_components/angularjs-slider/dist/rzslider.css"/>
-    <link rel="stylesheet" href="bower_components/nvd3/build/nv.d3.css"/>
-    <link rel="stylesheet" href="bower_components/angular-bootstrap-toggle/dist/angular-bootstrap-toggle.min.css"/>
+        href="bower_components/eonasdan-bootstrap-datetimepicker/build/css/bootstrap-datetimepicker.min.css" />
+    <link rel="stylesheet" href="bower_components/bootstrap-switch/dist/css/bootstrap3/bootstrap-switch.css" />
+    <link rel="stylesheet" href="bower_components/angular-ui-select/dist/select.css" />
+    <link rel="stylesheet" href="bower_components/v-accordion/dist/v-accordion.css" />
+    <link rel="stylesheet" href="bower_components/angular-growl-v2/build/angular-growl.css" />
+    <link rel="stylesheet" href="bower_components/angular-xeditable/dist/css/xeditable.css" />
+    <link rel="stylesheet" href="bower_components/isteven-angular-multiselect/isteven-multi-select.css" />
+    <link rel="stylesheet" href="bower_components/angular-material/angular-material.css" />
+    <link rel="stylesheet" href="bower_components/angular-material-data-table/dist/md-data-table.css" />
+    <link rel="stylesheet" href="bower_components/angularjs-slider/dist/rzslider.css" />
+    <link rel="stylesheet" href="bower_components/nvd3/build/nv.d3.css" />
+    <link rel="stylesheet" href="bower_components/angular-bootstrap-toggle/dist/angular-bootstrap-toggle.min.css" />
     <!-- endbower -->
     <!-- endbuild -->
     <!-- build:css(.tmp) styles/main.css -->
@@ -79,10 +80,10 @@
     <link rel="stylesheet" href="styles/filebrowser.css">
     <link rel="stylesheet" href="styles/board.css">
     <link rel="stylesheet" href="styles/message.css">
-    <link rel="stylesheet" href="styles/angular-tour.css"/>
+    <link rel="stylesheet" href="styles/angular-tour.css" />
     <link rel="stylesheet" href="styles/timeline.css">
     <link rel="stylesheet" href="styles/ExampleProjectLoaderFix.css">
-    <link rel="stylesheet" href="styles/jquery.qtip.css"/>
+    <link rel="stylesheet" href="styles/jquery.qtip.css" />
     <link rel="stylesheet" href="styles/loading.css">
     <link rel="stylesheet" href="styles/angular-resizable.css">
     <link rel="stylesheet" href="styles/search-result.css">
@@ -98,19 +99,29 @@
     <link rel="stylesheet" href="styles/hwSearch.css">
     <link rel="stylesheet" href="styles/icons.css">
     <link rel="stylesheet" href="styles/theme.css">
+    <link rel="stylesheet" href="styles/filemgr/header-platform.css">
+    <link rel="stylesheet" href="styles/custom.css">
     <!-- endbuild -->
 </head>
+
 <body ng-app="hopsWorksApp">
-<!--[if lt IE 7]>
+    <!-- style="background-image:url('images/giotto-sfondo-lum.png');" -->
+    <!--[if lt IE 7]>
 <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade
     your browser</a> to improve your experience.</p>
 <![endif]-->
 
+
     <div class="hw-wrapper" id="hwWrapper">
-      <div ng-view=""></div>
+        <div ng-view=""></div>
     </div>
+
     <!-- build:js(.) scripts/jquery.js -->
     <script src="bower_components/jquery/jquery.js"></script>
+    <!-- endbuild -->
+    <!-- build:js(.) scripts/modules.js -->
+    <script src="node_modules/@giotto-jfrog/giotto-platform-header/dist/index.js"></script>
+    <script src="node_modules/apexcharts/dist/apexcharts.js"></script>
     <!-- endbuild -->
     <!-- build:js(.) scripts/vendor.js -->
     <!-- bower:js -->
@@ -134,7 +145,6 @@
     <script src="bower_components/lodash/lodash.js"></script>
     <script src="bower_components/graphlib/dist/graphlib.core.js"></script>
     <script src="bower_components/dagre/dist/dagre.core.js"></script>
-    <script src="bower_components/dagre/dist/dagre.core.min.js"></script>
     <script src="bower_components/cytoscape-dagre/cytoscape-dagre.js"></script>
     <script src="bower_components/jstree/dist/jstree.js"></script>
     <script src="bower_components/recase/recase.js"></script>
@@ -174,9 +184,12 @@
     <script src="bower_components/nvd3/build/nv.d3.js"></script>
     <script src="bower_components/angular-nvd3/dist/angular-nvd3.js"></script>
     <script src="bower_components/angular-bootstrap-toggle/dist/angular-bootstrap-toggle.min.js"></script>
-    <script src="bower_components/angular-file-saver/dist/angular-file-saver.bundle.js"></script>
+    <script src="bower_components/ng-file-upload/ng-file-upload.js"></script>
     <script src="bower_components/ng-file-upload/ng-file-upload-all.min.js"></script>
-    <script src="node_modules/apexcharts/dist/apexcharts.js"></script>
+    <script src="bower_components/blob-polyfill/Blob.js"></script>
+    <script src="bower_components/file-saver.js/FileSaver.js"></script>
+    <script src="bower_components/angular-file-saver/dist/angular-file-saver.bundle.js"></script>
+    <script src="bower_components/angular-moment/angular-moment.js"></script>
 
     <!-- endbower -->
     <!-- endbuild -->
@@ -352,11 +365,15 @@
     <script src="scripts/services/ProjectMembershipService.js"></script>
     <script src="scripts/services/XAttrService.js"></script>
     <script src="scripts/services/AlertsService.js"></script>
+    <script src="scripts/services/CustomizationService.js"></script>   
     <!-- Providers -->
     <script src="scripts/providers/filemgr/config.js"></script>
+    <script src="scripts/providers/customerConfig.js"></script>
     <!-- Entities -->
     <script src="scripts/entities/filemgr/chmod.js"></script>
     <script src="scripts/entities/filemgr/item.js"></script>
     <!-- endbuild -->
+
 </body>
+
 </html>

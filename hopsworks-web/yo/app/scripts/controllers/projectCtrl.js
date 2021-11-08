@@ -107,9 +107,23 @@ angular.module('hopsWorksApp')
             // We could instead implement a service to get all the available types but this will do it for now
             if ($rootScope.isDelaEnabled) {
                 // , 'RSTUDIO'
-                self.projectTypes = ['JOBS', 'KAFKA', 'JUPYTER', 'HIVE', 'DELA', 'SERVING', 'FEATURESTORE', 'AIRFLOW'];
+                // v0.9
+                // self.projectTypes = ['JOBS', 'KAFKA', 'JUPYTER', 'HIVE', 'DELA', 'SERVING', 'FEATURESTORE', 'AIRFLOW'];
+
+                self.projectTypes = ['JOBS', 'HIVE', 'AIRFLOW', 'KAFKA'];
+                
+                // v1.0
+                // self.projectTypes = ['JOBS', 'KAFKA', 'JUPYTER', 'HIVE', 'DELA', 'SERVING', 'FEATURESTORE', 'AIRFLOW'];
+                // // self.projectTypes = ['JOBS', 'HIVE', 'AIRFLOW', 'KAFKA'];
             } else {
-                self.projectTypes = ['JOBS', 'KAFKA', 'JUPYTER', 'HIVE', 'SERVING', 'FEATURESTORE', 'AIRFLOW'];
+              // v0.9
+              // self.projectTypes = ['JOBS', 'KAFKA', 'JUPYTER', 'HIVE', 'SERVING', 'FEATURESTORE', 'AIRFLOW'];
+
+              self.projectTypes = ['JOBS', 'HIVE', 'AIRFLOW', 'KAFKA'];
+
+              // v1.0
+              // self.projectTypes = ['JOBS', 'KAFKA', 'JUPYTER', 'HIVE', 'SERVING', 'FEATURESTORE', 'AIRFLOW'];
+              // // self.projectTypes = ['JOBS', 'HIVE', 'AIRFLOW', 'KAFKA'];
             }
             $scope.activeService = "home";
 
@@ -366,12 +380,20 @@ angular.module('hopsWorksApp')
               }
             };
 
+            // // TODO define default presentation main page 
+            // self.goToDefaultPage = function () {
+            //   console.log("GO TO DEFAULT PAGE")
+            //   self.goToUrl('');
+            //   // window.location.pathname = '/defaultPage'
+            //   console.log("ARRIVE TO DEFAULT PAGE")
+            // }
+
             self.goToJupyter = function () {
               // Check which instance of Hopsworks is running Jupyter
               // If that instance is running, URL redirect to that instance
               // If not running, start a new instance
 
-//              http://localhost:8080/hopsworks/#!/project/1/settings
+//              http://localhost:8080/giotto-web/#!/project/1/settings
               if (self.tourService.currentStep_TourTwo > -1) {
                   self.tourService.resetTours();
               }
@@ -693,11 +715,11 @@ angular.module('hopsWorksApp')
             };
 
             self.tourDone = function (tour) {
-              StorageService.store("hopsworks-tourdone-" + tour, true);
+              StorageService.store("giotto-tourdone-" + tour, true);
             };
 
             self.isTourDone = function (tour) {
-              var isDone = StorageService.get("hopsworks-tourdone-" + tour);
+              var isDone = StorageService.get("giotto-tourdone-" + tour);
             };
 
             self.getCerts = function () {

@@ -54,7 +54,7 @@ module JupyterHelper
   end
 
   def create_notebook(jupyter_port)
-    json_result = post "/hopsworks-api/jupyter/#{jupyter_port}/api/contents", {type: "notebook", path: ""}
+    json_result = post "/giotto-api/jupyter/#{jupyter_port}/api/contents", {type: "notebook", path: ""}
     expect_status(201)
     parsed_json = JSON.parse(json_result)
     temp_name = parsed_json["name"]
@@ -63,7 +63,7 @@ module JupyterHelper
   end
 
   def update_notebook(jupyter_port, content, notebook_name)
-    put "/hopsworks-api/jupyter/#{jupyter_port}/api/contents/#{notebook_name}", {content: content, format:"json", path:
+    put "/giotto-api/jupyter/#{jupyter_port}/api/contents/#{notebook_name}", {content: content, format:"json", path:
       notebook_name, type:"notebook"}
     expect_status_details(200)
   end
@@ -89,12 +89,12 @@ module JupyterHelper
   end
 
   def create_websocket_connection_to_jupyter_server(port, kernel_id, session_id)
-    ws = WebSocket::Client::Simple.connect "wss://localhost:8181/hopsworks-api/jupyter/#{port}/api/kernels/#{kernel_id}/channels?session_id=#{session_id}"
+    ws = WebSocket::Client::Simple.connect "wss://localhost:8181/giotto-api/jupyter/#{port}/api/kernels/#{kernel_id}/channels?session_id=#{session_id}"
     return ws
   end
 
   def create_notebook_session(jupyter_port, notebook_name)
-    json_result = post "/hopsworks-api/jupyter/#{jupyter_port}/api/sessions", {path:SecureRandom.uuid, name:notebook_name,
+    json_result = post "/giotto-api/jupyter/#{jupyter_port}/api/sessions", {path:SecureRandom.uuid, name:notebook_name,
                                                                        type:"notebook"}
     expect_status_details(201)
     notebook_session = JSON.parse(json_result)

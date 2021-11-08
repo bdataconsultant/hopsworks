@@ -103,7 +103,7 @@ angular.module('hopsWorksApp', [
               progressCallbacksInterval: 0,
               headers: function (file, chunk, isTest) {
                   return {
-                      'Authorization': localStorage.getItem("token")
+                      'Authorization': "Bearer " + localStorage.getItem("access_token")
                   };
               }
             };
@@ -122,6 +122,10 @@ angular.module('hopsWorksApp', [
                           }]
                       }
                     })
+                    // .when('/project/:projectID/defaultPage', {
+                    //   templateUrl: 'views/defaultPage.html',
+                    //   controller: 'ProjectCtrl as projectCtrl',
+                    // })
                     .when('/delahopsDataset', {
                       templateUrl: 'views/delahopsDataset.html',
                       controller: 'HopsDatasetCtrl as publicDataset',
@@ -142,13 +146,8 @@ angular.module('hopsWorksApp', [
                       }
                     })
                     .when('/login', {
-                      templateUrl: 'views/login.html',
-                      controller: 'LoginCtrl as loginCtrl',
-                      resolve: {
-                        auth: ['$q','AuthGuardService',
-                          function ($q, AuthGuardService) {
-                            return AuthGuardService.noGuard($q);
-                          }]
+                      redirectTo: function() {
+                        location.assign('/oneadmin');
                       }
                     })
                     .when('/ldapLogin', {
@@ -630,10 +629,13 @@ angular.module('hopsWorksApp', [
         }])
         .filter('formatDate', ['$filter', function() {
             return function(input) {
-                return input instanceof Date ?
-                    input.toISOString().substring(0, 19).replace('T', ' ') :
-                    (input.toLocaleString || input.toString).apply(input);
-            };
+              if(input instanceof Date) {
+                return input.toISOString().substring(0, 19).replace('T', ' ');
+              } else {
+                var date = new Date(input);
+                return date.toISOString().substring(0, 19).replace('T', ' ');
+              }
+            }
         }])
         .filter('humanReadableFileSize', ['$filter', 'fileManagerConfig', function($filter, fileManagerConfig) {
           // See https://en.wikipedia.org/wiki/Binary_prefix
@@ -710,9 +712,9 @@ angular.module('hopsWorksApp', [
             };
         }])
         .run(['$rootScope', '$routeParams', '$http', 'JobService', function ($rootScope, $routeParams, $http, JobService) {
-            var token = localStorage.getItem("token");
+            var token = localStorage.getItem("access_token");
             if (token) {
-              $http.defaults.headers.common.Authorization = token;
+              $http.defaults.headers.common.Authorization = "Bearer " + token;
             }
             $rootScope.$on( "$routeChangeStart", function(event, next, current) {
                 //Featurestore --> Job redirects with stateful filter, but for all other pages the filter should be reset

@@ -40,6 +40,7 @@ package io.hops.hopsworks.api.user;
 
 import io.hops.hopsworks.api.activities.UserActivitiesResource;
 import io.hops.hopsworks.api.filter.Audience;
+import io.hops.hopsworks.api.filter.NoCacheResponse;
 import io.hops.hopsworks.api.jwt.JWTHelper;
 import io.hops.hopsworks.api.user.apiKey.ApiKeyResource;
 import io.hops.hopsworks.api.util.Pagination;
@@ -48,6 +49,7 @@ import io.hops.hopsworks.common.api.ResourceRequest;
 import io.hops.hopsworks.common.constants.message.ResponseMessages;
 import io.hops.hopsworks.common.dao.project.team.ProjectTeamFacade;
 import io.hops.hopsworks.common.dao.user.BbcGroupFacade;
+import io.hops.hopsworks.common.dao.user.UserFacade;
 import io.hops.hopsworks.common.dao.user.UserProjectDTO;
 import io.hops.hopsworks.common.dao.user.security.secrets.SecretPlaintext;
 import io.hops.hopsworks.common.project.ProjectController;
@@ -83,11 +85,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.SecurityContext;
-import javax.ws.rs.core.UriInfo;
+import javax.ws.rs.core.*;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -127,6 +125,12 @@ public class UsersResource {
   private SecretsBuilder secretsBuilder;
   @EJB
   private Settings settings;
+
+  // this attributes were added for updateUserByEmail
+  @EJB
+  private UserFacade userFacade;
+  @EJB
+  private NoCacheResponse noCacheResponse;
 
   @GET
   @Produces(MediaType.APPLICATION_JSON)
@@ -362,4 +366,29 @@ public class UsersResource {
     return this.apiKeyResource;
   }
 
+  @POST
+  @Path("/updateUser/{email}")
+  @Produces(MediaType.APPLICATION_JSON)
+  public Response updateUserByEmail(@Context HttpServletRequest req, @Context SecurityContext sc,
+                                    @PathParam("email") String email, Users user) throws UserException {
+    Users u = userFacade.findByEmail(email);
+    if (u != null) {
+      if (user.getStatus() != null) {
+        u.setStatus(user.getStatus());
+        u = userFacade.update(u);
+      }
+      if (user.getFname() != null) {
+        u.setFname(user.getFname());
+      }
+      if (user.getLname() != null) {
+        u.setLname(user.getLname());
+      }
+      u = userFacade.update(u);
+    } else {
+      throw new UserException(RESTCodes.UserErrorCode.USER_WAS_NOT_FOUND, Level.FINE);
+    }
+    GenericEntity<Users> result = new GenericEntity<Users>(u) {
+    };
+    return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).entity(result).build();
+  }
 }

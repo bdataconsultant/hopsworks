@@ -106,19 +106,20 @@ angular.module('hopsWorksApp')
               },
               saveToken: function (token) {
                 if (token) {
-                  localStorage.setItem("token", token);
-                  $http.defaults.headers.common.Authorization = token;
+                  var trimmed = token.includes("Bearer ") ? token.slice(7) : token;
+                  localStorage.setItem("access_token", trimmed);
+                  $http.defaults.headers.common.Authorization = "Bearer " + trimmed;
                 }
               },
               getToken: function () {
-                return localStorage.getItem("token");
+                return localStorage.getItem("access_token");
               },
               refreshToken: function() {
-                var token = localStorage.getItem("token");
-                $http.defaults.headers.common.Authorization = token;
+                var token = localStorage.getItem("access_token");
+                $http.defaults.headers.common.Authorization = "Bearer " + token;
               },
               removeToken: function () {
-                localStorage.removeItem("token");
+                localStorage.removeItem("access_token");
                 $http.defaults.headers.common.Authorization = '';
               },
               cleanSession: function () {

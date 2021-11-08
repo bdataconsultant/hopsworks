@@ -42,34 +42,50 @@
     <div growl class="pull-right" ng-cloak></div>
     <div class="navbar-header">
       <div>
-        <a class="navbar-brand" href="#!/home">
-          <img alt="hopsworks icon" height="45" src="images/hopsworks-logo/Hopsworkslogowhite.svg">
+        <a class="navbar-brand" href="{{getLocationBase()}}"
+          style="font-family: Roboto; font-size: 30px; color: #fff;padding:1;">
+          <img alt="giotto icon" class="nav-logo" ng-src="{{navbarLogo}}" />
         </a>
       </div>
     </div>
-      <div class="collapse navbar-collapse" id="navbar">
+    <div>
+      <p class="navbar-project-name pull-left">{{ mainCtrl.navProjectName }}</p>
+    </div>
+    <div class="pull-right" style="margin-top: 6px;">
+      <!-- <button class="btn btn-outline-primary btn-lg btn-icon" ng-show="mainCtrl.isAdmin() === 'true'"> -->
+      <a style="inline-size: inherit;" ng-show="mainCtrl.isAdmin() === 'true'" ng-click="mainCtrl.goToAdminPage()"><img
+          src="images/admin.svg"></img><label
+          style="cursor: pointer; color: white;font-size:18px; font-weight: bold;">&nbsp;Admin</label></a>
+
+      <!--  </button> -->
+      <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+      <a href="#!/settings"><i style="color: white;" class="fa fa-cog"></i><label
+          style="cursor: pointer; color: white; font-size:18px; font-weight: bold; padding-top: 14px;">&nbsp;&nbsp;Settings</label></a>
+    </div>
+    <!-- <div class="collapse navbar-collapse" id="navbar">
         <ul class="nav navbar-nav navbar-right" style="margin-right:10px;">
           <li class="dropdown">
-            <a class="dropdown-toggle" data-toggle="dropdown" style="padding:7px 10px 8px 10px; text-decoration:none;"  aria-expanded="false" id="navbarProfile">
+            <a class="dropdown-toggle" data-toggle="dropdown" style="padding:10px 10px 8px 10px; text-decoration:none;"  aria-expanded="false" id="navbarProfile">
               <img alt="" src="https://gravatar.com/avatar/{{mainCtrl.emailHash}}?d=retro&s=50" style="height: 35px; margin-right: 10px;border: 0.5px solid gray;" class="profile-image img-circle">
               {{mainCtrl.email}} <b class="caret"></b>
             </a>
             <ul class="dropdown-menu">
-              <li ng-show="mainCtrl.isAdmin() === 'true'">
-                <a ng-click="mainCtrl.goToAdminPage()"><i class="fa fa-user-secret"></i> Admin</a></li>
+              <li class="menu-item" ng-show="mainCtrl.isAdmin() === 'true'">
+                <a ng-click="mainCtrl.goToAdminPage()"><img src="images/admin.svg"></img> Admin</a></li>
+              <li class="menu-item"><a ng-click="mainCtrl.profileModal()"><img src="images/accountSettings.svg"></img> Account</a></li> 
               <li><a href="#!/settings"><i class="fa fa-cog"></i> Settings</a></li>
-              <li><a href="#!/" ng-click="mainCtrl.logout()"><i class="fa fa-sign-out"></i> Sign out</a></li>
-            </ul>
+             <li><a href="#!/" ng-click="mainCtrl.logout()"><img src="images/signout.svg"></img> Sign out</a></li> 
+            </ul> 
           </li>
         </ul>
         <ul class="nav navbar-nav navbar-right" style="margin-right:10px;">
           <li class="dropdown" ng-click="mainCtrl.getMessages()">
-            <a class="dropdown-toggle" data-toggle="dropdown" style="padding:5px 15px 0px 20px; margin-top: 13px;" aria-expanded="false">
+             <a class="dropdown-toggle" data-toggle="dropdown" style="padding:5px 15px 0px 20px; margin-top: 13px;" aria-expanded="false">
               <i ng-if="mainCtrl.unreadMessages" class="fa fa-envelope fa-lg" title="Unread messages">
                 <span class="badge" style="background-color: #f89406; font-family: sans-serif; z-index: 100; position: absolute; top: -10px; right: -18px">{{mainCtrl.unreadMessages}}</span>
               </i>
               <i ng-if="!mainCtrl.unreadMessages" class="fa fa-envelope-o fa-lg" title="No unread message"></i>
-            </a>
+            </a> 
             <ul class="dropdown-menu dropdown-messages" >
               <li class="dropdown-header text-muted" ng-if="mainCtrl.messages.length"><h4>Latest messages</h4></li>
               <li class="dropdown-header text-muted" ng-if="!mainCtrl.messages.length"><h4>Inbox empty.</h4></li>
@@ -92,13 +108,6 @@
           </li>          
         </ul>
         <!--ng-show="showDatasets"-->
-        <form class="navbar-form">
-          <hw-search scopes="mainCtrl.searchScopes"
-                     project-view="projectView"
-                     searching="mainCtrl.searching"
-                     click-fn="mainCtrl.searchInScope(scope, searchTerm)">
-          </hw-search>
-        </form>
       </div>
     </div>
 </nav>

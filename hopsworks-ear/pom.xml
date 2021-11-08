@@ -70,10 +70,63 @@
           <defaultLibBundleDir>lib</defaultLibBundleDir>
           <fileNameMapping>standard</fileNameMapping>
           <!--<generateModuleId>true</generateModuleId>-->
+          <modules>
+            <ejbModule>
+              <groupId>io.hops.hopsworks</groupId>
+              <artifactId>hopsworks-common</artifactId>
+            </ejbModule>
+            <ejbModule>
+              <groupId>io.hops.hopsworks</groupId>
+              <artifactId>hopsworks-dela</artifactId>
+            </ejbModule>
+            <ejbModule>
+              <groupId>io.hops.hopsworks</groupId>
+              <artifactId>hopsworks-jwt</artifactId>
+            </ejbModule>
+            <webModule>
+              <groupId>io.hops.hopsworks</groupId>
+              <artifactId>hopsworks-kmon</artifactId>
+              <contextRoot>/giotto-kmon</contextRoot>
+            </webModule>
+            <webModule>
+              <groupId>io.hops.hopsworks</groupId>
+              <artifactId>hopsworks-api</artifactId>
+              <contextRoot>/giotto-api</contextRoot>
+            </webModule>
+            <webModule>
+              <groupId>io.hops.hopsworks</groupId>
+              <artifactId>hopsworks-admin</artifactId>
+              <contextRoot>/giotto-admin</contextRoot>
+            </webModule>
+          </modules>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>pl.project13.maven</groupId>
+        <artifactId>git-commit-id-plugin</artifactId>
+        <version>4.0.0</version>
+        <executions>
+            <execution>
+                <id>get-the-git-infos</id>
+                <goals>
+                    <goal>revision</goal>
+                </goals>
+                <phase>initialize</phase>
+            </execution>
+        </executions>
+        <configuration>
+            <generateGitPropertiesFile>true</generateGitPropertiesFile>
+            <generateGitPropertiesFilename>${project.build.directory}/giotto-ear/META-INF/git.properties</generateGitPropertiesFilename>
+            <includeOnlyProperties>
+              <includeOnlyProperty>^git.build.(time)$</includeOnlyProperty>
+              <includeOnlyProperty>^git.branch$</includeOnlyProperty>
+              <includeOnlyProperty>^git.commit.id.(full)$</includeOnlyProperty>
+              <includeOnlyProperty>^git.dirty$</includeOnlyProperty>            </includeOnlyProperties>
+            <commitIdGenerationMode>full</commitIdGenerationMode>
         </configuration>
       </plugin>
     </plugins>
-    <finalName>hopsworks-ear</finalName>
+    <finalName>giotto-ear</finalName>
   </build>
 
   <dependencies>
@@ -161,6 +214,61 @@
           <type>war</type>
         </dependency>
       </dependencies>
+    </profile>
+    <profile>
+      <id>deploy-ear</id>
+      <activation>
+        <property>
+          <name>deployEar</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <!-- Doesn't work if the deployment client and the server are on different OS types.
+          https://codehaus-cargo.atlassian.net/browse/CARGO-1335 -->
+          <plugin>
+            <groupId>org.codehaus.cargo</groupId>
+            <artifactId>cargo-maven2-plugin</artifactId>
+            <version>${cargo.version}</version>
+            <executions>
+              <execution>
+                <id>deploy-ear</id>
+                <phase>install</phase>
+                <goals>
+                  <goal>redeploy</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <container>
+                <containerId>glassfish4x</containerId>
+                <type>remote</type>
+                <log>target/cargo.log</log>
+                <logLevel>debug</logLevel>
+              </container>
+              <configuration>
+                <type>runtime</type>
+                <properties>
+                  <cargo.hostname>${glassfish.hostname}</cargo.hostname>
+                  <cargo.remote.username>${glassfish.admin}</cargo.remote.username>
+                  <cargo.remote.password>${glassfish.passwd}</cargo.remote.password>
+                  <cargo.servlet.port>${glassfish.port}</cargo.servlet.port>
+                  <cargo.glassfish.domain.name>${glassfish.domain}</cargo.glassfish.domain.name>
+                  <cargo.runtime.args>force=true</cargo.runtime.args>
+                  <cargo.protocol>https</cargo.protocol>
+                </properties>
+              </configuration>
+            </configuration>
+            <dependencies>
+              <dependency>
+                <groupId>org.glassfish.main.deployment</groupId>
+                <artifactId>deployment-client</artifactId>
+                <version>${glassfish.version}</version>
+              </dependency>
+            </dependencies>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
   </profiles>
 </project>

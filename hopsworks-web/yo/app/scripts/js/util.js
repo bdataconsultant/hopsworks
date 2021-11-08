@@ -160,19 +160,19 @@ function getPort() {
 };
 
 function getPathname() {
-  return "/hopsworks-api";
+  return "/giotto-api";
 }
 
 function getRemoteUserAuthPathname() {
-  return "/hopsworks-remote-user-auth";
+  return "/giotto-remote-user-auth";
 }
 
 function getApiPath() {
-  return "/hopsworks-api/api";
+  return "/giotto-api/api";
 }
 
 function getLocationBase() {
-  return location.protocol + "//" + location.hostname +":" + getPort() + "/hopsworks";
+  return location.protocol + "//" + location.hostname +":" + getPort() + "/giotto-web";
 };
 
 function getApiLocationBase() {

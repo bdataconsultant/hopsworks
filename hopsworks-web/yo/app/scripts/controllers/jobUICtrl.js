@@ -218,11 +218,11 @@ angular.module('hopsWorksApp')
               //If job is not flink
                 if (!self.isLivy && (typeof self.job !== "undefined" && self.job.jobType === 'FLINK')) {
                     //Get Flink master url from job
-                    self.ui = '/hopsworks-api/flinkmaster/' + self.appId + '/';
+                    self.ui = '/giotto-api/flinkmaster/' + self.appId + '/';
                     JobService.getFlinkMaster(self.appId).then(
                         function (success) {
                         }, function (error) {
-                            self.ui = '/hopsworks-api/flinkhistoryserver/';
+                            self.ui = '/giotto-api/flinkhistoryserver/';
                     });
                     var iframe = document.getElementById('ui_iframe');
                     if (iframe) {
@@ -277,14 +277,14 @@ angular.module('hopsWorksApp')
             self.flinkHistoryServer = function (){
                 var iframe = document.getElementById('ui_iframe');
                 if (iframe) {
-                    iframe.src = $sce.trustAsResourceUrl('/hopsworks-api/flinkhistoryserver/');
+                    iframe.src = $sce.trustAsResourceUrl('/giotto-api/flinkhistoryserver/');
                 }
                 $timeout(stopLoading(), 2000);
             };
 
 
             var yarnUIInt = function () {
-                self.ui = '/hopsworks-api/yarnui/cluster/app/' + self.appId;
+                self.ui = '/giotto-api/yarnui/cluster/app/' + self.appId;
                         self.current = "yarnUI";
                         var iframe = document.getElementById('ui_iframe');
                         if (iframe !== null) {
@@ -316,7 +316,7 @@ angular.module('hopsWorksApp')
             };
 
             var grafanaUIInt = function () {
-              self.ui = "/hopsworks-api/grafana/d/spark/spark?var-applicationId=" + self.appId
+              self.ui = "/giotto-api/grafana/d/spark/spark?var-applicationId=" + self.appId
               self.current = "grafanaUI";
               var iframe = document.getElementById('ui_iframe');
               if (iframe !== null) {
@@ -334,7 +334,7 @@ angular.module('hopsWorksApp')
             var tensorboardInt = function (tfSession) {
               TensorBoardService.ping(self.appId + "/" + tfSession.url + "/").then(
                       function (success) {
-                          self.ui = "/hopsworks-api/tensorboard/" + self.appId + "/" + tfSession.url + "/";
+                          self.ui = "/giotto-api/tensorboard/" + self.appId + "/" + tfSession.url + "/";
                           self.current = "tensorboardUI";
                           self.session = tfSession;
                           var iframe = document.getElementById('ui_iframe');

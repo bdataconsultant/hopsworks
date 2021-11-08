@@ -39,7 +39,7 @@
   ~ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
   -->
 <glassfish-web-app error-url="">
-  <context-root>/hopsworks</context-root>
+  <context-root>/giotto-web</context-root>
   <class-loader delegate="true"/>
   <jsp-config>
     <property name="keepgenerated" value="true">

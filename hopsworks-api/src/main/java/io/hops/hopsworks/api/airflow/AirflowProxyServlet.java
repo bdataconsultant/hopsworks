@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -48,7 +49,21 @@ import org.apache.http.message.BasicNameValuePair;
 public class AirflowProxyServlet extends ProxyServlet {
   
   private static final Pattern TRIGGER_DAG_PATTERN = Pattern.compile(".+/trigger/?$");
-  
+
+  //Custom config proxy rewrite
+  private static final String REPLACE_HTTP_PROTOCOL = "airflow.replaceHttpProtocol";
+  private static final String REPLACE_TARGET_HOST = "airflow.replaceTargetHost";
+  private static final String REWRITE_TARGET_HOST = "airflow.targetHostRewrite";
+  private static final String REWRITE_HOST_SEPARATOR = ";";
+  private static final String FORWARD_HOST_HEADER_NAME = "x-forwarded-host";
+
+  protected boolean doReplaceHttpProtocol = false;
+  protected boolean doReplaceTargetHost = false;
+  protected String rewriteHostToReplace ;
+  protected String rewriteTargetHost ;
+
+
+
   @EJB
   private UserFacade userFacade;
   @EJB
@@ -76,11 +91,31 @@ public class AirflowProxyServlet extends ProxyServlet {
 
   protected void initTarget() throws ServletException {
     super.initTarget();
+
+    String doReplaceProtocol = System.getProperty(REPLACE_HTTP_PROTOCOL);
+    if (doReplaceProtocol != null) {
+      this.doReplaceHttpProtocol = Boolean.parseBoolean(doReplaceProtocol);
+    }
+
+    String doRewriteUrl = System.getProperty(REPLACE_TARGET_HOST);
+    if (doRewriteUrl != null) {
+      this.doReplaceTargetHost = Boolean.parseBoolean(doRewriteUrl);
+    }
+
+    if(doReplaceTargetHost){
+      String rewriteString = System.getProperty(REWRITE_TARGET_HOST);
+      if (rewriteString != null && rewriteString.contains(REWRITE_HOST_SEPARATOR)) {
+        String[] hosts = rewriteString.split(REWRITE_HOST_SEPARATOR);
+        this.rewriteHostToReplace=hosts[0];
+        this.rewriteTargetHost=hosts[1];
+      }
+    }
+
   }
 
   /**
    * A request will come in with the format:
-   * http://127.0.0.1:8080/hopsworks-api/airflow/
+   * http://127.0.0.1:8080/giotto-api/airflow/
    * and be sent to:
    * http://localhost:12358/admin/airflow/login?next=%2Fadmin%2F
    * <p>
@@ -213,7 +248,7 @@ public class AirflowProxyServlet extends ProxyServlet {
         } else if (headerName.equalsIgnoreCase(org.apache.http.cookie.SM.COOKIE)) {
           headerValue = getRealCookie(headerValue);
         }
-        proxyRequest.addHeader(headerName, headerValue);
+          proxyRequest.addHeader(headerName, headerValue);
       }
     }
   }
@@ -234,6 +269,7 @@ public class AirflowProxyServlet extends ProxyServlet {
          */
         || statusCode == 308) {
       Header locationHeader = proxyResponse.getLastHeader(HttpHeaders.LOCATION);
+      LOGGER.info("LOCATION HEADER: " + locationHeader.getValue());
       if (locationHeader == null) {
         throw new ServletException("Received status code: " + statusCode
             + " but no " + HttpHeaders.LOCATION
@@ -242,9 +278,10 @@ public class AirflowProxyServlet extends ProxyServlet {
       // Modify the redirect to go to this proxy servlet rather that the proxied host
       String locStr = rewriteUrlFromResponse(servletRequest, locationHeader.
           getValue());
-    
       copyResponseHeaders(proxyResponse, servletRequest, servletResponse);
+      LOGGER.info("BEFORE SEND_EDIRECT");
       servletResponse.sendRedirect(locStr);
+      LOGGER.info("AFTER SEND_REDIRECT");
       return true;
     }
     // 304 needs special handling.  See:
@@ -260,4 +297,45 @@ public class AirflowProxyServlet extends ProxyServlet {
     }
     return false;
   }
+
+  @Override
+  protected String rewriteUrlFromResponse(HttpServletRequest servletRequest,
+                                          String theUrl) {
+    //TODO document example paths
+    LOGGER.info("theUrl:" + theUrl);
+    final String targetUri = getTargetUri(servletRequest);
+    LOGGER.info("targetUri:" + targetUri);
+    if (theUrl.startsWith(targetUri)) {
+
+
+      String curUrl = servletRequest.getRequestURL().toString();//no query
+      LOGGER.info("curUrl:" + curUrl);
+     // curUrl=getOriginalCurl(curUrl);
+
+      String pathInfo = servletRequest.getPathInfo();
+      if (pathInfo != null) {
+        assert curUrl.endsWith(pathInfo);
+        curUrl = curUrl.substring(0, curUrl.length() - pathInfo.length());//take pathInfo off
+        LOGGER.info("new_curUrl:" + curUrl);
+      }
+      theUrl = curUrl + theUrl.substring(targetUri.length());
+      LOGGER.info("new_theUrl:" + theUrl);
+    }
+    return getOriginalCurl(servletRequest, theUrl);
+  }
+
+  private String getOriginalCurl(HttpServletRequest servletRequest, String curl){
+    if(this.doReplaceHttpProtocol){
+      curl = curl.replaceAll("http:","https:");
+    }
+    String forward_host = servletRequest.getHeader(FORWARD_HOST_HEADER_NAME);
+
+    if(this.doReplaceTargetHost && (forward_host != null && !curl.contains(forward_host) ) && this.rewriteHostToReplace!=null && this.rewriteTargetHost!=null){
+      curl = curl.replaceAll(this.rewriteHostToReplace,this.rewriteTargetHost);
+    }
+    LOGGER.info("originalCurl:" + curl);
+    return curl;
+  }
+  
+  
 }

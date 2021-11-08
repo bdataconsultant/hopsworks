@@ -58,7 +58,7 @@ Change the server login credentials in hopsworks-IT/pom.xml
 
 Export environments for Selenium integration test:
 ```
-   HOPSWORKS_URL=http://localhost:8181/hopsworks
+   HOPSWORKS_URL=http://localhost:8181/giotto-web
    HEADLESS=[true|false]
    BROWSER=[chrome|firefox]
 ```

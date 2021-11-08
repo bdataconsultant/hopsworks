@@ -64,7 +64,7 @@ public class FlinkProxyServlet extends ProxyServlet {
   private ApiKeyController apiKeyController;
   
   // A request will come in with the format:
-  // hopsworks-api/flink/<yarnappid>
+  // giotto-api/flink/<yarnappid>
   private final static Logger LOGGER = Logger.getLogger(FlinkProxyServlet.class.getName());
   
   @Override

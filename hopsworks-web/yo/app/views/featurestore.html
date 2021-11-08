@@ -35,7 +35,6 @@
         </div>
         <div class="content-wrapper" 
              ng-show="!featurestoreCtrl.showPreview && !featurestoreCtrl.showStatistics && !mainCtrl.showSearchPage">
-            <div style="background: #FFFFFF; border: 1px solid #21B182; box-sizing: border-box; width: 100%; padding: 20px 12px; margin-bottom: 40px;">A new Hopsworks is available in beta version! <a href="/" style="background: #21B182; padding: 10px 16px; color: white; font-weight: bold; text-decoration: none; margin-left: 20px;">Try out the new Hopsworks</a></div>
             <h3 id="projectBread" style="border-bottom: none"></h3>
             <div ng-if="featurestoreCtrl.loading" class="loadingwrap" style="z-index: 105">
                 <div class="loading-content">
@@ -207,6 +206,17 @@
                     <h3 class="text-muted" style="text-align: center;"
                         ng-show="featurestoreCtrl.trainingDatasetsDictList.length < 1">
                         No Training Datasets to show
+                        <!-- ADD HERE -->
+                          <br/><br/>
+                          <button type="button" ng-click="featurestoreCtrl.showCreateTrainingDatasetForm()"
+                                  class="btn btn-default btn-success control-label" style="margin-bottom: 10px"
+                                  uib-tooltip="Create new training dataset" ,
+                                  id="createNewTd"
+                          >
+                              Create New Training Dataset<i style="margin-left: 10px"
+                                                          class="glyphicon glyphicon-plus">
+                          </i>
+                        </button>
                     </h3>
 
                     <div class="row form-inline" ng-show="featurestoreCtrl.trainingDatasetsDictList.length > 0">
@@ -232,7 +242,6 @@
                                 </label>
                             </div>
                         </div>
-
                     </div>
 
                             <div class="table-responsive" style="overflow: hidden; padding-right: 35px;">
@@ -661,7 +670,7 @@
                 </uib-tab>
             </uib-tabset>
         </div>
-        <tour class="ng-scope" step="featurestoreCtrl.tourService.currentStep_TourNine"
+        <!-- <tour class="ng-scope" step="featurestoreCtrl.tourService.currentStep_TourNine"
               post-tour="closeTour()"
               ng-if="featurestoreCtrl.tourService.activeTour === 'fs' && featurestoreCtrl.tourService.showTips
               && !featurestoreCtrl.loading && !projectCtrl.loading">
@@ -742,6 +751,7 @@
                     tourtip-offset-vertical="-18"
                     tourtip-offset-horizontal="-13"
             ></virtual-step>
-        </tour>
+        </tour> -->
     </div>
+    <div ng-if="mainCtrl.showPonFooter" ng-include="'views/ponFooter.html'"></div>
 </div>

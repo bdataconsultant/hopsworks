@@ -70,6 +70,8 @@ import io.hops.hopsworks.common.dao.hdfs.inode.InodeFacade;
 import io.hops.hopsworks.common.dao.project.ProjectFacade;
 import io.hops.hopsworks.common.dao.project.pia.PiaFacade;
 import io.hops.hopsworks.common.dao.user.UserFacade;
+import io.hops.hopsworks.common.dao.user.activity.ActivityFacade;
+import io.hops.hopsworks.common.dao.util.ErrorMessage;
 import io.hops.hopsworks.common.dataset.DatasetController;
 import io.hops.hopsworks.common.dataset.FilePreviewDTO;
 import io.hops.hopsworks.common.hdfs.DistributedFileSystemOps;
@@ -704,6 +706,27 @@ public class ProjectService {
         multiplicatorsList) {
     };
     return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).entity(multiplicators).build();
+  }
+
+  @GET
+  @Path("/assigned/{email}")
+  @Produces(MediaType.APPLICATION_JSON)
+  @JWTRequired(acceptedTokens = {Audience.API},
+          allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
+  public Response findProjectsByUser(@PathParam("email") String email){
+    if(userFacade.findByEmail(email) == null) {
+      ErrorMessage errorMessage = new ErrorMessage();
+      errorMessage.setMessage("no user found with mail: " + email);
+      return noCacheResponse.getNoCacheResponseBuilder(Response.Status.BAD_REQUEST).entity(errorMessage).type("application/json").build();
+    }
+    List<Project> list = projectController.findProjectsByUser(email);
+    if (list.isEmpty()) {
+      return noCacheResponse.getNoCacheCORSResponseBuilder(Response.Status.NO_CONTENT).entity("[]").build();
+    }
+    GenericEntity<List<Project>> entity = new GenericEntity<List<Project>>( list) {
+
+    };
+    return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).entity(entity).build();
   }
 
   @POST

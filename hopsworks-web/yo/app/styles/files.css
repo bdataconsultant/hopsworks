@@ -5119,8 +5119,9 @@ body.skin-3 {
     display: none;
   }
   .navbar-header {
-    display: inline;
-    float: left;
+    position: absolute;
+    left: 15px;
+    top: 3px;
   }
   .sidebard-panel {
     min-height: 100% !important;

@@ -233,7 +233,7 @@ div.story h3, div.task h3 {
 }
 
 .hide-border {
-    margin-top: 50px;
+    margin-top: 90px;
 }
 
 .expanded-job-monitor {
@@ -266,7 +266,7 @@ div.story h3, div.task h3 {
     margin: 0 50px 0 0;
     border-radius: 10px;
     border: 2px solid #ddd;
-/*    background-color: #2e353d;*/
+/*    background-color: #337ab7;*/
 }
 
 .blocks .btn-group.btn-block {

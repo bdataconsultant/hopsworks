@@ -248,7 +248,7 @@
     </section>
     
     
-    <tour class="ng-scope"
+    <!-- <tour class="ng-scope"
           step="newJobCtrl.tourService.currentStep_TourSeven"
           post-tour="closeTour()"
           ng-if="projectCtrl.loadedView && projectCtrl.tourService.activeTour === 'kafka' && projectCtrl.tourService.showTips">
@@ -404,7 +404,8 @@
         tourtip-offset-horizontal="10"
         ng-if="newJobCtrl.accordion5.visible"
         ></virtual-step>
-    </tour>
+    </tour> -->
   </div>
   <!-- /#wrapper -->
+  <div ng-if="mainCtrl.showPonFooter" ng-include="'views/ponFooter.html'"></div>
 </div>

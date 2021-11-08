@@ -1,0 +1,29 @@
+.header-platform {
+    position: fixed !important;
+    z-index: 2000;
+}
+
+.gph {
+    position: fixed !important;
+    z-index: 2000 !important;
+}
+
+.navbar-fixed-top {
+    top: 40px !important;
+}
+
+.widget-body {
+    height: 80%; 
+}
+
+.content {
+    margin-top: 120px !important;
+}
+
+.content-wrapper {
+    margin-top: 120px !important;
+}
+
+.gph__item__round-icon__content {
+    height: 30px !important;
+}

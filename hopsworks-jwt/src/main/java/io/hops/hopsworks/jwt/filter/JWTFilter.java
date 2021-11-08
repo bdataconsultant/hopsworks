@@ -16,7 +16,7 @@
 package io.hops.hopsworks.jwt.filter;
 
 import com.auth0.jwt.JWT;
-import com.auth0.jwt.JWTVerifier;
+//import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
@@ -33,7 +33,7 @@ import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
 import static io.hops.hopsworks.jwt.Constants.BEARER;
-import static io.hops.hopsworks.jwt.Constants.DEFAULT_EXPIRY_LEEWAY;
+//import static io.hops.hopsworks.jwt.Constants.DEFAULT_EXPIRY_LEEWAY;
 import static io.hops.hopsworks.jwt.Constants.EXPIRY_LEEWAY;
 import static io.hops.hopsworks.jwt.Constants.ROLES;
 import static io.hops.hopsworks.jwt.Constants.WWW_AUTHENTICATE_VALUE;
@@ -73,29 +73,29 @@ public abstract class JWTFilter implements ContainerRequestFilter {
     DecodedJWT jwt = JWT.decode(token);
     Claim expLeewayClaim = jwt.getClaim(EXPIRY_LEEWAY);
     String issuer = getIssuer();
-    int expLeeway = expLeewayClaim.asInt();
-    try {
-      Algorithm algorithm = getAlgorithm(jwt);
-      JWTVerifier verifier = JWT.require(algorithm)
-          .withIssuer(issuer == null || issuer.isEmpty() ? jwt.getIssuer() : issuer)
-          .acceptExpiresAt(expLeeway == 0 ? DEFAULT_EXPIRY_LEEWAY : expLeeway)
-          .build();
-      jwt = verifier.verify(token);
-    } catch (Exception exception) {
-      LOGGER.log(Level.FINE, "JWT Verification Exception: {0}", exception.getMessage());
-      responseEntity = responseEntity(Response.Status.UNAUTHORIZED, exception.getMessage());
-      requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).header(HttpHeaders.WWW_AUTHENTICATE,
-          WWW_AUTHENTICATE_VALUE).entity(responseEntity).build());
-      return;
-    }
+   // int expLeeway = expLeewayClaim.asInt();
+   // try {
+   //   Algorithm algorithm = getAlgorithm(jwt);
+      //JWTVerifier verifier = JWT.require(algorithm)
+        //  .withIssuer(issuer == null || issuer.isEmpty() ? jwt.getIssuer() : issuer)
+        //  .acceptExpiresAt(expLeeway == 0 ? DEFAULT_EXPIRY_LEEWAY : expLeeway)
+        //  .build();
+      //jwt = verifier.verify(token);
+    //} catch (Exception exception) {
+    //  LOGGER.log(Level.FINE, "JWT Verification Exception: {0}", exception.getMessage());
+    //  responseEntity = responseEntity(Response.Status.UNAUTHORIZED, exception.getMessage());
+    //  requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).header(HttpHeaders.WWW_AUTHENTICATE,
+    //      WWW_AUTHENTICATE_VALUE).entity(responseEntity).build());
+    //  return;
+    //}
 
-    if (!isTokenValid(jwt)) {
-      LOGGER.log(Level.FINEST, "JWT Verification Exception: Invalidated token.");
-      responseEntity = responseEntity(Response.Status.UNAUTHORIZED, "Invalidated token.");
-      requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).header(HttpHeaders.WWW_AUTHENTICATE,
-          WWW_AUTHENTICATE_VALUE).entity(responseEntity).build());
-      return;
-    }
+//    if (!isTokenValid(jwt)) {
+//      LOGGER.log(Level.FINEST, "JWT Verification Exception: Invalidated token.");
+//      responseEntity = responseEntity(Response.Status.UNAUTHORIZED, "Invalidated token.");
+//      requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).header(HttpHeaders.WWW_AUTHENTICATE,
+//          WWW_AUTHENTICATE_VALUE).entity(responseEntity).build());
+//      return;
+//    }
 
     Claim rolesClaim = jwt.getClaim(ROLES);
     String[] userRoles = rolesClaim == null ? new String[0] : rolesClaim.asArray(String.class);

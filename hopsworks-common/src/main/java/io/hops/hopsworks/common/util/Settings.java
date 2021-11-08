@@ -1281,7 +1281,7 @@ public class Settings implements Serializable {
 
   public synchronized String getAirflowWebUIAddress() {
     checkCache();
-    return AIRFLOW_WEB_UI_IP + ":" + AIRFLOW_WEB_UI_PORT + "/hopsworks-api/airflow";
+    return AIRFLOW_WEB_UI_IP + ":" + AIRFLOW_WEB_UI_PORT + "/giotto-api/airflow";
   }
 
   private Integer MAX_NUM_PROJ_PER_USER = 5;
@@ -1688,7 +1688,7 @@ public class Settings implements Serializable {
   
   public synchronized String getKibanaAppUri() {
     checkCache();
-    return "/hopsworks-api/kibana/app/kibana?";
+    return "/giotto-api/kibana/app/kibana?";
   }
   
   public synchronized String getKibanaAppUri(String jwtToken) {
@@ -2466,7 +2466,7 @@ public class Settings implements Serializable {
     return "hops-examples-featurestore-tour-" + HOPS_EXAMPLES_VERSION + ".jar";
   }
 
-  private String VERIFICATION_PATH = "/hopsworks-admin/security/validate_account.xhtml";
+  private String VERIFICATION_PATH = "/giotto-admin/security/validate_account.xhtml";
 
   public synchronized String getEmailVerificationEndpoint() {
     checkCache();
@@ -2621,7 +2621,7 @@ public class Settings implements Serializable {
     DELA_PUBLIC_ENDPOINT = endpoint;
 
     String delaSearchEndpoint = "https://" + endpoint.getIp() + ":"
-        + getPUBLIC_HTTPS_PORT() + "/hopsworks-api/api";
+        + getPUBLIC_HTTPS_PORT() + "/giotto-api/api";
     String delaTransferEndpoint = endpoint.getIp() + ":" + endpoint.getPort() + "/" + endpoint.getId();
 
     if (getDELA_SEARCH_ENDPOINT() == null) {

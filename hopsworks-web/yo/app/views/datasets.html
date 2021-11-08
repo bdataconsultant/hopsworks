@@ -478,7 +478,7 @@
           </div>
       </section>
     </div>
-    <tour class="ng-scope" step="datasetsCtrl.tourService.currentStep_TourNine"
+    <!-- <tour class="ng-scope" step="datasetsCtrl.tourService.currentStep_TourNine"
           post-tour="closeTour()"
           ng-if="datasetsCtrl.tourService.activeTour === 'fs'
           && datasetsCtrl.tourService.showTips && !datasetsCtrl.working">
@@ -512,6 +512,7 @@
               tourtip-next-label="Next"
               on-proceed=""
       ></virtual-step>
-    </tour>
+    </tour> -->
   </div>
+  <div ng-if="mainCtrl.showPonFooter" ng-include="'views/ponFooter.html'"></div>
 </div>

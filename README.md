@@ -1,112 +1,103 @@
-<a href=""><img src="https://content.logicalclocks.com/hubfs/37C9E408-B200-4166-A2C0-0C85E6FFAEB4_4_5005_c.jpeg" align="center"></a>
+# Introduction
 
-<p align="center">
-    <a href="https://hopsworks.ai" alt="hopsworks.ai">
-        <img src="https://img.shields.io/badge/hopsworks-ai-brightgreen" /></a>
-    <a href="https://docs.hopsworks.ai" alt="docs.hopsworks.ai">
-        <img src="https://img.shields.io/badge/hopsworks-docs-orange" /></a>
-    <a href="https://community.hopsworks.ai" alt="community.hopsworks.ai">
-        <img src="https://img.shields.io/badge/hopsworks-community-blueviolet" /></a>
-    <a href="https://twitter.com/hopsworks" alt="Hopsworks Twitter">
-        <img src="https://img.shields.io/badge/hopsworks-twitter-blue" /></a>
-</p>
+Giotto big data plaform repository.
 
-<p align="center">
-  Give us a star if you appreciate what we do <img src="https://content.logicalclocks.com/hubfs/1f49a.png">
-</p>
+# Getting Started
+## Web app
+### 1. Pull project from the repository
+	git clone https://almatoolbox.visualstudio.com/Giotto/_git/giotto-platform-v.1.0.0
+    git checkout develop
+    cd ./hopsworks-web/yo
 
-[ What is Hopsworks? ](#what)  
-[ Quick Start ](#quick)  
-[ Development and Operational ML on Hopsworks ](#mlops)  
-[ Docs ](#docs)  
-[ Who’s behind Hopsworks? ](#who)  
-[ Open-Source](#open)  
-[ Join the community ](#join)  
-[ Contribute ](#contribute)  
-
-
-<a name="what"></a>
-## What is Hopsworks?
-
-Hopsworks and its Feature Store are an open source data-intensive AI platform used for the development and operation of machine learning models at scale.
-
-<img src="docs/architecture.svg">
-
-<a name="quick"></a>
-## Quick Start
-
-
-```bash
-bash <(curl -s https://repo.hops.works/installer/latest/hopsworks-installer.sh)
-```
-Recommended minimum [specification](https://hopsworks.readthedocs.io/en/stable/getting_started/installation_guide/platforms/hopsworks-installer.html#requirements). 
-
-The [Hopsworks Installer](https://hopsworks.readthedocs.io/en/stable/getting_started/installation_guide/platforms/hopsworks-installer.html) takes roughly 1-2 hrs to complete, depending on your bandwidth. 
-
-
-### Installer Quick Start with Azure CLI or GCP CLI
-
-```python
-bash <(curl -s https://repo.hops.works/installer/latest/hopsworks-cloud-installer.sh)
-```
-If you have the Azure or GCP CLI utilities installed (on a Linux machine), then the [Hopsworks Cloud Installer](https://hopsworks.readthedocs.io/en/stable/getting_started/installation_guide/platforms/hopsworks-cloud-installer.html) (Hopsworks-cloud-installer.sh) will both install Hopsworks and provision the VMs in one command. 
-
-### Hopsworks IDE Plugin
-
-To work with the Hopsworks IDE plugin for IntelliJ/PyCharm, you can install it directly from the plugins menu of the IDE or [clone it](https://github.com/logicalclocks/hopsworks-ide-plugins) and follow the README.
-
-### Build with Maven
+### 2. Install packages
 ```sh
-mvn install
+	npm install -g bower@1.8.8
+    npm install -g grunt-cli@1.2.0
+	npm install
+    bower install
 ```
-Maven uses yeoman-maven-plugin to build both the front-end and the backend.
-Maven first executes the Gruntfile in the yo directory, then builds the back-end in Java.
-The yeoman-maven-plugin copies the dist folder produced by grunt from the yo directory to the target folder of the backend.
 
-You can also build Hopsworks without the frontend (for Java EE development and testing):
+If 'npm install' log shows this error:
+```
+request to http://jfrog.almaviva.it:8081/artifactory/api/npm/giotto-npm/@giotto-jfrog%2fgiotto-platform-header failed, reason: getaddrinfo ENOTFOUND jfrog.almaviva.it
+```
+
+Add this line to your /etc/hosts file (C:\Windows\System32\drivers\etc\hosts on windows):
+```
+10.207.127.8 jfrog.almaviva.it
+```
+
+### 3. Start dev server
+You can run a local dev server using the serve task defined in Gruntfile.js:
+
 ```sh
-mvn install -P-web
+cd hopsworks-web/yo
+grunt serve --targetCustomer=CUSTOMER_NAME
+```
+CUSTOMER_NAME value is the name of the customer folder in app/customer_assets. When targetCustomer option isn't specified, "DEFAULT" customer name is used.
+# Build and Test
+## Maven build
+
+> Use node 10.20.1. To easily switch to a node version [Node Version Manager (nvm)](https://github.com/nvm-sh/nvm#installing-and-updating) can be used.]
+
+To build the project run the command:
+```sh
+mvn clean install -DskipTests -DtargetCustomer=CUSTOMER_NAME
+```
+CUSTOMER_NAME value is the name of the customer folder in app/customer_assets. When targetCustomer option isn't specified, "DEFAULT" customer name is used.
+
+# Customer build configurtion
+
+It is possible to define a build profile vy creating a folder under hopsworks-web/app/customer_assets/CUSTOMER_NAME
+
+this folder may contain:
+-- an "images" folder: all the images in this folder will be copied in the app/iamges folder, replacing any already existent images with the same name.
+-- a "providers" folder: this folder can contain a customerConfig.js file. Configurations specified in this file will be injected in the MainCtrl.js controller.
+-- a "styles" folder: in this folder you can define a custom.css. If you want add more css files you need to add them as <link> to the app/index.html file.
+
+The build will output the following files that can be deployed on a Payara application server:
+- hopsworks-ear/target/giotto-web.ear (backend application. Contains BE war files)
+- hopsworks-web/target/giotto-web.war (frontend application)
+
+If you want to build only the ear file:
+```sh
+mvn clean install -DskipTests -DtargetCustomer=CUSTOMER_NAME -DskipWebBuild
 ```
 
-<a name="mlops"></a>
-## Development and Operational ML on Hopsworks
-You can develop and run Python, Spark, and Flink applications on Hopsworks - in Jupyter notebooks, as jobs, or even notebooks as jobs. You can build production pipelines with the bundled Airflow, and even run ML training pipelines with GPUs in notebooks on Airflow. You can train models on as many GPUs as are installed in a Hopsworks cluster and easily share them among users.
+If you want to build only the war file:
+```sh
+cd hopsworks-web
+mvn clean install -DskipTests -DtargetCustomer=CUSTOMER_NAME
+```
 
-<a name="docs"></a>
-## Docs
-[Hopsworks documentation](https://hopsworks.readthedocs.io/en/latest/overview/overview.html#) includes a user-guide, Feature Store documentation, and an Administrator Guide. There is also dedicated [documentation for the Hopsworks Feature Store](https://docs.hopsworks.ai/latest/).
+## Ear/war version
+If you want to know on what commit id a ear/war file was built, use the command:
 
-Hopsworks REST API is documented with Swagger and hosted by SwaggerHub.
-- **hopsworks-api** - [https://app.swaggerhub.com/apis-docs/logicalclocks/hopsworks-api](https://app.swaggerhub.com/apis-docs/logicalclocks/hopsworks-api)
-- **hopsworks-ca** - [https://app.swaggerhub.com/apis-docs/logicalclocks/hopsworks-ca](https://app.swaggerhub.com/apis-docs/logicalclocks/hopsworks-ca)
+```sh
+jar xvf giotto-ear.ear META-INF/git.properties && cat META-INF/git.properties
+```
+or
+```sh
+jar xvf giotto-web.war META-INF/git.properties && cat META-INF/git.properties
+```
 
-To build and deploy swagger on your own Hopsworks instance you can follow the instructions found in 
-[this](https://hopsworks.readthedocs.io/en/stable/user_guide/hopsworks/microservices.html?highlight=swagger#swagger-ui) guide.
+This will create the META-INF directory and will extract the git.properties file from the ear/war file. Here is an example of the content:
 
+```yml
+#Generated by Git-Commit-Id-Plugin
+#Mon Jun 21 11:42:38 CEST 2021
+git.branch=standalone # Branch name
+git.build.time=2021-06-21T11\:42\:38+0200 # Build timestamp
+git.commit.id.full=e96721803daee9ed22b205bef7eba87861c831dc # Commit id
+git.dirty=true # Is there any modified file at build time?
+```
 
-<a name="who"></a>
-## Who’s behind Hopsworks?
-Hopsworks started as an open-source collaborative project at [KTH University](https://www.kth.se/en), [RISE](https://www.ri.se/en), and has more recently been taken on by [Logical Clocks](https://www.logicalclocks.com/). Several funding bodies have helped contribute to its development including: [European Commission (FP7, H2020)](https://ec.europa.eu/), [EIT](https://eit.europa.eu/), [SSF](https://strategiska.se/), [Vinnova](https://www.vinnova.se/) and [Celtic-Next](https://www.celticnext.eu/).
+# Contribute
 
+TODO: Explain how other users and developers can contribute to make your code better.
 
-<a name="open"></a>
-## Open-Source
-Hopsworks is available under the AGPL-V3 license. In plain English this means that you are free to use Hopsworks and even build paid services on it, but if you modify the source code, you should also release your changes and any systems built around it as AGPL-V3.
+If you want to learn more about creating good readme files then refer the following [guidelines](https://www.visualstudio.com/en-us/docs/git/create-a-readme). You can also seek inspiration from the below readme files:
 
-
-<a name="join"></a>
-## Join the community
--  Ask questions and give us feedback in the [Hopsworks Community](https://community.hopsworks.ai/)
-- Follow us on [Twitter](https://twitter.com/hopsworks)
-- Check out all our latest [product releases](https://github.com/logicalclocks/hopsworks/releases)
-
-
-<a name="contribute"></a>
-## Contribute
-We are building the most complete and modular ML platform available in the market and we count on your support to continuously improve Hopsworks. Feel free to [give us suggestions](https://github.com/logicalclocks/feature-store-api), [report bugs](https://github.com/logicalclocks/feature-store-api/issues) and [add features to our library](https://github.com/logicalclocks/feature-store-api) anytime.  
-
-We’re the best in what we do and want our community to succeed as well.  
-Our many thanks to the top contributors of Hopsworks!
-
-
-Enjoy!
+- [ASP.NET Core](https://github.com/aspnet/Home)
+- [Visual Studio Code](https://github.com/Microsoft/vscode)
+- [Chakra Core](https://github.com/Microsoft/ChakraCore)

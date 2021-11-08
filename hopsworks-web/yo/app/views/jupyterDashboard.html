@@ -295,7 +295,7 @@
           </div>
         </div>
       </section>
-      <tour class="ng-scope" step="projectCtrl.tourService.currentStep_TourEight"
+      <!-- <tour class="ng-scope" step="projectCtrl.tourService.currentStep_TourEight"
             post-tour="closeTour()"
             ng-if="projectCtrl.loadedView && projectCtrl.tourService.activeTour === 'ml'
             && projectCtrl.tourService.showTips && !jupyterCtrl.loading &&
@@ -473,8 +473,9 @@
                 tourtip-offset-vertical="-15"
                 on-proceed="closeTour(); projectCtrl.tourService.resetTours();projectCtrl.disableTours();"
         ></virtual-step>
-      </tour>
+      </tour> -->
     </div>
   </div>
+  <div ng-if="mainCtrl.showPonFooter" ng-include="'views/ponFooter.html'"></div>
 </div>
 

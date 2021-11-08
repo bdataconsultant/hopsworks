@@ -39,6 +39,8 @@ import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpParams;
 import org.apache.http.util.EntityUtils;
 
+import io.hops.hopsworks.api.airflow.AirflowProxyServlet;
+
 import javax.servlet.ServletException;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServlet;
@@ -54,6 +56,8 @@ import java.util.BitSet;
 import java.util.Enumeration;
 import java.util.Formatter;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * An HTTP reverse proxy/gateway servlet. It is designed to be extended for
@@ -77,6 +81,8 @@ import java.util.List;
  */
 public class ProxyServlet extends HttpServlet {
 
+	private final static Logger LOGGER = Logger.getLogger(ProxyServlet.class.getName());
+	
   /*
    * INIT PARAMETER NAME CONSTANTS
    */
@@ -276,98 +282,107 @@ public class ProxyServlet extends HttpServlet {
   protected void service(HttpServletRequest servletRequest,
       HttpServletResponse servletResponse)
       throws ServletException, IOException {
-    //initialize request attributes from caches if unset by a subclass by this point
-    if (servletRequest.getAttribute(ATTR_TARGET_URI) == null) {
-      servletRequest.setAttribute(ATTR_TARGET_URI, targetUri);
-    }
-    if (servletRequest.getAttribute(ATTR_TARGET_HOST) == null) {
-      servletRequest.setAttribute(ATTR_TARGET_HOST, targetHost);
-    }
-
-    // Make the Request
-    // note: we won't transfer the protocol version because I'm not 
-    // sure it would truly be compatible
-    String method = servletRequest.getMethod();
-    String proxyRequestUri = rewriteUrlFromRequest(servletRequest);
-    HttpRequest proxyRequest;
-    //spec: RFC 2616, sec 4.3: either of these two headers signal that there is
-    //a message body.
-    if (servletRequest.getHeader(HttpHeaders.CONTENT_LENGTH) != null
-        || servletRequest.getHeader(HttpHeaders.TRANSFER_ENCODING) != null) {
-      HttpEntityEnclosingRequest eProxyRequest
-          = new BasicHttpEntityEnclosingRequest(method, proxyRequestUri);
-      // Add the input entity (streamed)
-      // note: we don't bother ensuring we close the servletInputStream since 
-      // the container handles it
-      eProxyRequest.setEntity(new InputStreamEntity(servletRequest.
-          getInputStream(), servletRequest.getContentLength()));
-      proxyRequest = eProxyRequest;
-    } else {
-      proxyRequest = new BasicHttpRequest(method, proxyRequestUri);
-    }
-
-    copyRequestHeaders(servletRequest, proxyRequest);
-
-    setXForwardedForHeader(servletRequest, proxyRequest);
-
-    HttpResponse proxyResponse = null;
     try {
-      // Execute the request
-      if (doLog) {
-        log("proxy " + method + " uri: " + servletRequest.getRequestURI()
-            + " -- " + proxyRequest.getRequestLine().getUri());
+      //initialize request attributes from caches if unset by a subclass by this point
+      if (servletRequest.getAttribute(ATTR_TARGET_URI) == null) {
+        servletRequest.setAttribute(ATTR_TARGET_URI, targetUri);
       }
-      HttpHost httpHost = getTargetHost(servletRequest);
-      proxyResponse = proxyClient.execute(httpHost, proxyRequest);
-
-      // Process the response
-      int statusCode = proxyResponse.getStatusLine().getStatusCode();
-
-      if (doResponseRedirectOrNotModifiedLogic(servletRequest, servletResponse,
-          proxyResponse, statusCode)) {
-        //the response is already "committed" now without any body to send
-        //TODO copy response headers?
-        return;
+      if (servletRequest.getAttribute(ATTR_TARGET_HOST) == null) {
+        servletRequest.setAttribute(ATTR_TARGET_HOST, targetHost);
       }
 
-      // Pass the response code. This method with the "reason phrase" is 
-      //deprecated but it's the only way to pass the reason along too.
-      //noinspection deprecation
-      servletResponse.setStatus(statusCode, proxyResponse.getStatusLine().
-          getReasonPhrase());
+      // Make the Request
+      // note: we won't transfer the protocol version because I'm not
+      // sure it would truly be compatible
+      String method = servletRequest.getMethod();
+      String proxyRequestUri = rewriteUrlFromRequest(servletRequest);
+      HttpRequest proxyRequest;
+      //spec: RFC 2616, sec 4.3: either of these two headers signal that there is
+      //a message body.
+      if (servletRequest.getHeader(HttpHeaders.CONTENT_LENGTH) != null
+              || servletRequest.getHeader(HttpHeaders.TRANSFER_ENCODING) != null) {
+        HttpEntityEnclosingRequest eProxyRequest
+                = new BasicHttpEntityEnclosingRequest(method, proxyRequestUri);
+        // Add the input entity (streamed)
+        // note: we don't bother ensuring we close the servletInputStream since
+        // the container handles it
+        eProxyRequest.setEntity(new InputStreamEntity(servletRequest.
+                getInputStream(), servletRequest.getContentLength()));
+        proxyRequest = eProxyRequest;
+      } else {
+        proxyRequest = new BasicHttpRequest(method, proxyRequestUri);
+      }
 
-      copyResponseHeaders(proxyResponse, servletRequest, servletResponse);
+      copyRequestHeaders(servletRequest, proxyRequest);
 
-      // Send the content to the client
-      copyResponseEntity(proxyResponse, servletResponse);
+      setXForwardedForHeader(servletRequest, proxyRequest);
 
+      HttpResponse proxyResponse = null;
+      try {
+        // Execute the request
+        if (doLog) {
+          log("proxy " + method + " uri: " + servletRequest.getRequestURI()
+                  + " -- " + proxyRequest.getRequestLine().getUri());
+        }
+        HttpHost httpHost = getTargetHost(servletRequest);
+        LOGGER.info("SERVLET REQUEST " + servletRequest.getRequestURL().toString());
+        LOGGER.info("BEFORE PROXY CALL " + proxyRequest.getRequestLine().getUri());
+        proxyResponse = proxyClient.execute(httpHost, proxyRequest);
+        LOGGER.info("AFTER PROXY CALL " + proxyResponse.getStatusLine().getStatusCode());
+
+        // Process the response
+        int statusCode = proxyResponse.getStatusLine().getStatusCode();
+
+        if (doResponseRedirectOrNotModifiedLogic(servletRequest, servletResponse,
+                proxyResponse, statusCode)) {
+          //the response is already "committed" now without any body to send
+          //TODO copy response headers?
+          return;
+        }
+
+        // Pass the response code. This method with the "reason phrase" is
+        //deprecated but it's the only way to pass the reason along too.
+        //noinspection deprecation
+        servletResponse.setStatus(statusCode, proxyResponse.getStatusLine().
+                getReasonPhrase());
+
+        copyResponseHeaders(proxyResponse, servletRequest, servletResponse);
+
+        // Send the content to the client
+        copyResponseEntity(proxyResponse, servletResponse);
+
+      } catch (Exception e) {
+        //abort request, according to best practice with HttpClient
+        if (proxyRequest instanceof AbortableHttpRequest) {
+          AbortableHttpRequest abortableHttpRequest
+                  = (AbortableHttpRequest) proxyRequest;
+          abortableHttpRequest.abort();
+        }
+        if (e instanceof RuntimeException) {
+          throw (RuntimeException) e;
+        }
+        if (e instanceof ServletException) {
+          throw (ServletException) e;
+        }
+        //noinspection ConstantConditions
+        if (e instanceof IOException) {
+          throw (IOException) e;
+        }
+        throw new RuntimeException(e);
+
+      } finally {
+        // make sure the entire entity was consumed, so the connection is released
+        if (proxyResponse != null) {
+          consumeQuietly(proxyResponse.getEntity());
+        }
+        //Note: Don't need to close servlet outputStream:
+        // http://stackoverflow.com/questions/1159168/should-one-call-close-on
+        //-httpservletresponse-getoutputstream-getwriter
+
+      }
     } catch (Exception e) {
-      //abort request, according to best practice with HttpClient
-      if (proxyRequest instanceof AbortableHttpRequest) {
-        AbortableHttpRequest abortableHttpRequest
-            = (AbortableHttpRequest) proxyRequest;
-        abortableHttpRequest.abort();
-      }
-      if (e instanceof RuntimeException) {
-        throw (RuntimeException) e;
-      }
-      if (e instanceof ServletException) {
-        throw (ServletException) e;
-      }
-      //noinspection ConstantConditions
-      if (e instanceof IOException) {
-        throw (IOException) e;
-      }
-      throw new RuntimeException(e);
-
-    } finally {
-      // make sure the entire entity was consumed, so the connection is released
-      if (proxyResponse != null) {
-        consumeQuietly(proxyResponse.getEntity());
-      }
-      //Note: Don't need to close servlet outputStream:
-      // http://stackoverflow.com/questions/1159168/should-one-call-close-on
-      //-httpservletresponse-getoutputstream-getwriter
+      LOGGER.log(Level.SEVERE, "SBATRAM! \n", e);
+      throw e;
     }
   }
 
@@ -384,6 +399,7 @@ public class ProxyServlet extends HttpServlet {
          * 304
          */) {
       Header locationHeader = proxyResponse.getLastHeader(HttpHeaders.LOCATION);
+      LOGGER.info("LOCATION HEADER: " + locationHeader.getValue());
       if (locationHeader == null) {
         throw new ServletException("Received status code: " + statusCode
             + " but no " + HttpHeaders.LOCATION
@@ -511,12 +527,17 @@ public class ProxyServlet extends HttpServlet {
       HttpServletRequest servletRequest,
       HttpServletResponse servletResponse) {
     for (Header header : proxyResponse.getAllHeaders()) {
+    	
+    	LOGGER.log(Level.SEVERE, "<<---" +header.getName() + "::"+header.getValue());
+    	
       if (hopByHopHeaders.containsHeader(header.getName())) {
+    	  LOGGER.log(Level.SEVERE, "<<---hopByHopHeaders contains" +header.getName() );
         continue;
       }
       if (header.getName().
           equalsIgnoreCase(org.apache.http.cookie.SM.SET_COOKIE) || header.
           getName().equalsIgnoreCase(org.apache.http.cookie.SM.SET_COOKIE2)) {
+    	  LOGGER.log(Level.SEVERE, "<<---copy cookie " +header.getName() + "::"+header.getValue());
         copyProxyCookie(servletRequest, servletResponse, header.getValue());
       } else {
         servletResponse.addHeader(header.getName(), header.getValue());
@@ -604,10 +625,12 @@ public class ProxyServlet extends HttpServlet {
     StringBuilder uri = new StringBuilder(500);
     String targetUri = getTargetUri(servletRequest);
     uri.append(targetUri);
+    LOGGER.info("TARGET_URI:" + uri.toString());
     // Handle the path given to the servlet
     if (servletRequest.getPathInfo() != null) {//ex: /my/path.html
       uri.append(encodeUriQuery(servletRequest.getPathInfo()));
     }
+    LOGGER.info("TARGET_URI_WITH_PATH:" + uri.toString());
     // Handle the query string & fragment
     //ex:(following '?'): name=value&foo=bar#fragment
     String queryString = servletRequest.getQueryString();
@@ -647,16 +670,21 @@ public class ProxyServlet extends HttpServlet {
    */
   protected String rewriteUrlFromResponse(HttpServletRequest servletRequest,
       String theUrl) {
+    LOGGER.info("theUrl:" + theUrl);
     //TODO document example paths
     final String targetUri = getTargetUri(servletRequest);
+    LOGGER.info("targetUri:" + targetUri);
     if (theUrl.startsWith(targetUri)) {
       String curUrl = servletRequest.getRequestURL().toString();//no query
+      LOGGER.info("curUrl:" + curUrl);
       String pathInfo = servletRequest.getPathInfo();
       if (pathInfo != null) {
         assert curUrl.endsWith(pathInfo);
         curUrl = curUrl.substring(0, curUrl.length() - pathInfo.length());//take pathInfo off
+        LOGGER.info("new_curUrl:" + curUrl);
       }
       theUrl = curUrl + theUrl.substring(targetUri.length());
+      LOGGER.info("new_theUrl:" + theUrl);
     }
     return theUrl;
   }

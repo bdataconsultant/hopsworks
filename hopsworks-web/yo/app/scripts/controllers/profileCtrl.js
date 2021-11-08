@@ -300,6 +300,12 @@ angular.module('hopsWorksApp')
                           showError(error);
                 });
             };
+
+            // TODO define default presentation main page 
+            self.goToDefaultPage = function () {
+              self.goToUrl('');
+              // self.goToUrl('defaultPage');
+            }
             
             self.externalAccountType = function () {
                 return self.user.accountType !== 'M_ACCOUNT_TYPE';

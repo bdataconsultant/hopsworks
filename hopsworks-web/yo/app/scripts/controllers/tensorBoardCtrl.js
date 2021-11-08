@@ -57,7 +57,7 @@ angular.module('hopsWorksApp')
                     function(success) {
                         self.mlId = mlId;
                         self.tb = success.data;
-                        self.ui = "/hopsworks-api/tensorboard/experiments/" + self.tb.endpoint + "/";
+                        self.ui = "/giotto-api/tensorboard/experiments/" + self.tb.endpoint + "/";
                         self.newWindow();
                         stopLoading();
                     },

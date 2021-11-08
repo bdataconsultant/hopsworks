@@ -92,6 +92,20 @@ public class UserFacade extends AbstractFacade<Users> {
     setOffsetAndLim(offset, limit, query);
     return new CollectionInfo((Long) queryCount.getSingleResult(), query.getResultList());
   }
+
+  public CollectionInfo findAllButHops(Integer offset, Integer limit, Set<? extends AbstractFacade.FilterBy> filter,
+                                Set<? extends AbstractFacade.SortBy> sort) {
+    String queryStr = buildQuery("SELECT DISTINCT u FROM Users u ", filter, sort,
+            "u.email NOT IN ('agent@hops.io','serving@hopsworks.se','admin@kth.se')");
+    String queryCountStr = buildQuery("SELECT COUNT(DISTINCT u.uid) FROM Users u ", filter, sort,
+            "u.email NOT IN ('agent@hops.io','serving@hopsworks.se','admin@kth.se')");
+    Query query = em.createQuery(queryStr, Users.class);
+    Query queryCount = em.createQuery(queryCountStr, Users.class);
+    setFilter(filter, query);
+    setFilter(filter, queryCount);
+    setOffsetAndLim(offset, limit, query);
+    return new CollectionInfo((Long) queryCount.getSingleResult(), query.getResultList());
+  }
   
   public long countWithFilter(Set<? extends AbstractFacade.FilterBy> filter) {
     String queryCountStr = buildQuery("SELECT COUNT(DISTINCT u.uid) FROM Users u ", filter, null, "");

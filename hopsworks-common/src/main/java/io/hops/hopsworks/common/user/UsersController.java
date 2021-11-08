@@ -48,6 +48,7 @@ import io.hops.hopsworks.common.dao.user.BbcGroupFacade;
 import io.hops.hopsworks.common.dao.user.UserDTO;
 import io.hops.hopsworks.common.dao.user.UserFacade;
 import io.hops.hopsworks.persistence.entity.user.Users;
+import io.hops.hopsworks.persistence.entity.user.cluster.RegistrationStatusEnum;
 import io.hops.hopsworks.persistence.entity.user.security.audit.AccountAudit;
 import io.hops.hopsworks.common.dao.user.security.audit.AccountAuditFacade;
 import io.hops.hopsworks.persistence.entity.user.security.audit.RolesAudit;
@@ -73,6 +74,7 @@ import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
 import javax.mail.Message;
 import javax.mail.MessagingException;
+import javax.servlet.http.HttpServletRequest;
 import javax.validation.ConstraintViolationException;
 import java.io.IOException;
 import java.sql.Timestamp;
@@ -136,7 +138,7 @@ public class UsersController {
       qrCode = QRCodeGenerator.getQRCodeBytes(newUser.getEmail(), Settings.ISSUER, user.getSecret());
     } catch (WriterException | MessagingException | IOException ex) {
       throw new UserException(RESTCodes.UserErrorCode.ACCOUNT_REGISTRATION_ERROR, Level.SEVERE,
-        "user: " + newUser.getUsername(), ex.getMessage(), ex);
+              "user: " + newUser.getUsername(), ex.getMessage(), ex);
     }
     return qrCode;
   }
@@ -157,6 +159,35 @@ public class UsersController {
     }
     userFacade.persist(user);
     return user;
+  }
+
+  public UserDTO registerAndActivateUser(UserDTO newUser, String validationKeyUrl) throws UserException {
+    userValidator.isValidNewUser(newUser);
+    Users user = createNewUser(newUser, UserAccountStatus.ACTIVATED_ACCOUNT, UserAccountType.M_ACCOUNT_TYPE);
+
+    //to prevent sending email for test user emails
+    try {
+      if (!newUser.isTestUser()) {
+        // Notify user about the request if not test user.
+        authController.sendEmailValidationKey(user, user.getValidationKey(), validationKeyUrl);
+      }
+      // Only register the user if i can send the email. To prevent fake emails
+      userFacade.persist(user);
+
+      user = userFacade.findByEmail(user.getEmail());
+
+      if(newUser.getBbcRole() != null) {
+        BbcGroup bbcGroup = bbcGroupFacade.findByGroupName(newUser.getBbcRole());
+        user.getBbcGroupCollection().add(bbcGroup);
+        userFacade.update(user);
+      }
+
+    } catch (MessagingException ex) {
+      throw new UserException(RESTCodes.UserErrorCode.ACCOUNT_REGISTRATION_ERROR, Level.SEVERE,
+              "user: " + newUser.getUsername(), ex.getMessage(), ex);
+    }
+
+    return  new UserDTO(user);
   }
   
   public void addRole(String role, Integer id) throws UserException {
@@ -211,7 +242,7 @@ public class UsersController {
         e);
     }
   }
-  
+
   /**
    * Create a new user
    *
@@ -244,15 +275,15 @@ public class UsersController {
    * @param lname
    * @param pwd
    * @param accStatus
-   * @return 
+   * @return
    */
   public Users createNewRemoteUser(String email, String fname, String lname, String pwd, UserAccountStatus accStatus) {
     String uname = generateUsername(email);
     List<BbcGroup> groups = new ArrayList<>();
     Secret secret = securityUtils.generateSecret(pwd);
     Users user = new Users(uname, secret.getSha256HexDigest(), email, fname, lname, new Timestamp(new Date().getTime()),
-      "-", "-", accStatus, UserAccountType.REMOTE_ACCOUNT_TYPE, new Timestamp(new Date().getTime()),
-      settings.getMaxNumProjPerUser(), secret.getSalt());
+            "-", "-", accStatus, UserAccountType.REMOTE_ACCOUNT_TYPE, new Timestamp(new Date().getTime()),
+            settings.getMaxNumProjPerUser(), secret.getSalt());
     user.setBbcGroupCollection(groups);
     return user;
   }
@@ -380,7 +411,7 @@ public class UsersController {
         authController.changePassword(user, secret);
       } catch (Exception ex) {
         throw new UserException(RESTCodes.UserErrorCode.PASSWORD_RESET_UNSUCCESSFUL, Level.SEVERE, null,
-          ex.getMessage(), ex);
+                ex.getMessage(), ex);
       }
     }
   }
@@ -489,7 +520,7 @@ public class UsersController {
       } catch (IOException | WriterException ex) {
         LOGGER.log(Level.SEVERE, null, ex);
         throw new UserException(RESTCodes.UserErrorCode.TWO_FA_ENABLE_ERROR, Level.SEVERE,
-          "user: " + user.getUsername(), ex.getMessage(), ex);
+                "user: " + user.getUsername(), ex.getMessage(), ex);
       }
     }
     return qr_code;
@@ -509,10 +540,10 @@ public class UsersController {
     if (!authController.validatePassword(user, password)) {
       throw new UserException(RESTCodes.UserErrorCode.PASSWORD_INCORRECT, Level.FINE);
     }
-    
+
     return getQrCode(user);
   }
-  
+
   public byte[] getQrCode(Users user) {
     byte[] qr_code = null;
     if (user.getTwoFactor()) {

@@ -1,0 +1,407 @@
+/*
+palette
+main: #06c
+gradient secondary: #2079d4
+border: #005bb7
+hover: #93b3d4
+*/
+
+/*cards.css*/
+@-webkit-keyframes color-change-2x {
+  0% {
+    border-color: #e7eaec;
+  }
+  100% {
+    border-color: #06c;
+  }
+}
+@keyframes color-change-2x {
+  0% {
+    border-color: #e7eaec;
+  }
+  100% {
+    border-color: #06c;
+  }
+}
+
+.home-projects-item-title {
+  display: flex;
+  padding: 10px;
+  font-size: 1.15rem;
+  color: #06c;
+}
+
+.home-badge {
+  background: #ffffff;
+  color: #06c;
+  height: 20px;
+}
+
+/*nav.css*/
+.nav .open > a,
+.nav .open > a:focus,
+.nav .open > a:hover {
+  background-color: transparent;
+  border-color: #06c;
+}
+
+nav.navbar-sics {
+  height: 80px;
+  background: linear-gradient(to right, #06c, #2079d4);
+  border-bottom: none;
+  box-shadow: 0 0 2px 0 #06c;
+  padding: 7px 14px 14px 14px;
+}
+
+.nav-logo {
+  height: 65px;
+  margin: 0 30px 0 0;
+}
+
+nav.navbar-sics ul.navbar-nav a:hover,
+nav.navbar-sics ul.navbar-nav a:visited,
+nav.navbar-sics ul.navbar-nav a:focus,
+nav.navbar-sics ul.navbar-nav a:active {
+  /*background: #fff;*/
+}
+nav.navbar-sics ul.navbar-nav a:hover {
+  color: white;
+  text-decoration: underline; /*border-color: #06c;*/
+}
+nav.navbar-sics li.divider {
+  background: #06c;
+}
+nav.navbar-sics button.navbar-toggle {
+  background: #06c;
+  border-radius: 2px;
+}
+nav.navbar-sics button.navbar-toggle:hover {
+  background: #06c;
+}
+nav.navbar-sics button.navbar-toggle > span.icon-bar {
+  background: #fff;
+}
+nav.navbar-sics ul.dropdown-menu {
+  border: 0;
+  background: #fff;
+  border-radius: 4px;
+  margin: 4px 0;
+  box-shadow: 0 0 4px 0 #06c;
+}
+nav.navbar-sics ul.dropdown-menu > li > a {
+  color: #06c;
+}
+nav.navbar-sics ul.dropdown-menu > li > a:hover {
+  background: #06c;
+  color: #fff;
+}
+nav.navbar-sics span.badge {
+  background: #06c;
+  font-weight: normal;
+  font-size: 11px;
+  margin: 0 4px;
+}
+nav.navbar-sics span.badge.new {
+  background: rgba(255, 0, 0, 0.8);
+  color: #fff;
+}
+
+.list-group-item.active,
+.list-group-item.active:focus,
+.list-group-item.active:hover {
+  background-color: #06c;
+  border-color: #06c;
+  color: #fff;
+  z-index: 100;
+  height: 43px;
+}
+
+.list-group-item.active,
+.list-group-item.active:focus,
+.list-group-item.active:hover {
+  background-color: #06c;
+  border-color: #06c;
+  color: #fff;
+  z-index: 100;
+  height: 43px;
+}
+
+/*project_sidebar.css*/
+#sidebar-wrapper {
+  z-index: 12;
+  left: 100px;
+  width: 0;
+  height: 100%;
+  margin-left: -100px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: linear-gradient(#06c, #2079d4);
+  -webkit-transition: all 0.5s ease;
+  -moz-transition: all 0.5s ease;
+  -o-transition: all 0.5s ease;
+  transition: all 0.5s ease;
+}
+
+.sidebar-nav li:before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  height: 100%;
+  width: 3px;
+  background-color: #06c;
+  -webkit-transition: width 0.2s ease-in;
+  -moz-transition: width 0.2s ease-in;
+  -ms-transition: width 0.2s ease-in;
+  transition: width 0.2s ease-in;
+}
+
+.sidebar-nav li {
+  position: relative;
+  line-height: 20px;
+  display: inline-block;
+  width: 100%;
+  height: 80px;
+  border-top: solid 1px #005dbb;
+  padding-top: 5px;
+}
+
+.sidebar-nav li:nth-child(2):before {
+  background-color: #06c;
+}
+.sidebar-nav li:nth-child(3):before {
+  background-color: #06c;
+}
+.sidebar-nav li:nth-child(4):before {
+  background-color: #06c;
+}
+.sidebar-nav li:nth-child(5):before {
+  background-color: #06c;
+}
+.sidebar-nav li:nth-child(6):before {
+  background-color: #06c;
+}
+.sidebar-nav li:nth-child(7):before {
+  background-color: #06c;
+}
+.sidebar-nav li:nth-child(8):before {
+  background-color: #06c;
+}
+.sidebar-nav li:nth-child(9):before {
+  background-color: #06c;
+}
+.sidebar-nav li:nth-child(10):before {
+  background-color: #06c;
+}
+.sidebar-nav li:nth-child(11):before {
+  background-color: #06c;
+}
+.sidebar-nav li:nth-child(12):before {
+  background-color: #06c;
+}
+.sidebar-nav li:nth-child(13):before {
+  background-color: #06c;
+}
+
+.sidebar-nav li:hover {
+  /* width: 100%;
+  -webkit-transition: width .2s ease-in;
+  -moz-transition:  width .2s ease-in;
+  -ms-transition:  width .2s ease-in;
+  transition: width .2s ease-in; */
+  background: #93b3d4;
+}
+
+.sidebar-nav li:nth-child(2) a:active,
+.sidebar-nav li:nth-child(2) a:focus,
+.sidebar-nav li:nth-child(2).open a:active,
+.sidebar-nav li:nth-child(2).open a:focus {
+  background-color: #06c;
+}
+
+.sidebar-nav li:nth-child(3) a:active,
+.sidebar-nav li:nth-child(3) a:focus,
+.sidebar-nav li:nth-child(3).open a:active,
+.sidebar-nav li:nth-child(3).open a:focus {
+  background-color: #06c;
+}
+
+.sidebar-nav li:nth-child(4) a:active,
+.sidebar-nav li:nth-child(4) a:focus,
+.sidebar-nav li:nth-child(4).open a:active,
+.sidebar-nav li:nth-child(4).open a:focus {
+  background-color: #06c;
+}
+
+.sidebar-nav li:nth-child(5) a:active,
+.sidebar-nav li:nth-child(5) a:focus,
+.sidebar-nav li:nth-child(5).open a:active,
+.sidebar-nav li:nth-child(5).open a:focus {
+  background-color: #06c;
+}
+
+.sidebar-nav li:nth-child(6) a:active,
+.sidebar-nav li:nth-child(6) a:focus,
+.sidebar-nav li:nth-child(6).open a:active,
+.sidebar-nav li:nth-child(6).open a:focus {
+  background-color: #06c;
+}
+
+.sidebar-nav li:nth-child(7) a:active,
+.sidebar-nav li:nth-child(7) a:focus,
+.sidebar-nav li:nth-child(7).open a:active,
+.sidebar-nav li:nth-child(7).open a:focus {
+  background-color: #06c;
+}
+
+.sidebar-nav li:nth-child(8) a:active,
+.sidebar-nav li:nth-child(8) a:focus,
+.sidebar-nav li:nth-child(8).open a:active,
+.sidebar-nav li:nth-child(8).open a:focus {
+  background-color: #06c;
+}
+
+.sidebar-nav li:nth-child(9) a:active,
+.sidebar-nav li:nth-child(9) a:focus,
+.sidebar-nav li:nth-child(9).open a:active,
+.sidebar-nav li:nth-child(9).open a:focus {
+  background-color: #06c;
+}
+
+.sidebar-nav li:nth-child(10) a:active,
+.sidebar-nav li:nth-child(10) a:focus,
+.sidebar-nav li:nth-child(10).open a:active,
+.sidebar-nav li:nth-child(10).open a:focus {
+  background-color: #06c;
+}
+
+/*publicDataset.css*/
+.publicdataset-issue:hover {
+  cursor: pointer;
+  text-decoration: none;
+  color: #06c !important;
+}
+
+.highlighted {
+  font-weight: normal;
+  font-style: italic;
+  color: #06c;
+}
+
+/*style.css*/
+.panel-filter > .panel-heading {
+  background-color: #06c;
+  color: #fff;
+  height: 43px;
+  border-radius: 0;
+}
+
+.panel-filter > .panel-footer {
+  background-color: #06c;
+  color: #fff;
+  height: 43px;
+  padding: 0 20px 0 5px;
+  border-radius: 0;
+}
+
+.modal-header {
+  background-color: #06c;
+  color: #ffffff;
+}
+
+.pager {
+  background-color: #06c;
+  margin: 0px;
+}
+
+.editable-controls .editable-input {
+  color: #06c;
+}
+
+#gettingStaredSection .btn-default {
+  color: #ffffff;
+  background-color: #4cae4c;
+  border-color: #06c;
+}
+
+#gettingStaredSection .btn-default.disabled,
+#gettingStaredSection .btn-default[disabled],
+fieldset[disabled] .btn-default,
+#gettingStaredSection .btn-default.disabled:hover,
+#gettingStaredSection .btn-default[disabled]:hover,
+fieldset[disabled] .btn-default:hover,
+#gettingStaredSection .btn-default.disabled:focus,
+#gettingStaredSection .btn-default[disabled]:focus,
+fieldset[disabled] .btn-default:focus,
+#gettingStaredSection .btn-default.disabled:active,
+#gettingStaredSection .btn-default[disabled]:active,
+fieldset[disabled] .btn-default:active,
+#gettingStaredSection .btn-default.disabled.active,
+#gettingStaredSection .btn-default[disabled].active,
+fieldset[disabled] .btn-default.active {
+  background-color: #4cae4c;
+  border-color: #06c;
+}
+
+#tourColumn .btn-danger {
+  color: #ffffff;
+  background-color: #bd1b1b;
+  border-color: #06c;
+}
+
+.nav .open > a,
+.nav .open > a:focus,
+.nav .open > a:hover {
+  background-color: transparent;
+  border-color: red;
+}
+
+/*other*/
+.btn-primary {
+  background-color: #06c;
+}
+
+a {
+  color: #06c;
+}
+
+/* PLATFORM HEADER PLUGIN CUSTOMIZATION */
+/*
+.gph {
+   background-color: #115235 !important;
+}
+.gph__title {
+  color: #fff !important;
+}
+*/
+ 
+.gph__item__tab .active {
+  /* color: #fff;*/
+  background: #076ace !important;
+  cursor: default;
+}
+ 
+.gph__item__round-icon .active {
+  background-color: #076ace !important;
+}
+ 
+.gph__app-menu {
+  color: #076ace !important;
+}
+ 
+.gph__app-menu__content__item {
+  fill: #076ace !important;
+}
+ 
+.gph__profile-card .edit-profile-button {
+  background-color: #076ace !important;
+}
+
+.gph__item__round-icon__content {
+  height: 29px;
+}
+
+.pon-footer img {
+  width: 680px !important;
+}

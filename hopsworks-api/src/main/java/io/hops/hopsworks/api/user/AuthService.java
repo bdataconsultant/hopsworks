@@ -47,23 +47,24 @@ import io.hops.hopsworks.api.util.RESTApiJsonResponse;
 import io.hops.hopsworks.common.constants.message.ResponseMessages;
 import io.hops.hopsworks.common.dao.user.UserDTO;
 import io.hops.hopsworks.common.dao.user.UserFacade;
+import io.hops.hopsworks.common.dao.user.security.audit.AccountAuditFacade;
+import io.hops.hopsworks.common.util.DateUtils;
+import io.hops.hopsworks.exceptions.HopsSecurityException;
+import io.hops.hopsworks.jwt.JWTController;
+import io.hops.hopsworks.jwt.JsonWebToken;
+import io.hops.hopsworks.persistence.entity.user.Users;
+import io.hops.hopsworks.persistence.entity.util.FormatUtils;
+import io.hops.hopsworks.restutils.RESTCodes;
+import io.hops.hopsworks.exceptions.UserException;
 import io.hops.hopsworks.common.user.AuthController;
 import io.hops.hopsworks.common.user.UserStatusValidator;
 import io.hops.hopsworks.common.user.UsersController;
-import io.hops.hopsworks.common.util.DateUtils;
 import io.hops.hopsworks.common.util.Settings;
-import io.hops.hopsworks.exceptions.HopsSecurityException;
-import io.hops.hopsworks.exceptions.UserException;
 import io.hops.hopsworks.jwt.Constants;
-import io.hops.hopsworks.jwt.JWTController;
-import io.hops.hopsworks.jwt.JsonWebToken;
 import io.hops.hopsworks.jwt.annotation.JWTRequired;
 import io.hops.hopsworks.jwt.exception.DuplicateSigningKeyException;
 import io.hops.hopsworks.jwt.exception.InvalidationException;
 import io.hops.hopsworks.jwt.exception.SigningKeyNotFoundException;
-import io.hops.hopsworks.persistence.entity.user.Users;
-import io.hops.hopsworks.persistence.entity.util.FormatUtils;
-import io.hops.hopsworks.restutils.RESTCodes;
 import io.swagger.annotations.Api;
 import org.apache.commons.codec.binary.Base64;
 
@@ -86,7 +87,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.SecurityContext;
 import java.security.GeneralSecurityException;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
@@ -97,406 +97,492 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import static javax.ws.rs.core.HttpHeaders.AUTHORIZATION;
+import javax.ws.rs.core.SecurityContext;
 
 @Path("/auth")
 @Stateless
 @Api(value = "Auth",
-    description = "Authentication service")
+description = "Authentication service")
 @TransactionAttribute(TransactionAttributeType.NEVER)
 public class AuthService {
 
-  private static final Logger LOGGER = Logger.getLogger(AuthService.class.getName());
-  @EJB
-  private UserFacade userFacade;
-  @EJB
-  private UsersController userController;
-  @EJB
-  private UserStatusValidator statusValidator;
-  @EJB
-  private NoCacheResponse noCacheResponse;
-  @EJB
-  private AuthController authController;
-  @EJB
-  private JWTHelper jWTHelper;
-  @EJB
-  private Settings settings;
-  @EJB
-  private JWTController jwtController;
+	private static final Logger LOGGER = Logger.getLogger(AuthService.class.getName());
+	@EJB
+	private UserFacade userFacade;
+	@EJB
+	private UsersController userController;
+	@EJB
+	private UserStatusValidator statusValidator;
+	@EJB
+	private NoCacheResponse noCacheResponse;
+	@EJB
+	private AccountAuditFacade accountAuditFacade;
+	@EJB
+	private AuthController authController;
+	@EJB
+	private JWTHelper jWTHelper;
+	@EJB
+	private Settings settings;
+	@EJB
+	private JWTController jwtController;
 
-  @GET
-  @Path("session")
-  @RolesAllowed({"HOPS_ADMIN", "HOPS_USER"})
-  @JWTRequired(acceptedTokens = {Audience.API},
-      allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
-  @Produces(MediaType.APPLICATION_JSON)
-  public Response session(@Context HttpServletRequest req) {
-    RESTApiJsonResponse json = new RESTApiJsonResponse();
-    json.setData(req.getRemoteUser());
-    return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).entity(json).build();
-  }
+	@GET
+	@Path("session")
+	@Produces(MediaType.APPLICATION_JSON)
+	//@RolesAllowed({"HOPS_ADMIN", "HOPS_USER"})
+	@JWTRequired(acceptedTokens = {Audience.API}, allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
+	public Response session(@Context HttpServletRequest req, @Context SecurityContext sc) throws LoginException, UserException, SigningKeyNotFoundException, NoSuchAlgorithmException, DuplicateSigningKeyException {
+		
+		
+		Users user = jWTHelper.getUserPrincipal(sc);
+		
+		if (user == null) {
+			throw new LoginException("Unrecognized email address. Have you registered yet?");
+		}
+		
+		if (req.getSession(false) == null) {
+			
+			return loginWithoutPassword( user.getEmail(), "NO_PASSWORD_LOGIN", null, req);
+			//return loginWithoutPassword( req, user);
+			
+		}
+		return jwtSession(sc);
+		
+//		LOGGER.log(Level.SEVERE, "***SESSION****");
+//		
+//		RESTApiJsonResponse json = new RESTApiJsonResponse();
+//		json.setData(req.getRemoteUser());
+//		return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).entity(json).build();
+	}
 
-  @GET
-  @Path("jwt/session")
-  @JWTRequired(acceptedTokens = {Audience.API},
-      allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
-  @Produces(MediaType.APPLICATION_JSON)
-  public Response jwtSession(@Context SecurityContext sc) {
-    RESTApiJsonResponse json = new RESTApiJsonResponse();
-    Users user = jWTHelper.getUserPrincipal(sc);
-    String remoteUser = user != null ? user.getEmail() : sc.getUserPrincipal().getName();
-    json.setData(remoteUser);
-    return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).entity(json).build();
-  }
+	
+	private Response loginWithoutPassword(String email, String password, String otp, HttpServletRequest req) throws UserException, SigningKeyNotFoundException,
+	NoSuchAlgorithmException, LoginException, DuplicateSigningKeyException {
+		if (email == null || email.isEmpty()) {
+			throw new IllegalArgumentException("Email was not provided");
+		}
+		
+		Users user = userFacade.findByEmail(email);
+		if (user == null) {
+			throw new LoginException("Unrecognized email address. Have you registered yet?");
+		}
+		if (!needLogin(req, user)) {
+			return Response.ok().build();
+		}
 
-  @POST
-  @Path("login")
-  @Produces(MediaType.APPLICATION_JSON)
-  @JWTNotRequired
-  public Response login(@FormParam("email") String email, @FormParam("password") String password,
-    @FormParam("otp") String otp, @Context HttpServletRequest req) throws UserException, SigningKeyNotFoundException,
-    NoSuchAlgorithmException,
-    LoginException, DuplicateSigningKeyException {
+		// A session needs to be create explicitly before doing to the login operation
+		req.getSession();
 
-    if (email == null || email.isEmpty()) {
-      throw new IllegalArgumentException("Email was not provided");
-    }
-    if (password == null || password.isEmpty()) {
-      throw new IllegalArgumentException("Password can not be empty.");
-    }
-    Users user = userFacade.findByEmail(email);
-    if (user == null) {
-      throw new LoginException("Unrecognized email address. Have you registered yet?");
-    }
-    if (!needLogin(req, user)) {
-      return Response.ok().build();
-    }
+		// Do pre cauth realm check
+		String passwordWithSaltPlusOtp = authController.preCustomRealmLoginCheck(user, password, otp);
 
-    // A session needs to be create explicitly before doing to the login operation
-    req.getSession();
+		// Do login
+		Response response = loginWithJWT(user, passwordWithSaltPlusOtp, req);
 
-    // Do pre cauth realm check
-    String passwordWithSaltPlusOtp = authController.preCustomRealmLoginCheck(user, password, otp);
+		if (LOGGER.isLoggable(Level.FINEST)) {
+			logUserLogin(req);
+		}
 
-    // Do login
-    Response response = login(user, passwordWithSaltPlusOtp, req);
+		return response;
+	}
+	
+	private Response loginWithJWT(Users user, String password, HttpServletRequest req) throws UserException,
+	SigningKeyNotFoundException, NoSuchAlgorithmException, DuplicateSigningKeyException {
+		RESTApiJsonResponse json = new RESTApiJsonResponse();
+		if (user.getBbcGroupCollection() == null || user.getBbcGroupCollection().isEmpty()) {
+			throw new UserException(RESTCodes.UserErrorCode.NO_ROLE_FOUND, Level.FINE);
+		}
 
-    if (LOGGER.isLoggable(Level.FINEST)) {
-      logUserLogin(req);
-    }
+		statusValidator.checkStatus(user.getStatus());
+		try {
+			req.login(user.getEmail(),password);
+			//authController.registerLogin(user, req);
+		} catch (Exception e) {
+			authController.registerAuthenticationFailure(user);
+			throw new UserException(RESTCodes.UserErrorCode.AUTHENTICATION_FAILURE, Level.FINE, null, e.getMessage(), e);
+		}
 
-    return response;
-  }
+		json.setSessionID(req.getSession().getId());
+		json.setData(user.getEmail());
+		// JWT claims will be added by JWTHelper
+		//String token = jWTHelper.createToken(user, settings.getJWTIssuer(), null);
+		//return Response.ok().header(AUTHORIZATION, Constants.BEARER + token).entity(json).build();
+		return Response.ok().entity(json).build();
+	}
 
-  @GET
-  @Path("logout")
-  @Produces(MediaType.APPLICATION_JSON)
-  @JWTNotRequired
-  public Response logout(@Context HttpServletRequest req) throws UserException, InvalidationException {
-    logoutAndInvalidateSession(req);
-    return Response.ok().build();
-  }
+	@GET
+	@Path("jwt/session")
+	@JWTRequired(acceptedTokens = {Audience.API},
+			allowedUserRoles = {"HOPS_ADMIN", "HOPS_USER"})
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response jwtSession(@Context SecurityContext sc) {
+		RESTApiJsonResponse json = new RESTApiJsonResponse();
+		Users user = jWTHelper.getUserPrincipal(sc);
+		String remoteUser = user != null ? user.getEmail() : sc.getUserPrincipal().getName();
+		json.setData(remoteUser);
+		return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).entity(json).build();
+	}
 
-  @POST
-  @Path("/service")
-  @Produces(MediaType.APPLICATION_JSON)
-  @JWTNotRequired
-  public Response serviceLogin(@FormParam("email") String email, @FormParam("password") String password,
-    @Context HttpServletRequest request) throws UserException, GeneralSecurityException, SigningKeyNotFoundException,
-    DuplicateSigningKeyException, HopsSecurityException {
-    if (Strings.isNullOrEmpty(email)) {
-      throw new IllegalArgumentException("Email cannot be null or empty");
-    }
-    if (Strings.isNullOrEmpty(password)) {
-      throw new IllegalArgumentException("Password cannot be null or empty");
-    }
-    Users user = userFacade.findByEmail(email);
-    if (user == null) {
-      throw new LoginException("Could not find registered user with email " + email);
-    }
-    if (!needLogin(request, user)) {
-      return Response.ok().build();
-    }
-    if (!userController.isUserInRole(user, "AGENT")) {
-      throw new HopsSecurityException(RESTCodes.SecurityErrorCode.REST_ACCESS_CONTROL, Level.FINE,
-          "Users are not allowed to access this endpoint, use auth/login instead",
-          "User " + user.getUsername() + " tried to login but they don't have AGENT role");
-    }
-    request.getSession();
-    
-    Collection roles = user.getBbcGroupCollection();
-    if (roles == null || roles.isEmpty()) {
-      throw new UserException(RESTCodes.UserErrorCode.NO_ROLE_FOUND, Level.FINE);
-    }
-    
-    statusValidator.checkStatus(user.getStatus());
-    String saltedPassword = authController.preCustomRealmLoginCheck(user, password, null);
-    
-    try {
-      request.login(user.getEmail(), saltedPassword);
-    } catch (ServletException ex) {
-      authController.registerAuthenticationFailure(user);
-      throw new UserException(RESTCodes.UserErrorCode.AUTHENTICATION_FAILURE, Level.FINE, null, ex.getMessage(), ex);
-    }
-  
-    // First generate the one-time tokens for renewal of master token
-    String renewalKeyName = jwtController.getServiceOneTimeJWTSigningKeyname(user.getUsername(),
-        request.getRemoteHost());
-    LocalDateTime masterExpiration = DateUtils.getNow().plus(settings.getServiceJWTLifetimeMS(), ChronoUnit.MILLIS);
-    LocalDateTime notBefore = jwtController.computeNotBefore4ServiceRenewalTokens(masterExpiration);
-    LocalDateTime expiresAt = notBefore.plus(settings.getServiceJWTLifetimeMS(), ChronoUnit.MILLIS);
-    List<String> userRoles = userController.getUserRoles(user);
-    
-    JsonWebToken renewalJWTSpec = new JsonWebToken();
-    renewalJWTSpec.setSubject(user.getUsername());
-    renewalJWTSpec.setIssuer(settings.getJWTIssuer());
-    renewalJWTSpec.setAudience(JWTHelper.SERVICE_RENEW_JWT_AUDIENCE);
-    renewalJWTSpec.setKeyId(renewalKeyName);
-    renewalJWTSpec.setNotBefore(DateUtils.localDateTime2Date(notBefore));
-    renewalJWTSpec.setExpiresAt(DateUtils.localDateTime2Date(expiresAt));
-    
-    Map<String, Object> claims = new HashMap<>(4);
-    claims.put(Constants.RENEWABLE, false);
-    claims.put(Constants.EXPIRY_LEEWAY, 3600);
-    claims.put(Constants.ROLES, userRoles.toArray(new String[1]));
-    
-    String[] oneTimeRenewalTokens = jwtController.generateOneTimeTokens4ServiceJWTRenewal(renewalJWTSpec, claims,
-        settings.getJWTSigningKeyName());
-  
-    // Then generate the master service token
-    try {
-      String signingKeyID = jwtController.getSignKeyID(oneTimeRenewalTokens[0]);
-      claims.clear();
-      // The rest of JWT claims will be added by JWTHelper
-      claims.put(Constants.RENEWABLE, false);
-      claims.put(Constants.SERVICE_JWT_RENEWAL_KEY_ID, signingKeyID);
-      String token = jWTHelper.createToken(user, settings.getJWTIssuer(), claims);
-      
-      ServiceJWTDTO renewTokensResponse = new ServiceJWTDTO();
-      renewTokensResponse.setRenewTokens(oneTimeRenewalTokens);
-      return Response.ok().header(AUTHORIZATION, Constants.BEARER + token).entity(renewTokensResponse).build();
-    } catch (Exception ex) {
-      jwtController.deleteSigningKey(renewalKeyName);
-      throw ex;
-    }
-  }
-  
-  @DELETE
-  @Path("/service")
-  @Produces(MediaType.APPLICATION_JSON)
-  @JWTNotRequired
-  public Response serviceLogout(@Context HttpServletRequest request) throws UserException, InvalidationException {
-    if (jWTHelper.validToken(request, settings.getJWTIssuer())) {
-      jwtController.invalidateServiceToken(jWTHelper.getAuthToken(request), settings.getJWTSigningKeyName());
-    }
-    logoutAndInvalidateSession(request);
-    return Response.ok().build();
-  }
-  
-  @GET
-  @Path("isAdmin")
-  @Produces(MediaType.APPLICATION_JSON)
-  @JWTRequired(acceptedTokens={Audience.API}, allowedUserRoles={"HOPS_ADMIN", "HOPS_USER"})
-  public Response isAdmin(@Context SecurityContext sc) {
-    RESTApiJsonResponse json = new RESTApiJsonResponse();
-    json.setData(false);
-    if (sc.isUserInRole("HOPS_ADMIN")) {
-      json.setData(true);
-      return Response.ok(json).build();
-    }
-    return Response.ok(json).build();
-  }
+	@POST
+	@Path("login")
+	@Produces(MediaType.APPLICATION_JSON)
+	@JWTNotRequired
+	public Response login(@FormParam("email") String email, @FormParam("password") String password,
+						  @FormParam("otp") String otp, @Context HttpServletRequest req) throws UserException, SigningKeyNotFoundException,
+			NoSuchAlgorithmException,
+			LoginException, DuplicateSigningKeyException {
 
-  @POST
-  @Path("register")
-  @Produces(MediaType.APPLICATION_JSON)
-  @Consumes(MediaType.APPLICATION_JSON)
-  @JWTNotRequired
-  public Response register(UserDTO newUser, @Context HttpServletRequest req) throws UserException {
-    byte[] qrCode;
-    RESTApiJsonResponse json = new RESTApiJsonResponse();
-    String linkUrl = FormatUtils.getUserURL(req) + settings.getEmailVerificationEndpoint();
-    qrCode = userController.registerUser(newUser, linkUrl);
-    if (authController.isTwoFactorEnabled() && newUser.isTwoFactor()) {
-      json.setQRCode(new String(Base64.encodeBase64(qrCode)));
-    } else {
-      json.setSuccessMessage("We registered your account request. Please validate you email and we will "
-          + "review your account within 48 hours.");
-    }
-    return Response.ok(json).build();
-  }
+		if (email == null || email.isEmpty()) {
+			throw new IllegalArgumentException("Email was not provided");
+		}
+		if (password == null || password.isEmpty()) {
+			throw new IllegalArgumentException("Password can not be empty.");
+		}
+		Users user = userFacade.findByEmail(email);
+		if (user == null) {
+			throw new LoginException("Unrecognized email address. Have you registered yet?");
+		}
+		if (!needLogin(req, user)) {
+			return Response.ok().build();
+		}
 
-  @POST
-  @Path("/recover/password")
-  @Produces(MediaType.APPLICATION_JSON)
-  @JWTNotRequired
-  public Response recoverPassword(@FormParam("email") String email,
-                                  @Context HttpServletRequest req) throws UserException,
-      MessagingException {
-    RESTApiJsonResponse json = new RESTApiJsonResponse();
-    String reqUrl = FormatUtils.getUserURL(req);
-    userController.sendPasswordRecoveryEmail(email, reqUrl);
-    json.setSuccessMessage(ResponseMessages.PASSWORD_RESET);
-    return Response.ok(json).build();
-  }
-  
-  @POST
-  @Path("/recover/qrCode")
-  @Produces(MediaType.APPLICATION_JSON)
-  @JWTNotRequired
-  public Response recoverQRCode(@FormParam("email") String email, @FormParam("password") String password,
-    @Context HttpServletRequest req) throws UserException, MessagingException {
-    RESTApiJsonResponse json = new RESTApiJsonResponse();
-    String reqUrl = FormatUtils.getUserURL(req);
-    userController.sendQRRecoveryEmail(email, password, reqUrl);
-    json.setSuccessMessage(ResponseMessages.QR_CODE_RESET);
-    return Response.ok(json).build();
-  }
-  
-  @POST
-  @Path("/reset/validate")
-  @Produces(MediaType.APPLICATION_JSON)
-  @JWTNotRequired
-  public Response validatePasswordRecovery(@FormParam("key") String key, @Context HttpServletRequest req)
-    throws UserException {
-    userController.checkRecoveryKey(key);
-    return Response.ok().build();
-  }
-  
-  @POST
-  @Path("/reset/password")
-  @Produces(MediaType.APPLICATION_JSON)
-  @JWTNotRequired
-  public Response passwordRecovery(@FormParam("key") String key, @FormParam("newPassword") String newPassword,
-    @FormParam("confirmPassword") String confirmPassword, @Context HttpServletRequest req) throws UserException,
-    MessagingException {
-    RESTApiJsonResponse json = new RESTApiJsonResponse();
-    userController.changePassword(key, newPassword, confirmPassword);
-    json.setSuccessMessage(ResponseMessages.PASSWORD_CHANGED);
-    return Response.ok(json).build();
-  }
-  
-  @POST
-  @Path("/reset/qrCode")
-  @Produces(MediaType.APPLICATION_JSON)
-  @JWTNotRequired
-  public Response qrCodeRecovery(@FormParam("key") String key, @Context HttpServletRequest req) throws UserException,
-    MessagingException {
-    RESTApiJsonResponse json = new RESTApiJsonResponse();
-    json.setQRCode(userController.recoverQRCode(key));
-    return Response.ok(json).build();
-  }
+		// A session needs to be create explicitly before doing to the login operation
+		req.getSession();
 
-  @POST
-  @Path("/validate/email")
-  @Produces(MediaType.APPLICATION_JSON)
-  @JWTNotRequired
-  public Response validateUserMail(@FormParam("key") String key, @Context HttpServletRequest req) throws UserException {
-    authController.validateEmail(key);
-    return Response.ok().build();
-  }
+		// Do pre cauth realm check
+		String passwordWithSaltPlusOtp = authController.preCustomRealmLoginCheck(user, password, otp);
 
-  private void logoutAndInvalidateSession(HttpServletRequest req) throws UserException, InvalidationException {
-    jWTHelper.invalidateToken(req);//invalidate iff req contains jwt token
-    logoutSession(req);
-  }
+		// Do login
+		Response response = login(user, passwordWithSaltPlusOtp, req);
 
-  private void logoutSession(HttpServletRequest req) throws UserException {
-    Users user = userFacade.findByEmail(req.getRemoteUser());
-    try {
-      req.getSession().invalidate();
-      req.logout();
-      if (user != null) {
-        authController.registerLogout(user);
-      }
-    } catch (ServletException e) {
-      //accountAuditFacade.registerLoginInfo(user, UserAuditActions.LOGOUT.name(), UserAuditActions.FAILED.name(), req);
-      throw new UserException(RESTCodes.UserErrorCode.LOGOUT_FAILURE, Level.SEVERE, null, e.getMessage(), e);
-    }
-  }
+		if (LOGGER.isLoggable(Level.FINEST)) {
+			logUserLogin(req);
+		}
 
-  private Response login(Users user, String password, HttpServletRequest req) throws UserException,
-      SigningKeyNotFoundException, NoSuchAlgorithmException, DuplicateSigningKeyException {
-    RESTApiJsonResponse json = new RESTApiJsonResponse();
-    if (user.getBbcGroupCollection() == null || user.getBbcGroupCollection().isEmpty()) {
-      throw new UserException(RESTCodes.UserErrorCode.NO_ROLE_FOUND, Level.FINE,
-        null, RESTCodes.UserErrorCode.NO_ROLE_FOUND.getMessage());
-    }
-    
-    statusValidator.checkStatus(user.getStatus());
-    try {
-      req.login(user.getEmail(), password);
-      authController.registerLogin(user, req);
-    } catch (ServletException e) {
-      authController.registerAuthenticationFailure(user);
-      throw new UserException(RESTCodes.UserErrorCode.AUTHENTICATION_FAILURE, Level.FINE, null, e.getMessage(), e);
-    }
+		return response;
+	}
 
-    json.setSessionID(req.getSession().getId());
-    json.setData(user.getEmail());
-    // JWT claims will be added by JWTHelper
-    String token = jWTHelper.createToken(user, settings.getJWTIssuer(), null);
-    return Response.ok().header(AUTHORIZATION, Constants.BEARER + token).entity(json).build();
-  }
+	@GET
+	@Path("logout")
+	@Produces(MediaType.APPLICATION_JSON)
+	@JWTNotRequired
+	public Response logout(@Context HttpServletRequest req) throws UserException, InvalidationException {
+		logoutAndInvalidateSession(req);
+		return Response.ok().build();
+	}
 
-  private boolean isUserLoggedIn(String remoteUser, Users tokenUser, boolean validToken, Users user) {
-    if (user == null) {
-      return false;
-    }
-    boolean sessionLoggedIn = remoteUser != null && remoteUser.equals(user.getEmail());
-    boolean jwtLoggedIn = tokenUser != null && tokenUser.equals(user) && validToken;
-    return sessionLoggedIn && jwtLoggedIn;
-  }
+	@POST
+	@Path("/service")
+	@Produces(MediaType.APPLICATION_JSON)
+	@JWTNotRequired
+	public Response serviceLogin(@FormParam("email") String email, @FormParam("password") String password,
+								 @Context HttpServletRequest request) throws UserException, GeneralSecurityException, SigningKeyNotFoundException,
+			DuplicateSigningKeyException, HopsSecurityException {
+		if (Strings.isNullOrEmpty(email)) {
+			throw new IllegalArgumentException("Email cannot be null or empty");
+		}
+		if (Strings.isNullOrEmpty(password)) {
+			throw new IllegalArgumentException("Password cannot be null or empty");
+		}
+		Users user = userFacade.findByEmail(email);
+		if (user == null) {
+			throw new LoginException("Could not find registered user with email " + email);
+		}
+		if (!needLogin(request, user)) {
+			return Response.ok().build();
+		}
+		if (!userController.isUserInRole(user, "AGENT")) {
+			throw new HopsSecurityException(RESTCodes.SecurityErrorCode.REST_ACCESS_CONTROL, Level.FINE,
+					"Users are not allowed to access this endpoint, use auth/login instead",
+					"User " + user.getUsername() + " tried to login but they don't have AGENT role");
+		}
+		request.getSession();
 
-  private boolean isSomeoneElseLoggedIn(String remoteUser, Users tokenUser, boolean validToken, Users user) {
-    if (user == null) {
-      return false;
-    }
-    boolean sessionLoggedIn = remoteUser != null && !remoteUser.equals(user.getEmail());
-    boolean jwtLoggedIn = tokenUser != null && !tokenUser.equals(user) && validToken;
-    return sessionLoggedIn && jwtLoggedIn;
-  }
+		Collection roles = user.getBbcGroupCollection();
+		if (roles == null || roles.isEmpty()) {
+			throw new UserException(RESTCodes.UserErrorCode.NO_ROLE_FOUND, Level.FINE);
+		}
 
-  private boolean needLogin(HttpServletRequest req, Users user) {
-    String remoteUser = req.getRemoteUser();
-    Users tokenUser = jWTHelper.getUserPrincipal(req);
-    boolean validToken = jWTHelper.validToken(req, settings.getJWTIssuer());
+		statusValidator.checkStatus(user.getStatus());
+		String saltedPassword = authController.preCustomRealmLoginCheck(user, password, null);
 
-    if (isUserLoggedIn(remoteUser, tokenUser, validToken, user)) {
-      return false;
-    } else if (isSomeoneElseLoggedIn(remoteUser, tokenUser, validToken, user)) {
-      try {
-        logoutAndInvalidateSession(req);
-      } catch (InvalidationException | UserException ex) {
-        LOGGER.log(Level.SEVERE, null, ex.getMessage());
-      }
-    } else if (validToken || remoteUser != null) {
-      if (remoteUser != null) {
-        try {
-          logoutSession(req);
-        } catch (UserException ex) {
-          LOGGER.log(Level.SEVERE, null, ex);
-        }
-      }
-      if (validToken) {
-        try {
-          jWTHelper.invalidateToken(req);
-        } catch (InvalidationException ex) {
-          LOGGER.log(Level.SEVERE, null, ex);
-        }
-      }
-    }
-    return true;
-  }
+		try {
+			request.login(user.getEmail(), saltedPassword);
+		} catch (ServletException ex) {
+			authController.registerAuthenticationFailure(user);
+			throw new UserException(RESTCodes.UserErrorCode.AUTHENTICATION_FAILURE, Level.FINE, null, ex.getMessage(), ex);
+		}
 
-  private void logUserLogin(HttpServletRequest req) {
-    StringBuilder roles = new StringBuilder();
-    roles.append(req.isUserInRole("HOPS_USER") ? "{user" : "{");
-    roles.append(req.isUserInRole("HOPS_ADMIN") ? " admin" : "");
-    roles.append(req.isUserInRole("AGENT") ? " agent" : "");
-    roles.append(req.isUserInRole("CLUSTER_AGENT") ? " cluster-agent}" : "}");
-    LOGGER.log(Level.FINEST, "[/hopsworks-api] login:\n email: {0}\n session: {1}\n in roles: {2}", new Object[]{
-      req.getUserPrincipal(), req.getSession().getId(), roles});
-  }
+		// First generate the one-time tokens for renewal of master token
+		String renewalKeyName = jwtController.getServiceOneTimeJWTSigningKeyname(user.getUsername(),
+				request.getRemoteHost());
+		LocalDateTime masterExpiration = DateUtils.getNow().plus(settings.getServiceJWTLifetimeMS(), ChronoUnit.MILLIS);
+		LocalDateTime notBefore = jwtController.computeNotBefore4ServiceRenewalTokens(masterExpiration);
+		LocalDateTime expiresAt = notBefore.plus(settings.getServiceJWTLifetimeMS(), ChronoUnit.MILLIS);
+		List<String> userRoles = userController.getUserRoles(user);
+
+		JsonWebToken renewalJWTSpec = new JsonWebToken();
+		renewalJWTSpec.setSubject(user.getUsername());
+		renewalJWTSpec.setIssuer(settings.getJWTIssuer());
+		renewalJWTSpec.setAudience(JWTHelper.SERVICE_RENEW_JWT_AUDIENCE);
+		renewalJWTSpec.setKeyId(renewalKeyName);
+		renewalJWTSpec.setNotBefore(DateUtils.localDateTime2Date(notBefore));
+		renewalJWTSpec.setExpiresAt(DateUtils.localDateTime2Date(expiresAt));
+
+		Map<String, Object> claims = new HashMap<>(4);
+		claims.put(Constants.RENEWABLE, false);
+		claims.put(Constants.EXPIRY_LEEWAY, 3600);
+		claims.put(Constants.ROLES, userRoles.toArray(new String[1]));
+
+		String[] oneTimeRenewalTokens = jwtController.generateOneTimeTokens4ServiceJWTRenewal(renewalJWTSpec, claims,
+				settings.getJWTSigningKeyName());
+
+		// Then generate the master service token
+		try {
+			String signingKeyID = jwtController.getSignKeyID(oneTimeRenewalTokens[0]);
+			claims.clear();
+			// The rest of JWT claims will be added by JWTHelper
+			claims.put(Constants.RENEWABLE, false);
+			claims.put(Constants.SERVICE_JWT_RENEWAL_KEY_ID, signingKeyID);
+			String token = jWTHelper.createToken(user, settings.getJWTIssuer(), claims);
+
+			ServiceJWTDTO renewTokensResponse = new ServiceJWTDTO();
+			renewTokensResponse.setRenewTokens(oneTimeRenewalTokens);
+			return Response.ok().header(AUTHORIZATION, Constants.BEARER + token).entity(renewTokensResponse).build();
+		} catch (Exception ex) {
+			jwtController.deleteSigningKey(renewalKeyName);
+			throw ex;
+		}
+	}
+
+	@DELETE
+	@Path("/service")
+	@Produces(MediaType.APPLICATION_JSON)
+	@JWTNotRequired
+	public Response serviceLogout(@Context HttpServletRequest request) throws UserException, InvalidationException {
+		if (jWTHelper.validToken(request, settings.getJWTIssuer())) {
+			jwtController.invalidateServiceToken(jWTHelper.getAuthToken(request), settings.getJWTSigningKeyName());
+		}
+		logoutAndInvalidateSession(request);
+		return Response.ok().build();
+	}
+
+	@GET
+	@Path("isAdmin")
+	@Produces(MediaType.APPLICATION_JSON)
+	@JWTRequired(acceptedTokens={Audience.API}, allowedUserRoles={"HOPS_ADMIN", "HOPS_USER"})
+	public Response isAdmin(@Context SecurityContext sc) {
+		RESTApiJsonResponse json = new RESTApiJsonResponse();
+		json.setData(false);
+		if (sc.isUserInRole("HOPS_ADMIN")) {
+			json.setData(true);
+			return Response.ok(json).build();
+		}
+		return Response.ok(json).build();
+	}
+
+	@POST
+	@Path("register")
+	@Produces(MediaType.APPLICATION_JSON)
+	@Consumes(MediaType.APPLICATION_JSON)
+	@JWTNotRequired
+	public Response register(UserDTO newUser, @Context HttpServletRequest req) throws UserException {
+		byte[] qrCode;
+		RESTApiJsonResponse json = new RESTApiJsonResponse();
+		String linkUrl = FormatUtils.getUserURL(req) + settings.getEmailVerificationEndpoint();
+		qrCode = userController.registerUser(newUser, linkUrl);
+		if (authController.isTwoFactorEnabled() && newUser.isTwoFactor()) {
+			json.setQRCode(new String(Base64.encodeBase64(qrCode)));
+		} else {
+			json.setSuccessMessage("We registered your account request. Please validate you email and we will "
+					+ "review your account within 48 hours.");
+		}
+		return Response.ok(json).build();
+	}
+
+	@POST
+	@Path("createUser")
+	@Produces(MediaType.APPLICATION_JSON)
+	@Consumes(MediaType.APPLICATION_JSON)
+	public Response create(UserDTO newUser, @Context HttpServletRequest req) throws NoSuchAlgorithmException,
+			UserException {
+		UserDTO createdUser;
+		createdUser = userController.registerAndActivateUser(newUser, "m8ge4!o5");
+		return  noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).entity(createdUser).build();
+	}
+
+	@POST
+	@Path("/recover/password")
+	@Produces(MediaType.APPLICATION_JSON)
+	@JWTNotRequired
+	public Response recoverPassword(@FormParam("email") String email,
+									@Context HttpServletRequest req) throws UserException,
+			MessagingException {
+		RESTApiJsonResponse json = new RESTApiJsonResponse();
+		String reqUrl = FormatUtils.getUserURL(req);
+		userController.sendPasswordRecoveryEmail(email, reqUrl);
+		json.setSuccessMessage(ResponseMessages.PASSWORD_RESET);
+		return Response.ok(json).build();
+	}
+
+	@POST
+	@Path("/recover/qrCode")
+	@Produces(MediaType.APPLICATION_JSON)
+	@JWTNotRequired
+	public Response recoverQRCode(@FormParam("email") String email, @FormParam("password") String password,
+								  @Context HttpServletRequest req) throws UserException, MessagingException {
+		RESTApiJsonResponse json = new RESTApiJsonResponse();
+		String reqUrl = FormatUtils.getUserURL(req);
+		userController.sendQRRecoveryEmail(email, password, reqUrl);
+		json.setSuccessMessage(ResponseMessages.QR_CODE_RESET);
+		return Response.ok(json).build();
+	}
+
+	@POST
+	@Path("/reset/validate")
+	@Produces(MediaType.APPLICATION_JSON)
+	@JWTNotRequired
+	public Response validatePasswordRecovery(@FormParam("key") String key, @Context HttpServletRequest req)
+			throws UserException {
+		userController.checkRecoveryKey(key);
+		return Response.ok().build();
+	}
+
+	@POST
+	@Path("/reset/password")
+	@Produces(MediaType.APPLICATION_JSON)
+	@JWTNotRequired
+	public Response passwordRecovery(@FormParam("key") String key, @FormParam("newPassword") String newPassword,
+									 @FormParam("confirmPassword") String confirmPassword, @Context HttpServletRequest req) throws UserException,
+			MessagingException {
+		RESTApiJsonResponse json = new RESTApiJsonResponse();
+		userController.changePassword(key, newPassword, confirmPassword);
+		json.setSuccessMessage(ResponseMessages.PASSWORD_CHANGED);
+		return Response.ok(json).build();
+	}
+
+	@POST
+	@Path("/reset/qrCode")
+	@Produces(MediaType.APPLICATION_JSON)
+	@JWTNotRequired
+	public Response qrCodeRecovery(@FormParam("key") String key, @Context HttpServletRequest req) throws UserException,
+			MessagingException {
+		RESTApiJsonResponse json = new RESTApiJsonResponse();
+		json.setQRCode(userController.recoverQRCode(key));
+		return Response.ok(json).build();
+	}
+
+	@POST
+	@Path("/validate/email")
+	@Produces(MediaType.APPLICATION_JSON)
+	@JWTNotRequired
+	public Response validateUserMail(@FormParam("key") String key, @Context HttpServletRequest req) throws UserException {
+		authController.validateEmail(key);
+		return Response.ok().build();
+	}
+
+	private void logoutAndInvalidateSession(HttpServletRequest req) throws UserException, InvalidationException {
+		jWTHelper.invalidateToken(req);//invalidate iff req contains jwt token
+		logoutSession(req);
+	}
+
+	private void logoutSession(HttpServletRequest req) throws UserException {
+		Users user = userFacade.findByEmail(req.getRemoteUser());
+		try {
+			req.getSession().invalidate();
+			req.logout();
+			if (user != null) {
+				authController.registerLogout(user);
+			}
+		} catch (ServletException e) {
+			//accountAuditFacade.registerLoginInfo(user, UserAuditActions.LOGOUT.name(), UserAuditActions.FAILED.name(), req);
+			throw new UserException(RESTCodes.UserErrorCode.LOGOUT_FAILURE, Level.SEVERE, null, e.getMessage(), e);
+		}
+	}
+
+	private Response login(Users user, String password, HttpServletRequest req) throws UserException,
+			SigningKeyNotFoundException, NoSuchAlgorithmException, DuplicateSigningKeyException {
+		RESTApiJsonResponse json = new RESTApiJsonResponse();
+		if (user.getBbcGroupCollection() == null || user.getBbcGroupCollection().isEmpty()) {
+			throw new UserException(RESTCodes.UserErrorCode.NO_ROLE_FOUND, Level.FINE,
+					null, RESTCodes.UserErrorCode.NO_ROLE_FOUND.getMessage());
+		}
+
+		statusValidator.checkStatus(user.getStatus());
+		try {
+			if(password!=null)
+				req.login(user.getEmail(), password);
+			authController.registerLogin(user, req);
+		} catch (ServletException e) {
+			authController.registerAuthenticationFailure(user);
+			throw new UserException(RESTCodes.UserErrorCode.AUTHENTICATION_FAILURE, Level.FINE, null, e.getMessage(), e);
+		}
+
+		json.setSessionID(req.getSession().getId());
+		json.setData(user.getEmail());
+		// JWT claims will be added by JWTHelper
+		String token = jWTHelper.createToken(user, settings.getJWTIssuer(), null);
+		return Response.ok().header(AUTHORIZATION, Constants.BEARER + token).entity(json).build();
+	}
+
+	private boolean isUserLoggedIn(String remoteUser, Users tokenUser, boolean validToken, Users user) {
+		if (user == null) {
+			return false;
+		}
+		boolean sessionLoggedIn = remoteUser != null && remoteUser.equals(user.getEmail());
+		boolean jwtLoggedIn = tokenUser != null && tokenUser.equals(user) && validToken;
+		return sessionLoggedIn && jwtLoggedIn;
+	}
+
+	private boolean isSomeoneElseLoggedIn(String remoteUser, Users tokenUser, boolean validToken, Users user) {
+		if (user == null) {
+			return false;
+		}
+		boolean sessionLoggedIn = remoteUser != null && !remoteUser.equals(user.getEmail());
+		boolean jwtLoggedIn = tokenUser != null && !tokenUser.equals(user) && validToken;
+		return sessionLoggedIn && jwtLoggedIn;
+	}
+
+	private boolean needLogin(HttpServletRequest req, Users user) {
+		String remoteUser = req.getRemoteUser();
+		Users tokenUser = jWTHelper.getUserPrincipal(req);
+		boolean validToken = jWTHelper.validToken(req, settings.getJWTIssuer());
+
+		if (isUserLoggedIn(remoteUser, tokenUser, validToken, user)) {
+			return false;
+		} else if (isSomeoneElseLoggedIn(remoteUser, tokenUser, validToken, user)) {
+			try {
+				logoutAndInvalidateSession(req);
+			} catch (InvalidationException | UserException ex) {
+				LOGGER.log(Level.SEVERE, null, ex.getMessage());
+			}
+		} else if (validToken || remoteUser != null) {
+			if (remoteUser != null) {
+				try {
+					logoutSession(req);
+				} catch (UserException ex) {
+					LOGGER.log(Level.SEVERE, null, ex);
+				}
+			}
+			if (validToken) {
+				try {
+					jWTHelper.invalidateToken(req);
+				} catch (InvalidationException ex) {
+					LOGGER.log(Level.SEVERE, null, ex);
+				}
+			}
+		}
+		return true;
+	}
+
+	private void logUserLogin(HttpServletRequest req) {
+		StringBuilder roles = new StringBuilder();
+		roles.append(req.isUserInRole("HOPS_USER") ? "{user" : "{");
+		roles.append(req.isUserInRole("HOPS_ADMIN") ? " admin" : "");
+		roles.append(req.isUserInRole("AGENT") ? " agent" : "");
+		roles.append(req.isUserInRole("CLUSTER_AGENT") ? " cluster-agent}" : "}");
+		LOGGER.log(Level.FINEST, "[/giotto-api] login:\n email: {0}\n session: {1}\n in roles: {2}", new Object[]{
+				req.getUserPrincipal(), req.getSession().getId(), roles});
+	}
 }

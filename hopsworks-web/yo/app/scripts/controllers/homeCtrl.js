@@ -234,4 +234,8 @@ angular.module('hopsWorksApp')
               $location.replace();
               self.tourService.resetTours();
             };
+                        
+            self.projectCardClick = function (id, section) {
+              $location.path('/project/' + id + '/' + section);
+            };
           }]);

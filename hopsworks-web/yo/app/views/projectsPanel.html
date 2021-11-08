@@ -13,76 +13,123 @@
   ~ You should have received a copy of the GNU Affero General Public License along with this program.
   ~ If not, see <https://www.gnu.org/licenses/>.
   -->
-<div class="pull-right" ng-cloak="">
-    <div class="pull-left" style="min-width: 330px; max-width: 330px">
-        <span class="list-group-item active">
-          <span class="badge pull-left" style="margin-right: 10px;">{{homeCtrl.projects.length}}</span> Projects
-          <button class="btn btn-success pull-right" id="buttonCreateProject"
-                  style="height: 43px;margin-right: -16px;margin-top: -11px;width: 70px; border-radius: 0px;"
-                  ng-click="homeCtrl.newProject()">
-            <i class="fa fa-plus-circle fa-lg"></i>
-            <span style="margin-left:3px;">New</span>
-          </button>
-        </span>
-        <div class="list-group-item" style="background-color: #f5f5f5;">
-            <div class="input-group">
-                <div class="input-group-btn">
-                    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown"
-                            aria-haspopup="true" aria-expanded="false">
-                        <span id="search_concept">Sort by</span>
-                        <span class="caret"></span>
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="" ng-click="homeCtrl.sortBy='-project.name'"><i
+  <div class="" ng-cloak="" style="width:100%; padding-bottom: 100px">
+    <span class="list-group-item active flex-row-container">
+        <span class="badge home-badge" style="margin-right: 10px;">{{homeCtrl.projects.length}} Projects</span>
+        <div class="input-group input-group-sm projects-search">
+            <div class="input-group-btn">
+                <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+                    <span id="search_concept">Sort by</span>
+                    <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="" ng-click="homeCtrl.sortBy='-project.name'"><i
                                 class="pull-right fa fa-sort-alpha-desc text-muted" aria-hidden="true"></i>Name Desc</a>
-                        </li>
-                        <li><a class="dropdown-item" href="" ng-click="homeCtrl.sortBy='project.name'"><i
+                    </li>
+                    <li><a class="dropdown-item" href="" ng-click="homeCtrl.sortBy='project.name'"><i
                                 class="pull-right fa fa-sort-alpha-asc text-muted" aria-hidden="true"></i>Name Asc</a>
-                        </li>
-                        <li><a class="dropdown-item" href="" ng-click="homeCtrl.sortBy='project.created'"><i
+                    </li>
+                    <li><a class="dropdown-item" href="" ng-click="homeCtrl.sortBy='project.created'"><i
                                 class="pull-right fa fa-sort-numeric-desc text-muted" aria-hidden="true"></i>Created
                             Desc</a></li>
-                        <li><a class="dropdown-item" href="" ng-click="homeCtrl.sortBy='-project.created'"><i
-                                class="pull-right fa fa-sort-numeric-asc text-muted" aria-hidden="true"></i>Created Asc</a>
-                        </li>
-                    </ul>
-                </div>
-                <input type="hidden" name="search_param" value="all" id="search_param">
-                <input type="text" class="form-control pull-left" ng-model="searchProject" name="x"
-                       placeholder="Find project...">
-                <span class="input-group-btn">
-              <button class="btn btn-default" type="button" style="height:34px;">
-                <i class="fa fa-search" aria-hidden="true"></i>
-              </button>
-            </span>
+                    <li><a class="dropdown-item" href="" ng-click="homeCtrl.sortBy='-project.created'"><i
+                                class="pull-right fa fa-sort-numeric-asc text-muted" aria-hidden="true"></i>Created
+                            Asc</a>
+                    </li>
+                </ul>
+            </div>
+            <input type="hidden" name="search_param" value="all" id="search_param">
+            <input type="text" class="form-control pull-left" ng-model="searchProject" name="x"
+                placeholder="Find project...">
+            <div class="input-group-btn">
+                <button class="btn btn-default btn-sm" type="button">
+                    <i class="fa fa-search" aria-hidden="true"></i>
+                </button>
             </div>
         </div>
 
-        <div ng-repeat="project in homeCtrl.projects| filter: searchProject:false | orderBy: homeCtrl.sortBy | startFrom:(homeCtrl.currentPageProjects - 1) * homeCtrl.pageSizeProjects | limitTo:homeCtrl.pageSizeProjects">
-            <a ng-class="{disabled: project.project.archived, disabled: homeCtrl.working[project.project.id]}"
-               href="#!/project/{{project.project.id}}"
-               class="list-group-item"
-               context-menu
-               data-target="menu-{{$index}}"
-               id="{{project.project.name}}"
-               title="{{project.project.name.length > 28 ? project.project.name:''}}">
-                <div ng-if="project.teamRole === 'Data scientist'">
-                    <i style="width: 20px; margin-right: 10px; font-size: 20px;" class="fa fa-lock fa-2 pull-left"></i>
-                </div>
-                <div ng-if="project.teamRole === 'Data owner'">
-                    <i style="width: 20px; margin-right: 10px; font-size: 20px;"
-                       class="fa fa-unlock fa-2 pull-left"></i>
-                </div>
-                <div ng-if="project.project.archived">
-                    <i style="width: 20px; margin-right: 10px; font-size: 20px; color: #9d261d"
-                       class="fa fa-ban fa-2 pull-left"></i>
-                </div>
-                {{ project.project.name | limitTo: 28 }}{{project.project.name.length > 28 ? '...' : ''}}
-                <span ng-if="project.project.name.substr(0, 5) === 'demo_'"
-                      class="glyphicon glyphicon-play-circle pull-right" style="margin-top: 5px;"></span>
-                <i id="project_working" class="fa fa-cog fa-spin fa-2x  fa-fw pull-right"
-                   ng-show="homeCtrl.working[project.project.id]"></i>
-            </a>
+        <!-- <button class="btn btn-success pull-right" id="buttonCreateProject"
+                style="height: 43px;margin-right: -16px;margin-top: -11px;width: 70px; border-radius: 0px;"
+                ng-click="homeCtrl.newProject()">
+        <i class="fa fa-plus-circle fa-lg"></i>
+        <span style="margin-left:3px;">New</span>
+        </button> -->
+    </span>
+    <div class="flex-row-container home-projects-container">
+        <div ng-click="homeCtrl.newProject()" class="home-projects-item home-projects-add-button"
+            id="buttonCreateProject">
+            <div class="home-projects-item-title add-project">
+                <i class="fa fa-plus fa-5x"></i>
+            </div>
+            <div class="home-projects-item-body">
+                <p>New project</p>
+            </div>
+        </div>
+        <div class="list-group-item home-projects-item"
+            ng-repeat="project in homeCtrl.projects| filter: searchProject:false | startFrom:(homeCtrl.currentPageProjects - 1) * homeCtrl.pageSizeProjects | limitTo:homeCtrl.pageSizeProjects | orderBy: homeCtrl.sortBy">
+                <div ng-class="{disabled: project.project.archived, disabled: homeCtrl.working[project.project.id]}"
+                    context-menu
+                    data-target="menu-{{$index}}"
+                    id="{{project.project.name.substr(0, 5) === 'demo_'}}">
+                    <div ng-click="homeCtrl.projectCardClick(project.project.id,'')" >
+                        <div class="home-projects-item-title">
+                            <div>
+                                {{ project.project.name | limitTo: 28 }}{{project.project.name.length > 28 ? '...' : ''}}
+                            </div>
+                            <div ng-if="project.teamRole === 'Data scientist'">
+                                <i style="width: 20px; margin-right: 10px; font-size: 20px;"
+                                    class="fa fa-lock fa-2 pull-left"></i>
+                            </div>
+                            <div ng-if="project.teamRole === 'Data owner'">
+                                <i style="width: 20px; margin-right: 10px; font-size: 20px;"
+                                    class="fa fa-unlock fa-2 pull-left"></i>
+                            </div>
+                            <div ng-if="project.project.archived">
+                                <i style="width: 20px; margin-right: 10px; font-size: 20px; color: #9d261d"
+                                    class="fa fa-ban fa-2 pull-left"></i>
+                            </div>
+                            <!-- <span ng-if="project.project.name.substr(0, 5) === 'demo_'"
+                                class="glyphicon glyphicon-play-circle pull-right" style="margin-top: 5px;"></span> -->
+                        </div>
+                        <div class="home-projects-item-body">
+                            <div ng-if="!!project.project.description">
+                                {{ project.project.description }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="home-projects-item-footer">
+                        <div class="home-projects-item-author">
+                            {{project.project.owner.email}}
+                        </div>
+                        <div class="home-projects-item-author">
+                            {{ project.project.created | formatDate | limitTo: 16 }}
+                        </div>
+                        <div class="home-projects-item-action">
+                            <div class="pull-right action-dot"></div>
+                            <div class="pull-right action-dot"></div>
+                            <div class="pull-right action-dot"></div>
+                            <div class="pull-right action-dot"></div>
+                            <div class="project-animated">
+                                <img class="pull-right project-action" src="images/settings.svg" ng-click="homeCtrl.projectCardClick(project.project.id,'settings')" >
+                                <img class="pull-right project-action" src="images/datasets.svg" ng-click="homeCtrl.projectCardClick(project.project.id,'datasets')" >
+                                <img class="pull-right project-action" src="images/jobs.svg" ng-click="homeCtrl.projectCardClick(project.project.id,'jobs')" >
+                                <img class="pull-right project-action" src="images/audit.svg" ng-click="homeCtrl.projectCardClick(project.project.id,'')" >
+                            </div>
+                        </div>
+                    </div>
+            </div>
+            <i class="fa fa-cog fa-spin fa-2x  fa-fw pull-right" ng-show="homeCtrl.working[project.project.id]"></i>
+            <div uib-dropdown class="dropdown position-fixed" id="menu-{{$index}}">
+                <ul uib-dropdown-menu class="dropdown-amore">
+                    <li>
+                        <a class="pointer" role="menuitem" tabindex="2"
+                            ng-click="homeCtrl.deleteProjectAndDatasets(project.project.id)">
+                            <span><i class="fa fa-trash"></i>
+                                Remove and delete DataSets </span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
         </div>
     </div>
     <ul uib-pager total-items="homeCtrl.totalItemsProjects" ng-model="homeCtrl.currentPageProjects"></ul>

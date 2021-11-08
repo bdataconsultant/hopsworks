@@ -53,10 +53,11 @@
   <version>2.3.0</version>
   <packaging>war</packaging>
   <description>Hopsworks web app</description>
-  <name>hopsworks-web</name>
+  <name>giotto-web</name>
 
   <properties>
     <maven.deploy.skip>true</maven.deploy.skip>
+    <targetCustomer>DEFAULT</targetCustomer>
   </properties>
 
   <dependencies>
@@ -69,22 +70,83 @@
   </dependencies>
 
   <build>
-    <finalName>hopsworks-web</finalName>
+    <finalName>giotto-web</finalName>
     <plugins>
-      <!--yeoman-maven-plugin -->
+
       <plugin>
-        <groupId>com.github.trecloux</groupId>
-        <artifactId>yeoman-maven-plugin</artifactId>
-        <version>0.5</version>
+        <groupId>com.github.eirslett</groupId>
+        <artifactId>frontend-maven-plugin</artifactId>
+        <version>1.10.0</version>
         <executions>
           <execution>
+            <phase>validate</phase>
+            <id>install node and npm</id>
             <goals>
-              <goal>build</goal>
+              <goal>install-node-and-npm</goal>
             </goals>
+            <configuration>
+              <nodeVersion>v10.15.2</nodeVersion>
+              <npmVersion>6.4.1</npmVersion>
+              <workingDirectory>yo</workingDirectory>
+              <skip>${!deployWeb}</skip>
+            </configuration>
+          </execution>
+          <execution>
+            <id>npm install</id>
+            <phase>initialize</phase>
+            <goals>
+              <goal>npm</goal>
+            </goals>
+            <configuration>
+              <arguments>install</arguments>
+              <workingDirectory>yo</workingDirectory>
+            </configuration>
+          </execution>
+          <execution>
+            <id>bower install</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>bower</goal>
+            </goals>
+            <configuration>
+              <arguments>install</arguments>
+              <workingDirectory>yo</workingDirectory>
+            </configuration>
+          </execution>
+          <execution>
+            <id>grunt build</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>grunt</goal>
+            </goals>
+            <configuration>
+              <arguments>
+                build --targetCustomer=${targetCustomer}
+              </arguments>
+              <workingDirectory>yo</workingDirectory>
+            </configuration>
           </execution>
         </executions>
       </plugin>
+
+      <!--yeoman-maven-plugin -->
+      <!--<plugin>-->
+        <!--<groupId>com.github.trecloux</groupId>-->
+        <!--<artifactId>yeoman-maven-plugin</artifactId>-->
+        <!--<version>0.5</version>-->
+        <!--<configuration>-->
+          <!--<gruntBuildArgs>build &#45;&#45;targetCustomer=${targetCustomer}</gruntBuildArgs>-->
+        <!--</configuration>-->
+        <!--<executions>-->
+          <!--<execution>-->
+            <!--<goals>-->
+              <!--<goal>build</goal>-->
+            <!--</goals>-->
+          <!--</execution>-->
+        <!--</executions>-->
+      <!--</plugin>-->
       <!--end yeoman-maven-plugin -->
+      
       <!--maven war plugin -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -147,6 +209,31 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <groupId>pl.project13.maven</groupId>
+        <artifactId>git-commit-id-plugin</artifactId>
+        <version>4.0.0</version>
+        <executions>
+            <execution>
+                <id>get-the-git-infos</id>
+                <goals>
+                    <goal>revision</goal>
+                </goals>
+                <phase>initialize</phase>
+            </execution>
+        </executions>
+        <configuration>
+            <generateGitPropertiesFile>true</generateGitPropertiesFile>
+            <generateGitPropertiesFilename>${project.build.directory}/giotto-web/META-INF/git.properties</generateGitPropertiesFilename>
+            <includeOnlyProperties>
+                <includeOnlyProperty>^git.build.(time)$</includeOnlyProperty>
+                <includeOnlyProperty>^git.branch$</includeOnlyProperty>
+                <includeOnlyProperty>^git.commit.id.(full)$</includeOnlyProperty>
+                <includeOnlyProperty>^git.dirty$</includeOnlyProperty>
+            </includeOnlyProperties>
+            <commitIdGenerationMode>full</commitIdGenerationMode>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
   <profiles>
@@ -193,6 +280,61 @@
                 </webResource>
               </webResources>
             </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>deploy-web</id>
+      <activation>
+        <property>
+          <name>deployWeb</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <!-- Doesn't work if the deployment client and the server are on different OS types.
+          https://codehaus-cargo.atlassian.net/browse/CARGO-1335 -->
+          <plugin>
+            <groupId>org.codehaus.cargo</groupId>
+            <artifactId>cargo-maven2-plugin</artifactId>
+            <version>${cargo.version}</version>
+            <executions>
+              <execution>
+                <id>deploy-web</id>
+                <phase>install</phase>
+                <goals>
+                  <goal>redeploy</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <container>
+                <containerId>glassfish4x</containerId>
+                <type>remote</type>
+                <log>target/cargo.log</log>
+                <logLevel>debug</logLevel>
+              </container>
+              <configuration>
+                <type>runtime</type>
+                <properties>
+                  <cargo.hostname>${glassfish.hostname}</cargo.hostname>
+                  <cargo.remote.username>${glassfish.admin}</cargo.remote.username>
+                  <cargo.remote.password>${glassfish.passwd}</cargo.remote.password>
+                  <cargo.servlet.port>${glassfish.port}</cargo.servlet.port>
+                  <cargo.glassfish.domain.name>${glassfish.domain}</cargo.glassfish.domain.name>
+                  <cargo.runtime.args>force=true</cargo.runtime.args>
+                  <cargo.protocol>https</cargo.protocol>
+                </properties>
+              </configuration>
+            </configuration>
+            <dependencies>
+              <dependency>
+                <groupId>org.glassfish.main.deployment</groupId>
+                <artifactId>deployment-client</artifactId>
+                <version>${glassfish.version}</version>
+              </dependency>
+            </dependencies>
           </plugin>
         </plugins>
       </build>

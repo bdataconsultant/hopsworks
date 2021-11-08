@@ -36,7 +36,7 @@
   border: 0;
   border-radius: 0;
   color: #fff;
-  background: #000;
+  background: #3578B1;
 }
 
 
@@ -51,7 +51,7 @@
 
 .navbar2 .navbar2-brand {
   font-size: inherit;
-  height: 55px;
+  height: 50px;
   line-height: 100%;
 }
 
@@ -235,6 +235,10 @@
 
 #filemgr .dropdown-menu {
   font-size: 14px;
+}
+
+.menu-item:hover{
+  cursor: pointer;
 }
 
 #filemgr .dropdown-menu > li > a {

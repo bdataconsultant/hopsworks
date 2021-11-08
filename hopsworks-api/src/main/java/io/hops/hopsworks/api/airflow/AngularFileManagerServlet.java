@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.net.URI;
+import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
 import java.text.SimpleDateFormat;
@@ -370,7 +371,11 @@ public class AngularFileManagerServlet extends HttpServlet {
         }
       }
 //            JSONObject params = JSONValue.parse(sb.toString(), JSONObject.class);
-      JSONObject params = new JSONObject(sb.toString());
+      String body = sb.toString();
+      if(body != null)
+    	  body = URLDecoder.decode(body);
+      
+      JSONObject params = new JSONObject(body);
       Mode mode = Mode.valueOf((String) params.get("action"));
       switch (mode) {
         case createFolder:

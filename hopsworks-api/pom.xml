@@ -228,7 +228,7 @@
     </dependency>
   </dependencies>
   <build>
-    <finalName>hopsworks-api</finalName>
+    <finalName>giotto-api</finalName>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

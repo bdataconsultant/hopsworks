@@ -374,4 +374,14 @@ public class ProjectTeamFacade extends AbstractFacade<ProjectTeam> {
     }
   }
 
+  public List<Project> findProjectsByUser(String email) {
+    TypedQuery<Project> q = em.createNamedQuery(
+            "ProjectTeam.findAllProjectsByUser", Project.class);
+    q.setParameter("email", email);
+    try {
+      return q.getResultList();
+    } catch (NoResultException e) {
+      return null;
+    }
+  }
 }

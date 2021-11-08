@@ -475,7 +475,7 @@
       </div>
     </div>
     <!-- /#wrapper -->
-  <tour class="ng-scope" step="projectCtrl.tourService.currentStep_TourThree"
+  <!-- <tour class="ng-scope" step="projectCtrl.tourService.currentStep_TourThree"
         post-tour="closeTour()"
         ng-if="(projectCtrl.loadedView && projectCtrl.tourService.activeTour === 'spark')
           && projectCtrl.tourService.showTips
@@ -548,6 +548,7 @@
               tourtip-next-label="Finish the Tour"
               on-proceed="closeTour(); projectCtrl.tourService.resetTours();projectCtrl.disableTours();"
       ></virtual-step>
-    </tour>
+    </tour> -->
   </div>
+  <div ng-if="mainCtrl.showPonFooter" ng-include="'views/ponFooter.html'"></div>
 </div>

@@ -38,36 +38,31 @@
   -->
 
 <div ng-cloak="">
-    <div class="alert alert-warning" ng-if="loginCtrl.announcement !== ''">
+    <!-- <div class="alert alert-warning" ng-if="loginCtrl.announcement !== ''">
         <p align="center"><i class="fa fa-bullhorn"></i> <strong>Announcement!</strong> {{loginCtrl.announcement}}</p>
-    </div>
+    </div> -->
     <div class="container content-wrapper" ng-if="!loginCtrl.secondFactorRequired" style="border-top:none">
         <div class="row">
             <div class="center-block" style="width: 320px;">
                 <div class="panel">
                     <div class="panel-heading text-center" style="padding: 0px 0px;">
-                        <img alt="hopsworks icon" height="72" src="images/hopsworks-logo/Hopsworkslogowhite.svg">
+                        <img alt="hopsworks icon" height="72" src="images/giotto-favi.png">
                     </div>
                     <div class="panel-body">
-                        <p class="text-center">SIGN IN TO CONTINUE.</p>
+                        <!-- <p class="text-center">SIGN IN TO CONTINUE.</p> -->
                         <form name="loginForm" ng-submit="loginCtrl.login()" role="form">
                             <div class="form-group has-feedback">
                                 <input id="login_inputEmail" class="form-control" required autofocus
-                                       ng-model="loginCtrl.user.email"
-                                       autocomplete="on"
-                                       placeholder="Email"
-                                       name="user_email">
+                                    ng-model="loginCtrl.user.email" autocomplete="on" placeholder="Email"
+                                    name="user_email">
                                 <span class="fa fa-envelope form-control-feedback text-muted"></span>
                             </div>
                             <div class="form-group has-feedback">
                                 <input id="login_inputPassword" class="form-control" required
-                                       ng-model="loginCtrl.user.password"
-                                       autocomplete="off"
-                                       placeholder="Password"
-                                       name="user_password"
-                                       type="password" show-hide-password/>
+                                    ng-model="loginCtrl.user.password" autocomplete="off" placeholder="Password"
+                                    name="user_password" type="password" show-hide-password />
                             </div>
-                            <div class="clearfix">
+                            <!-- <div class="clearfix">
                                 <div class="pull-left">
                                     <a class="text-muted" href="https://community.hopsworks.ai">Need
                                         support?</a>
@@ -75,17 +70,17 @@
                                 <div class="pull-right">
                                     <a class="text-muted" href="#!/recover">Login help?</a>
                                 </div>
-                            </div>
+                            </div> -->
                             <button class="btn btn-block btn-primary mt-lg" type="submit"
-                                    data-ng-disabled="loginCtrl.working">Login
-                            </button>
+                                data-ng-disabled="loginCtrl.working" style="background-color:#337ab7">Login</button>
                         </form>
                         <div style="text-align: center" class="text-muted" ng-show="loginCtrl.working">
                             <i class="fa fa-spinner fa-spin"></i>
                             Logging you in
                         </div>
                         <div class="alert alert-danger" role="alert" ng-show="loginCtrl.errorMessage">
-                            <button type="button" class="close" aria-label="Close" ng-click="loginCtrl.errorMessage = ''">
+                            <button type="button" class="close" aria-label="Close"
+                                ng-click="loginCtrl.errorMessage = ''">
                                 <span aria-hidden="true">&times;</span>
                             </button>
                             {{loginCtrl.errorMessage}}
@@ -94,15 +89,20 @@
                         <a ng-if="loginCtrl.ldapEnabled" class="btn btn-block btn-default" href="#!/ldapLogin">
                             Login with LDAP
                         </a>
-                        <button ng-if="loginCtrl.krbEnabled" class="btn btn-block btn-default" ng-click="loginCtrl.krbLogin()">
+                        <button ng-if="loginCtrl.krbEnabled" class="btn btn-block btn-default"
+                            ng-click="loginCtrl.krbLogin()">
                             Login with Kerberos
                         </button>
-                        <button ng-repeat="openIdProvider in loginCtrl.openIdProviders" class="btn btn-block btn-default"
-                                ng-click="loginCtrl.oauthLogin(openIdProvider.providerName)">
-                            <img style="padding-right: 10px;" alt="" ng-src="{{openIdProvider.providerLogoURI}}"/>{{openIdProvider.providerDisplayName}}
+                        <button ng-repeat="openIdProvider in loginCtrl.openIdProviders"
+                            class="btn btn-block btn-default"
+                            ng-click="loginCtrl.oauthLogin(openIdProvider.providerName)">
+                            <img style="padding-right: 10px;" alt=""
+                                ng-src="{{openIdProvider.providerLogoURI}}" />{{openIdProvider.providerDisplayName}}
                         </button>
-                        <div class="alert alert-danger" role="alert" style="margin-top: 5px" ng-if="oauthLoginErrorMsg !== undefined">
-                            <button type="button" class="close" aria-label="Close" ng-click="loginCtrl.resetOAuthLoginErrorMsg()">
+                        <div class="alert alert-danger" role="alert" style="margin-top: 5px"
+                            ng-if="oauthLoginErrorMsg !== undefined">
+                            <button type="button" class="close" aria-label="Close"
+                                ng-click="loginCtrl.resetOAuthLoginErrorMsg()">
                                 <span aria-hidden="true">&times;</span>
                             </button>{{oauthLoginErrorMsg}}
                         </div>
@@ -115,7 +115,7 @@
     </div>
 
     <div id="second-factor-auth" class="container content-wrapper" ng-if="loginCtrl.secondFactorRequired"
-         style="border-top:none">
+        style="border-top:none">
         <div class="row">
             <div class="center-block" style="width: 320px;">
                 <div class="panel">
@@ -138,13 +138,11 @@
                         <form name="loginForm" ng-submit="loginCtrl.login()" role="form">
                             <div class="form-group">
                                 <input id="login_inputOTP" class="form-control" type="password" required
-                                       ng-model="loginCtrl.user.otp"
-                                       autocomplete="off"
-                                       placeholder="Enter code"
-                                       name="otp_password">
+                                    ng-model="loginCtrl.user.otp" autocomplete="off" placeholder="Enter code"
+                                    name="otp_password">
                             </div>
                             <button class="btn btn-block btn-primary mt-lg" type="submit"
-                                    data-ng-disabled="loginCtrl.working">Verify
+                                data-ng-disabled="loginCtrl.working">Verify
                             </button>
                         </form>
                         <div style="text-align: center" class="text-muted" ng-show="loginCtrl.working">
@@ -153,7 +151,7 @@
                         </div>
                         <div class="alert alert-danger" role="alert" ng-if="loginCtrl.errorMessage">
                             <button id="second-factor-error-close" type="button" class="close" aria-label="Close"
-                                    ng-click="loginCtrl.errorMessage = ''">
+                                ng-click="loginCtrl.errorMessage = ''">
                                 <span aria-hidden="true">&times;</span>
                             </button>
                             <p id="second-factor-error">{{loginCtrl.errorMessage}}</p>
@@ -163,7 +161,7 @@
 
             </div>
         </div>
-
+        <!-- 
         <tour class="ng-scope" step="loginCtrl.tourService.currentStep_TourOne" post-tour="closeTour()"
               ng-if="loginCtrl.firstTime">
             <virtual-step
@@ -177,6 +175,6 @@
                     tourtip-offset-vertical="-17"
                     tourtip-offset-horizontal="13"
             ></virtual-step>
-        </tour>
+        </tour> -->
     </div>
 </div>
