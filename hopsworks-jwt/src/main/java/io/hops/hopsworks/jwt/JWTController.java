@@ -212,7 +212,9 @@ public class JWTController {
    */
   public int getExpLeewayClaim(DecodedJWT jwt) {
     Claim expLeewayClaim = jwt.getClaim(EXPIRY_LEEWAY);
-    return expLeewayClaim == null || expLeewayClaim.getClass().isInstance(NullClaim.class) ?
+
+    // If the Claim wasn't specified in the Payload, getClaim returns a NullClaim
+    return expLeewayClaim == null || expLeewayClaim.isNull() ?
             DEFAULT_EXPIRY_LEEWAY : getExpLeewayOrDefault(expLeewayClaim.asInt());
   }
   
