@@ -19,6 +19,7 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTCreator;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.impl.NullClaim;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import io.hops.hopsworks.persistence.entity.jwt.InvalidJwt;
@@ -211,7 +212,8 @@ public class JWTController {
    */
   public int getExpLeewayClaim(DecodedJWT jwt) {
     Claim expLeewayClaim = jwt.getClaim(EXPIRY_LEEWAY);
-    return expLeewayClaim == null? DEFAULT_EXPIRY_LEEWAY : getExpLeewayOrDefault(expLeewayClaim.asInt());
+    return expLeewayClaim == null || expLeewayClaim.getClass().isInstance(NullClaim.class) ?
+            DEFAULT_EXPIRY_LEEWAY : getExpLeewayOrDefault(expLeewayClaim.asInt());
   }
   
   /**
