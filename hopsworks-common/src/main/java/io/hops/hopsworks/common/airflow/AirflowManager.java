@@ -157,8 +157,9 @@ public class AirflowManager {
       LOG.log(Level.WARNING, "Failed to recover material for Airflow sessions", ex);
     }
     
-    long interval = Math.max(1000L, settings.getJWTExpLeewaySec() * 1000 / 2);
-    timerService.createIntervalTimer(10L, interval, new TimerConfig("Airflow JWT renewal", false));
+    //long interval = Math.max(1000L, settings.getJWTExpLeewaySec() * 1000 / 2);
+    long interval = 300000L;
+    timerService.createIntervalTimer(interval, interval, new TimerConfig("Airflow JWT renewal", false));
   }
   
   /**
@@ -361,10 +362,10 @@ public class AirflowManager {
   @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
   @Timeout
   public void monitorSecurityMaterial(Timer timer) {
+    LOG.log(Level.FINE, "Monitor security material...");
     LocalDateTime now = DateUtils.getNow();
     // Clean unused token files and X.509 certificates
     cleanStaleSecurityMaterial();
-  
     // Renew them
     Set<AirflowJWT> newTokens2Add = new HashSet<>();
     Iterator<AirflowJWT> airflowJWTIt = airflowJWTs.iterator();
@@ -478,12 +479,12 @@ public class AirflowManager {
           certificateMaterializer.removeCertificatesLocalCustomDir(nextElement.username, nextElement.projectName,
               getProjectSecretsDirectory(nextElement.username).toString());
           
-          FileUtils.deleteQuietly(nextElement.tokenFile.toFile());
-          airflowJWTsIt.remove();
-          if (airflowMaterial != null) {
-            deleteAirflowMaterial(materialId);
-          }
-          deleteDirectoryIfEmpty(nextElement.tokenFile.getParent());
+          //FileUtils.deleteQuietly(nextElement.tokenFile.toFile());
+          //airflowJWTsIt.remove();
+          //if (airflowMaterial != null) {
+          //  deleteAirflowMaterial(materialId);
+          //}
+          //deleteDirectoryIfEmpty(nextElement.tokenFile.getParent());
         }
       } catch (Exception ex) {
         // Catch everything here. We don't want the timer thread to get killed (expunging timer)
