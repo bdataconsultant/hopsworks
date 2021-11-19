@@ -62,7 +62,7 @@
                             <button uib-tooltip="Use the default Python configuration for this project" class="btn btn-info" ng-show="jupyterCtrl.showProjectDefaultPythonConfigButton" ng-click="jupyterCtrl.useProjectDefaultPythonConfig()">Use project default</button>
                             <div ng-include="'views/jupyter/pythonConfig.html'"></div>
                         </div>
-                        <div class="col-sm-4 description" ng-class="{comments:sparkConfigCtrl.uneditableMode}">
+                        <!-- <div class="col-sm-4 description" ng-class="{comments:sparkConfigCtrl.uneditableMode}">
                             <p class="j-tab-advanced" style="width:100%;">Development in Jupyter</p>
                             <p> Jupyter notebook will behave identical to how it would
                                 if you start the notebook server locally on your machine using a
@@ -70,7 +70,7 @@
 
 
                             <div ng-include="'views/jupyter/commonTooltips.html'"></div>
-                        </div>
+                        </div> -->
                     </div>
                 </uib-tab>
                 <uib-tab index="1" heading="Experiments"
@@ -99,7 +99,7 @@
                             </md-radio-group>
                             <div ng-include="'views/jupyter/experimentConfig.html'"></div>
                         </div>
-                        <div class="col-sm-4 description" ng-class="{comments:sparkConfigCtrl.uneditableMode}">
+                        <!-- <div class="col-sm-4 description" ng-class="{comments:sparkConfigCtrl.uneditableMode}">
                             <div ng-if="sparkConfigCtrl.jobConfig.experimentType == 'EXPERIMENT'">
                                 <p class="j-tab-advanced" style="width:100%;">Experiment</p>
                                 <p> Run python wrapper functions on PySpark to run parallel hyperparameter optimization or distributed training orchestrated on PySpark executors.</p>
@@ -133,7 +133,7 @@
                                 </p>
                             </div>
                             <div ng-include="'views/jupyter/commonTooltips.html'"></div>
-                        </div>
+                        </div> -->
                     </div>
                 </uib-tab>
                 <uib-tab index="2" heading="Spark"
@@ -155,7 +155,7 @@
                             </md-radio-group>
                             <div ng-include="'views/jupyter/sparkConfig.html'"></div>
                         </div>
-                        <div class="col-sm-4 description" ng-class="{comments:sparkConfigCtrl.uneditableMode}">
+                        <!-- <div class="col-sm-4 description" ng-class="{comments:sparkConfigCtrl.uneditableMode}">
                             <div ng-if="sparkConfigCtrl.sparkType == 'SPARK_STATIC'">
                                 <p class="j-tab-advanced" style="width:100%;">Spark Static</p>
                                 <p>Spark is a general-purpose distributed data processing engine.</p>
@@ -167,7 +167,7 @@
                                 <p>With Spark dynamic you can set minimum and maximum number of executors.
                                     This means that your application may give resources back to the cluster if they are no longer used and request them again later when there is demand.</p>
                             </div>
-                        </div>
+                        </div> -->
                     </div>
                 </uib-tab>
             </uib-tabset>

@@ -124,7 +124,7 @@
 
   .nav-logo {
     height: var(--header-logo-height);
-    margin: 0 auto 0 auto;
+    margin: 10px auto 0 auto;
   }
   
   nav.navbar-sics ul.navbar-nav a:hover,
@@ -200,7 +200,8 @@
     z-index: 12;
     left: 100px;
     width: 0;
-    height: 100%;
+    height: inherit;
+    top: 80px;
     margin-left: -100px;
     overflow-y: auto;
     overflow-x: hidden;
