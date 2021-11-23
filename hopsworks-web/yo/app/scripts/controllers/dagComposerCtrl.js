@@ -86,7 +86,7 @@ angular.module('hopsWorksApp')
         }
 
         var launchJobOperator = new Operator(0, "HopsworksLaunchOperator",
-            "Operator to launch a Job in Hopsworks. Job should already be defined in Jobs UI "
+            "Operator to launch a Job in Big Data Platform. Job should already be defined in Jobs UI "
                 + "and job name in operator must match the job name in Jobs UI.", [true, true, false, true]);
         
         var jobSensor = new Operator(1, "HopsworksJobSuccessSensor",

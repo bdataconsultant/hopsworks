@@ -78,7 +78,10 @@ angular.module('hopsWorksApp')
             };
 
             self.goToAdminPage = function () {
-              $window.location.href = '/bigdata-admin/security/protected/admin/adminIndex.xhtml';
+              $window.open(
+                '/bigdata-admin/security/protected/admin/adminIndex.xhtml',
+                '_blank'
+              );
             };
 
             self.getEmailHash = function (email) {

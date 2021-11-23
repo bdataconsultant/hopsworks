@@ -862,7 +862,7 @@ angular.module('hopsWorksApp')
              * @param datasetId
              */
             self.publish = function(dataset) {
-              ModalService.confirm('sm', 'Confirm', 'Are you sure you want to make this Data Set Public(Cluster)? This will make its entire content available to all users of Hopsworks and its permissions will be set to Owner only').then(
+              ModalService.confirm('sm', 'Confirm', 'Are you sure you want to make this Data Set Public(Cluster)? This will make its entire content available to all users of Big Data Platform and its permissions will be set to Owner only').then(
                 function (success) {
                   dataSetService.publish(dataset.name, dataset.datasetType).then(
                     function (success) {

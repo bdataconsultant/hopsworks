@@ -42,11 +42,11 @@
      ng-click="projectCtrl.isClosed = !projectCtrl.isClosed">
     <i class="fa fa-2x fa-bars"></i>
   </a>
-  <nav class="navbar navbar-inverse navbar-fixed-top" id="sidebar-wrapper" role="navigation" style="margin-top:50px;"  ng-cloak>
+  <nav class="navbar navbar-inverse navbar-fixed-top" id="sidebar-wrapper" role="navigation" style="margin-top:50px; height:100%;"  ng-cloak>
     <div>
     <ul class="nav sidebar-nav" ng-cloak ng-controller="ClusterUtilisationCtrl as clusterUtilCtrl">
 
-      <li style="background: #070780;">
+      <li>
         <a href="#!/project/{{projectCtrl.currentProject.projectId}}" class="project-name" id="project_nav_title"
            title="{{projectCtrl.currentProject.projectName.length > 12 ? projectCtrl.currentProject.projectName:''}}"
            ng-class="{active: projectCtrl.activeService === 'home'}">

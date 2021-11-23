@@ -59,9 +59,9 @@ angular.module('hopsWorksApp')
             self.exampleProjectID;
             self.tours = [
                 {'name': 'Deep Learning', 'tip': 'Take a tour by creating a project and running a Deep Learning notebook!'},
-                {'name': 'Spark', 'tip': 'Take a tour of Hopsworks by creating a project and running a Spark job!'},
-                {'name': 'Kafka', 'tip': 'Take a tour of Hopsworks by creating a project and running a Kafka job!'},
-                {'name': 'Feature Store', 'tip': 'Take a tour of Hopsworks by creating a project and creating/reading features from your own Feature Store!'}
+                {'name': 'Spark', 'tip': 'Take a tour of Big Data Platform by creating a project and running a Spark job!'},
+                {'name': 'Kafka', 'tip': 'Take a tour of Big Data Platform by creating a project and running a Kafka job!'},
+                {'name': 'Feature Store', 'tip': 'Take a tour of Big Data Platform by creating a project and creating/reading features from your own Feature Store!'}
             ];
             self.tutorials = [];
             self.working = [];
