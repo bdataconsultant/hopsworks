@@ -72,6 +72,7 @@ import io.hops.hopsworks.common.dao.project.pia.PiaFacade;
 import io.hops.hopsworks.common.dao.user.UserFacade;
 import io.hops.hopsworks.common.dataset.DatasetController;
 import io.hops.hopsworks.common.dataset.FilePreviewDTO;
+import io.hops.hopsworks.common.featurestore.storageconnectors.jdbc.FeaturestoreJdbcConnectorController;
 import io.hops.hopsworks.common.hdfs.DistributedFileSystemOps;
 import io.hops.hopsworks.common.hdfs.DistributedFsService;
 import io.hops.hopsworks.common.hdfs.HdfsUsersController;
@@ -154,6 +155,8 @@ import java.util.logging.Logger;
 @TransactionAttribute(TransactionAttributeType.NEVER)
 public class ProjectService {
 
+  @EJB
+  private FeaturestoreJdbcConnectorController featurestoreJdbcConnectorController;
   @EJB
   private ProjectFacade projectFacade;
   @EJB
@@ -704,6 +707,23 @@ public class ProjectService {
         multiplicatorsList) {
     };
     return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).entity(multiplicators).build();
+  }
+
+  @POST
+  @Path("{projectId}/downloadMysqlPasswd")
+  @Produces(MediaType.APPLICATION_JSON)
+  @AllowedProjectRoles({AllowedProjectRoles.DATA_SCIENTIST, AllowedProjectRoles.DATA_OWNER})
+  public Response downloadMysqlPasswd(@PathParam("projectId") Integer id, @FormParam("password") String password,
+    @Context SecurityContext sc) throws ProjectException, HopsSecurityException {
+    Users user = jWTHelper.getUserPrincipal(sc);
+    if (user.getEmail().equals(Settings.AGENT_EMAIL) || !authController.validatePassword(user, password)) {
+      throw new HopsSecurityException(RESTCodes.SecurityErrorCode.CERT_ACCESS_DENIED, Level.FINE);
+    }
+    String passwd = featurestoreJdbcConnectorController.getConnectorPlainPasswordForUser
+            (user, projectController.findProjectById(id));
+    AccessCredentialsDTO certsDTO = new AccessCredentialsDTO();
+    certsDTO.setPassword(passwd);
+    return noCacheResponse.getNoCacheResponseBuilder(Response.Status.OK).entity(certsDTO).build();
   }
 
   @POST

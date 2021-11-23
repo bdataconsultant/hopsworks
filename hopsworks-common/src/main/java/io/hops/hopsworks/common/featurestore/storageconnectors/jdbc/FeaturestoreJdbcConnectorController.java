@@ -132,6 +132,19 @@ public class FeaturestoreJdbcConnectorController {
     return featurestoreJdbcConnectorDTO;
   }
 
+  public String getConnectorPlainPasswordForUser(Users user, Project project) {
+    try {
+      return String.format("%s@%s|%s",
+              onlineFeaturestoreController.onlineDbUsername(project, user),
+              onlineFeaturestoreController.getOnlineFeaturestoreDbName(project),
+              getConnectorPlainPasswordFromSecret(user,project.getName()));
+    } catch (Exception e) {
+      LOGGER.log(Level.SEVERE, "Could not get the online jdbc username for project: " +
+              project.getName() + ", " + "user: " + user.getEmail());
+      return null;
+    }
+  }
+
   /**
    * Gets the plain text password for the connector from the secret
    * @param user

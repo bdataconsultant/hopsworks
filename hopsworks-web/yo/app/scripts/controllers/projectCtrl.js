@@ -700,6 +700,21 @@ angular.module('hopsWorksApp')
               var isDone = StorageService.get("hopsworks-tourdone-" + tour);
             };
 
+            self.getMysqlPasswd = function () {
+                ModalService.certs('sm', 'Mysql Passwd Download', 'Please type your password', self.projectId)
+                    .then(function (successPwd) {
+                        CertService.downloadMysqlPasswd(self.currentProject.projectId, successPwd)
+                            .then(function (success) {
+                                var result = success.data;
+                                ModalService.certsPassword('sm', result.password);
+                            }, function (error) {
+                                var errorMsg = (typeof error.data.usrMsg !== 'undefined')? error.data.usrMsg : "";
+                                growl.error(errorMsg, {title: error.data.errorMsg, ttl: 5000});
+                            });
+                    }, function (error) {}
+                );
+            };
+
             self.getCerts = function () {
               UserService.profile().then(
                 function (success) {

@@ -45,6 +45,15 @@
 angular.module('hopsWorksApp')
   .factory('CertService', ['$http', function ($http) {
       var services = {
+        downloadMysqlPasswd: function (id, password) {
+          var req = {
+            method: 'POST',
+            url: '/api/project/' + id + '/downloadMysqlPasswd',
+            headers: {"Content-Type": "application/x-www-form-urlencoded"},
+            data: $.param({password: password})
+          };
+          return $http(req);
+        },
         downloadProjectCert: function (id, password) {
           var req = {
             method: 'POST',

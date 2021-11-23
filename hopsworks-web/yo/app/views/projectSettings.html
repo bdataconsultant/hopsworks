@@ -215,7 +215,16 @@
                                       ng-click="projectCtrl.getCerts()">
                                 Export Certificates
                               </button>
-                              <i class="fa fa-info-circle" uib-tooltip="Click to download project's certificates. It allows communication with the project's services from outside Hospworks." style="margin-left: 10px; margin-bottom:0px"></i>
+                              <i class="fa fa-info-circle" uib-tooltip="Click to download project's certificates. It allows communication with the project's services from outside Big Data Platform." style="margin-left: 10px; margin-bottom:0px"></i>
+                            </div>
+                            <div class="row" style="margin-left:15px; margin-bottom:0px; margin-top:10px;">
+                              <button class="btn btn-success" type="button"
+
+                                      ng-disabled="!projectCtrl.isServiceEnabled('FEATURESTORE')"
+                                      ng-click="projectCtrl.getMysqlPasswd()">
+                                Export MySQL Passwd
+                              </button>
+                              <i class="fa fa-info-circle" uib-tooltip="Click to show mysql online featurestore credentials." style="margin-left: 10px; margin-bottom:0px"></i>
                             </div>
                           </div>
 
@@ -396,7 +405,7 @@
                 </form>
               </uib-tab>
               <uib-tab index="3" heading="Versions">
-                <h3>Hopsworks Software Versions</h3>
+                <h3>Big Data Platform Software Versions</h3>
                 <table st-table="rowCollection" class="table table-striped" ng-show="projectSettingsCtrl.versions.length > 0">
                   <thead>
                     <tr>
@@ -417,7 +426,7 @@
                 </table>
               </uib-tab>
               <uib-tab index="4" heading="Provenance">
-                <h3>Hopsworks Provenance Settings</h3>
+                <h3>Big Data Platform Provenance Settings</h3>
                 <div class="panel panel-default"  style="width: 800px; background-color: #F7F7F7;" ng-controller="ProvenanceCtrl as provenanceCtrl">
                   <div class="panel-body">
                     <div id="projectProvenance">
