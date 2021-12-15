@@ -162,14 +162,11 @@ public class UsersController {
   }
 
   public UserDTO registerAndActivateUser(UserDTO newUser, String validationKeyUrl) throws UserException {
-    Users user;
-
-    try {
     userValidator.isValidNewUser(newUser);
-    user = createNewUser(newUser, UserAccountStatus.ACTIVATED_ACCOUNT, UserAccountType.M_ACCOUNT_TYPE);
+    Users user = createNewUser(newUser, UserAccountStatus.ACTIVATED_ACCOUNT, UserAccountType.M_ACCOUNT_TYPE);
 
     //to prevent sending email for test user emails
-
+    try {
       if (!newUser.isTestUser()) {
         // Notify user about the request if not test user.
         authController.sendEmailValidationKey(user, user.getValidationKey(), validationKeyUrl);
@@ -185,13 +182,12 @@ public class UsersController {
         userFacade.update(user);
       }
 
-    } catch (Exception ex) {
-      ex.printStackTrace();
+    } catch (MessagingException ex) {
       throw new UserException(RESTCodes.UserErrorCode.ACCOUNT_REGISTRATION_ERROR, Level.SEVERE,
               "user: " + newUser.getUsername(), ex.getMessage(), ex);
     }
 
-    return new UserDTO(user);
+    return  new UserDTO(user);
   }
   
   public void addRole(String role, Integer id) throws UserException {
