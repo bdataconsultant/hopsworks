@@ -13,6 +13,8 @@
         disableBigdataLogout: false,
         disableIotLogout: false,
         federatedLogoutUrl: null,
+        favicon: "images/giotto-favi.png",
+        windowTitle: "Big Data Platform",
         appUrlsConfig: {
           bigdata: "/giotto-web",
           iot: "/home",
@@ -31,7 +33,6 @@
       footerImgWidth: "340px",
       logo: "images/big-data-logo-header.png",
       loginLogo: "images/big-data-logo-login.png",
-      favIcon: "images/giotto-favi.png",
       platformHeaderLogo: "images/big-data-logo.png",
       footerImage: "images/pon-metro-logo.png"
     };

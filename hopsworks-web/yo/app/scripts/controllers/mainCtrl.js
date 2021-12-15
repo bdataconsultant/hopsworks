@@ -90,6 +90,17 @@ angular.module('hopsWorksApp')
         );
         platformHeader.init();
         document.getElementById('gph__logo').setAttribute("src", header.logoDir);
+        if(!!header.favicon) {
+          var link = document.querySelector("link[rel~='icon']");
+          if (!link) {
+              link = document.createElement('link');
+              link.rel = 'icon';
+              document.getElementsByTagName('head')[0].appendChild(link);
+          }
+          link.href = header.favicon;
+        }
+        if(!!header.windowTitle)
+          window.document.title = header.windowTitle;
       }
 
       function loadThemeAndImages(configObject) {
@@ -97,8 +108,6 @@ angular.module('hopsWorksApp')
         $scope.footerImage = configObject.footerImage;
         $scope.navbarLogo = configObject.logo;
         $scope.loginLogo = configObject.loginLogo;
-        $scope.favIcon = configObject.favIcon;
-        document.getElementById("favicon").setAttribute("href", configObject.favIcon);
         document.documentElement.style.setProperty("--main", configObject.main);
         document.documentElement.style.setProperty("--gradient-secondary", configObject.gradientSecondary);
         document.documentElement.style.setProperty("--border", configObject.border);
