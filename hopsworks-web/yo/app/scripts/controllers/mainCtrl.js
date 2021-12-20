@@ -90,17 +90,6 @@ angular.module('hopsWorksApp')
         );
         platformHeader.init();
         document.getElementById('gph__logo').setAttribute("src", header.logoDir);
-        if(!!header.favicon) {
-          var link = document.querySelector("link[rel~='icon']");
-          if (!link) {
-              link = document.createElement('link');
-              link.rel = 'icon';
-              document.getElementsByTagName('head')[0].appendChild(link);
-          }
-          link.href = header.favicon;
-        }
-        if(!!header.windowTitle)
-          window.document.title = header.windowTitle;
       }
 
       function loadThemeAndImages(configObject) {
@@ -117,6 +106,17 @@ angular.module('hopsWorksApp')
         document.documentElement.style.setProperty("--header-title-color", configObject.headerTitleColor);
         document.documentElement.style.setProperty("--header-logo-height", configObject.headerLogoHeight);
         document.documentElement.style.setProperty("--footer-img-width", configObject.footerImgWidth);
+        if(!!configObject.favicon) {
+          var link = document.querySelector("link[rel~='icon']");
+          if (!link) {
+              link = document.createElement('link');
+              link.rel = 'icon';
+              document.getElementsByTagName('head')[0].appendChild(link);
+          }
+          link.href = configObject.favicon;
+        }
+        if(!!configObject.windowTitle)
+          window.document.title = configObject.windowTitle;
       }
 
       // THEME INIZIALIZATION

@@ -426,7 +426,7 @@
   }
   
   .gph__title {
-    color:var(--header-title-color);
+    color:var(--header-title-color) !important;
   }
   
   .gph__item__tab .active {
