@@ -147,6 +147,7 @@
 
 .sidebar-nav {
   font-family: 'Roboto', sans-serif;
+  font-size: 12px;
   position: absolute;
   top: 32;
   width: 100px;
