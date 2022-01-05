@@ -616,7 +616,7 @@ a.fs_card.bg-inverse:focus, a.fs_card.bg-inverse:hover {
 }
 
 .panel-fullscreen.sidenav-open {
-  width: calc(100% - 200px);
+  width: calc(100% - 100px);
   -webkit-transition: all 0.5s ease;
   -moz-transition: all 0.5s ease;
   -o-transition: all 0.5s ease;
