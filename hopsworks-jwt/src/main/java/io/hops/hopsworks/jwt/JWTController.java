@@ -602,12 +602,15 @@ public class JWTController {
   }
 
   private void invalidateJWT(String id, Date exp, int leeway) throws InvalidationException {
+    LOGGER.log(Level.FINE, "Trying to invalidate JWT");
     try {
       InvalidJwt invalidJwt = new InvalidJwt(id, exp, leeway);
+      invalidJwtFacade.remove(invalidJwt);
       invalidJwtFacade.persist(invalidJwt);
     } catch (Exception e) {
       throw new InvalidationException("Could not persist token.", e.getCause());
     }
+    LOGGER.log(Level.FINE, "JWT invalidated successfully");
   }
 
   /**
