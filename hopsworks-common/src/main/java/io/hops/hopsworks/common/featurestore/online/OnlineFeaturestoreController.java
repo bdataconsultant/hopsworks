@@ -271,7 +271,7 @@ public class OnlineFeaturestoreController {
       secretsController.add(user, dbuser, onlineFsPw, VisibilityType.PRIVATE, project.getId());
     } catch (UserException e) {
       throw new FeaturestoreException(RESTCodes.FeaturestoreErrorCode.FEATURESTORE_ONLINE_SECRETS_ERROR,
-              Level.SEVERE, "Problem adding online featurestore password to hopsworks secretsmgr");
+              Level.SEVERE, "Problem adding online featurestore password to secretsmgr");
     }
     return onlineFsPw;
   }
@@ -378,7 +378,7 @@ public class OnlineFeaturestoreController {
 
     FeaturestoreConnector featurestoreConnector = new FeaturestoreConnector();
     featurestoreConnector.setName(connectorName);
-    featurestoreConnector.setDescription("JDBC connection to Hopsworks Project Online " +
+    featurestoreConnector.setDescription("JDBC connection to Project Online " +
         "Feature Store NDB Database for user: " + onlineDbUsername);
     featurestoreConnector.setFeaturestore(featurestore);
     featurestoreConnector.setConnectorType(FeaturestoreConnectorType.JDBC);

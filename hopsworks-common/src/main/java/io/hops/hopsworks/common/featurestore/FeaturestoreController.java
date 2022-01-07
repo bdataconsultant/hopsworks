@@ -255,7 +255,7 @@ public class FeaturestoreController {
 
   public FeaturestoreStorageConnectorDTO hopsfsTrainingDatasetConnector(Dataset hopsfsDataset) {
     String name = hopsfsDataset.getName();
-    String description = "HOPSFS backend for storing Training Datasets of the Hopsworks Feature Store";
+    String description = "HOPSFS backend for storing Training Datasets of the Feature Store";
     FeaturestoreHopsfsConnectorDTO featurestoreHopsfsConnectorDTO = new FeaturestoreHopsfsConnectorDTO();
     featurestoreHopsfsConnectorDTO.setStorageConnectorType(FeaturestoreConnectorType.HOPSFS);
     featurestoreHopsfsConnectorDTO.setName(name);
