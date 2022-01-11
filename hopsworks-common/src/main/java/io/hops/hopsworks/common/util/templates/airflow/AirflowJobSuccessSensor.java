@@ -17,7 +17,7 @@
 package io.hops.hopsworks.common.util.templates.airflow;
 
 public class AirflowJobSuccessSensor extends AirflowOperator {
-  public static final String NAME = "HopsworksJobSuccessSensor";
+  public static final String NAME = "JobSuccessSensor";
   
   private final String jobName;
   

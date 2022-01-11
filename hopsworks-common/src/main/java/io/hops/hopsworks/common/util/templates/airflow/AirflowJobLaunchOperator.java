@@ -17,7 +17,7 @@
 package io.hops.hopsworks.common.util.templates.airflow;
 
 public class AirflowJobLaunchOperator extends AirflowOperator {
-  public static final String NAME = "HopsworksLaunchOperator";
+  public static final String NAME = "JobLaunchOperator";
   
   private final String jobName;
   private boolean wait;

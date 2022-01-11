@@ -85,11 +85,11 @@ angular.module('hopsWorksApp')
             return this.attributesMask[attribute];
         }
 
-        var launchJobOperator = new Operator(0, "HopsworksLaunchOperator",
+        var launchJobOperator = new Operator(0, "JobLaunchOperator",
             "Operator to launch a Job in Hopsworks. Job should already be defined in Jobs UI "
                 + "and job name in operator must match the job name in Jobs UI.", [true, true, false, true]);
         
-        var jobSensor = new Operator(1, "HopsworksJobSuccessSensor",
+        var jobSensor = new Operator(1, "JobSuccessSensor",
             "Operator which waits for the completion of a specific job. Job must be defined "
                 + "in Jobs UI and job name in operator must match the job name in Jobs UI. "
                 + "The task will fail too if the job which is waiting for fails.", [true, false]);
@@ -99,7 +99,7 @@ angular.module('hopsWorksApp')
                 + "group. It assumes that the data validation Job has run before and it has finished. "
                 + "The task will fail if the validation result is not successful.", [false, false, true]);
 
-        self.availableOperators = [launchJobOperator, jobSensor, validationResult];
+        self.availableOperators = [launchJobOperator, jobSensor];
 
         self.finishedDagDefinition = function() {
             if (self.isUndefined(self.dag.name) || self.dag.name == "") {
