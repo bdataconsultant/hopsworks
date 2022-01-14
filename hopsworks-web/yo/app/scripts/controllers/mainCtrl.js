@@ -96,6 +96,7 @@ angular.module('hopsWorksApp')
               $scope.navbarLogo = configObject.logo;
               $scope.loginLogo = configObject.loginLogo;
               $scope.favIcon = configObject.favIcon;
+              $scope.additionalNavbarButton = configObject.additionalNavbarButton;
               document.getElementById("favicon").setAttribute("href", configObject.favIcon);
               document.documentElement.style.setProperty("--main", configObject.main);
               document.documentElement.style.setProperty("--gradient-secondary", configObject.gradientSecondary);
