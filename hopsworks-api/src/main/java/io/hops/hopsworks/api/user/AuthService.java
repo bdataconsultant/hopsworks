@@ -45,6 +45,7 @@ import io.hops.hopsworks.api.filter.NoCacheResponse;
 import io.hops.hopsworks.api.jwt.JWTHelper;
 import io.hops.hopsworks.api.util.RESTApiJsonResponse;
 import io.hops.hopsworks.common.constants.message.ResponseMessages;
+import io.hops.hopsworks.common.dao.user.PasswordChangeDTO;
 import io.hops.hopsworks.common.dao.user.UserDTO;
 import io.hops.hopsworks.common.dao.user.UserFacade;
 import io.hops.hopsworks.common.dao.user.security.audit.AccountAuditFacade;
@@ -458,6 +459,21 @@ public class AuthService {
 			MessagingException {
 		RESTApiJsonResponse json = new RESTApiJsonResponse();
 		userController.changePassword(key, newPassword, confirmPassword);
+		json.setSuccessMessage(ResponseMessages.PASSWORD_CHANGED);
+		return Response.ok(json).build();
+	}
+
+	@POST
+	@Path("/update/password")
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	@JWTRequired(acceptedTokens = {Audience.API})
+	public Response changeUserPassword(
+			PasswordChangeDTO change, @Context HttpServletRequest req,
+			@Context SecurityContext sc) throws UserException, MessagingException {
+		RESTApiJsonResponse json = new RESTApiJsonResponse();
+		Users user = jWTHelper.getUserPrincipal(sc);
+		userController.changePassword(user, change.getOldPassword(), change.getNewPassword(), change.getConfirmPassword());
 		json.setSuccessMessage(ResponseMessages.PASSWORD_CHANGED);
 		return Response.ok(json).build();
 	}
