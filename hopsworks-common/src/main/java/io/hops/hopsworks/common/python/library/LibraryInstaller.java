@@ -438,6 +438,43 @@ public class LibraryInstaller {
         //As we find library names and versions using that command we need to make sure it does not break
         writer.write(" && " + getCleanupCommand() + " && " + anaconda_dir + "/bin/conda list -n "
             + settings.getCurrentCondaEnvironment());
+
+        String constants = anaconda_dir + "/envs/theenv/lib/python3.7/site-packages/hops/constants.py";
+        String base = anaconda_dir + "/envs/theenv/lib/python3.7/site-packages/hsfs/client/base.py";
+        String pythonlivy = anaconda_dir + "/envs/theenv/lib/python3.7/site-packages/sparkmagic/livyclientlib/livysession.py";
+        String sparkmagiclivy = anaconda_dir + "/sparkmagic/sparkmagic/sparkmagic/livyclientlib/livysession.py";
+
+        String ifThen = " && if [ -f %s ]; then ";
+        String sed = "sed -i 's/hopsworks-api/giotto-api/g' %s";
+        String fi = "; fi";
+
+        writer.write(String.format(ifThen, constants));
+        writer.write(String.format(sed, constants));
+        writer.write(fi);
+
+        writer.write(String.format(ifThen, base));
+        writer.write(String.format(sed, base));
+        writer.write(fi);
+
+        writer.write(String.format(ifThen, pythonlivy));
+        writer.write(String.format(sed, pythonlivy));
+        writer.write(fi);
+
+        writer.write(String.format(ifThen, sparkmagiclivy));
+        writer.write(String.format(sed, sparkmagiclivy));
+        writer.write(fi);
+
+/*
+        writer.write(" && " + "sed -i 's/hopsworks-api/giotto-api/g' " + anaconda_dir +
+                "/envs/theenv/lib/python3.7/site-packages/hops/constants.py");
+
+        writer.write(" && " + "sed -i 's/hopsworks-api/giotto-api/g' " + anaconda_dir +
+                "/envs/theenv/lib/python3.7/site-packages/hsfs/client/base.py");
+        writer.write(" && " + "sed -i 's/hopsworks-api/giotto-api/g' " + anaconda_dir +
+                "/envs/theenv/lib/python3.7/site-packages/sparkmagic/livyclientlib/livysession.py");
+        writer.write(" && " + "sed -i 's/hopsworks-api/giotto-api/g' " + anaconda_dir +
+                "/sparkmagic/sparkmagic/sparkmagic/livyclientlib/livysession.py");
+*/
       }
       
       String nextDockerImageName = getNextDockerImageName(project);
