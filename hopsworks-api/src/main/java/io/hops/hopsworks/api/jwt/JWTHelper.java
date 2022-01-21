@@ -99,7 +99,13 @@ public class JWTHelper {
   public Users getUserPrincipal(HttpServletRequest req) {
     String jwt = getAuthToken(req);
     DecodedJWT djwt = jwtController.decodeToken(jwt);
-    return djwt == null ? null : userFacade.findByUsername(djwt.getSubject());
+    if(djwt != null) {
+      com.auth0.jwt.interfaces.Claim subClaim = djwt.getClaim("bd_sub");
+      if(!subClaim.isNull())
+        LOGGER.fine(String.format("bd_sub claim ==> %s", subClaim.asString()));
+      return subClaim.isNull() ? userFacade.findByUsername(djwt.getSubject()) : userFacade.findByUsername(subClaim.asString());
+    }
+    return null;
   }
   
   /**
