@@ -183,6 +183,10 @@ angular.module('hopsWorksApp')
               $window.location.href = '/giotto-admin/security/protected/admin/adminIndex.xhtml';
             };
 
+            self.goToBIPage = function(href) {
+                $window.open(href, '_blank');
+            };
+
             self.getEmailHash = function (email) {
               return md5.createHash(email || '');
             };
