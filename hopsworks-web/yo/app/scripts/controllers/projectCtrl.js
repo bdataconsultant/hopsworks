@@ -520,11 +520,11 @@ angular.module('hopsWorksApp')
             };
 
             self.showExperiments = function () {
-              return (showService("Jobs") || showService("Jupyter"));
+              return showService("Serving");
             };
 
             self.showModels = function () {
-              return (showService("Jobs") || showService("Jupyter") || showService("Serving"));
+              return showService("Serving");
             };
 
             self.showSsh = function () {
