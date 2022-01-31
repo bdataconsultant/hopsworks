@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "dependencies": {
     "apexcharts": "^3.6.8",
-    "@giotto-jfrog/giotto-platform-header": "~2.0.0"
+    "@giotto-jfrog/giotto-platform-header": "~2.0.5"
   },
   "repository": {},
   "devDependencies": {

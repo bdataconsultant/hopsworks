@@ -79,6 +79,8 @@ angular.module('hopsWorksApp')
             appContext: 'bigdata',
             appTitle: header.appTitle,
             logout: headerLogout,
+            hideTabs: header.hideTabs,
+            showAppMenuLabel: header.showAppMenuLabel,
             oauth2LogOutUrl: header.oauth2LogOutUrl,
             logoutOnCloseSession: header.logoutOnCloseSession,
             disableBigdataLogout: header.disableBigdataLogout,
