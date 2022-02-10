@@ -103,7 +103,7 @@
   }
 
   .navbar-brand {
-    width: 74px;
+    width: fit-content;
     text-align: center;
   }
 

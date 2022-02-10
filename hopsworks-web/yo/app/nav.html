@@ -40,7 +40,7 @@
 <script>$(document).ready(hamburger);</script>
 
 <nav class="navbar navbar-default navbar-sics navbar-fixed-top" id="header_nav" ng-cloak="">
-  <div ng-class="{'container': !projectView, 'container-fluid': projectView}" style="height: 100%;">
+  <div ng-class="container-fluid" style="height: 100%; margin-right:10px; margin-left:10px;">
     <div growl class="pull-right" ng-cloak></div>
     <div class="navbar-header" style="padding-top:0">
       <!-- <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar"
@@ -50,8 +50,7 @@
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button> -->
-      <div>
-        <a class="navbar-brand" href="{{getLocationBase()}}"
+        <a class="navbar-brand" ng-click="mainCtrl.goHome()"
           style="font-family: Roboto; font-size: 30px; color: #fff;padding:1;">
           <img alt="giotto icon" class="nav-logo" ng-src="{{navbarLogo}}" />
         </a>
@@ -62,7 +61,6 @@
             <span class="hamb-bottom"></span>
           </button>
         </div> -->
-      </div>
     </div>
     <div>
       <p class="navbar-project-name pull-left">{{ mainCtrl.navProjectName }}</p>

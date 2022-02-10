@@ -5119,6 +5119,7 @@ body.skin-3 {
     display: none;
   }
   .navbar-header {
+    width: fit-content;
     position: absolute;
     left: 15px;
     top: 3px;

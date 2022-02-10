@@ -186,6 +186,11 @@ angular.module('hopsWorksApp')
         $window.location.href = '/giotto-admin/security/protected/admin/adminIndex.xhtml';
       };
 
+      self.goHome = function () {
+        if(!!$routeParams.projectID)
+          location.href = getLocationBase();
+      }
+
       self.getEmailHash = function (email) {
         return md5.createHash(email || '');
       };
