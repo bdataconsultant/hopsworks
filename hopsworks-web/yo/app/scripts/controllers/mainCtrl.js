@@ -99,6 +99,7 @@ angular.module('hopsWorksApp')
         $scope.footerImage = configObject.footerImage;
         $scope.navbarLogo = configObject.logo;
         $scope.loginLogo = configObject.loginLogo;
+        $scope.additionalNavbarButton = configObject.additionalNavbarButton;
         document.documentElement.style.setProperty("--main", configObject.main);
         document.documentElement.style.setProperty("--gradient-secondary", configObject.gradientSecondary);
         document.documentElement.style.setProperty("--border", configObject.border);
