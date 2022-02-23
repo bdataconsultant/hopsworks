@@ -187,6 +187,10 @@ angular.module('hopsWorksApp')
         $window.location.href = '/giotto-admin/security/protected/admin/adminIndex.xhtml';
       };
 
+      self.goToBIPage = function(href) {
+        $window.open(href, '_blank');
+      };
+
       self.goHome = function () {
         if(!!$routeParams.projectID)
           location.href = getLocationBase();

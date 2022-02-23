@@ -66,7 +66,7 @@
       <p class="navbar-project-name pull-left">{{ mainCtrl.navProjectName }}</p>
     </div>
     <div class="pull-right" style="margin-top: 6px;">
-      <a style="inline-size: inherit; margin-right: 15px;" ng-show="!!additionalNavbarButton" href="{{ additionalNavbarButton.href }}"><img
+      <a style="inline-size: inherit; margin-right: 15px;" ng-show="!!additionalNavbarButton" ng-click="mainCtrl.goToBIPage(additionalNavbarButton.href)"><img
               src="{{ additionalNavbarButton.logo }}" style="height: 25px;"></img><label
               style="cursor: pointer; color: white;font-size:18px; font-weight: bold;">&nbsp;{{ additionalNavbarButton.label }}</label></a>
       <!-- <button class="btn btn-outline-primary btn-lg btn-icon" ng-show="mainCtrl.isAdmin() === 'true'"> -->
