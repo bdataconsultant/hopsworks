@@ -112,7 +112,14 @@ public class PathValidator {
       dsPath.setFullPath(new Path(path));
       String[] pathComponents = path.split("/");
       buildHiveDsRelativePath(project, pathComponents, dsPath);
-    } else {
+    } else if(path.startsWith(Settings.DIR_ROOT) && path.split(Settings.DIR_ROOT).length == 2) {
+      // Case Projects/project1/ds/dsRelativePath
+      path = File.separator.concat(path);
+      dsPath.setFullPath(new Path(path));
+      String[] pathComponents = path.split("/");
+      buildProjectDsRelativePath(project, pathComponents, dsPath);
+    }
+    else {
       // Case ds/dsRelativePath
       buildFullPath(project, path, dsPath);
     }
