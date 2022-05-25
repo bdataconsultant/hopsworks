@@ -70,32 +70,8 @@ angular.module('hopsWorksApp')
       // HEADER PLUGIN INIZIALIZATION
 
 
-      var platformHeader;
-      function initizializeHeader(header) {
-        platformHeader = new GiottoPlatformHeader(
-          headerDiv,
-          {
-            logoDir: header.logoDir,
-            appContext: 'bigdata',
-            appTitle: header.appTitle,
-            logout: headerLogout,
-            hideTabs: header.hideTabs,
-            showAppMenuLabel: header.showAppMenuLabel,
-            oauth2LogOutUrl: header.oauth2LogOutUrl,
-            logoutOnCloseSession: header.logoutOnCloseSession,
-            disableBigdataLogout: header.disableBigdataLogout,
-            disableIotLogout: header.disableIotLogout,
-            logOutRedirectUrl: header.logOutRedirectUrl,
-            federatedLogoutUrl: header.federatedLogoutUrl,
-            appUrlsConfig: header.appUrlsConfig
-          }
-        );
-        platformHeader.init();
-        document.getElementById('gph__logo').setAttribute("src", header.logoDir);
-      }
 
       function loadThemeAndImages(configObject) {
-        $scope.platformHeaderLogo = configObject.platformHeaderLogo;
         $scope.footerImage = configObject.footerImage;
         $scope.navbarLogo = configObject.logo;
         $scope.loginLogo = configObject.loginLogo;
@@ -104,6 +80,7 @@ angular.module('hopsWorksApp')
         document.documentElement.style.setProperty("--gradient-secondary", configObject.gradientSecondary);
         document.documentElement.style.setProperty("--border", configObject.border);
         document.documentElement.style.setProperty("--hover", configObject.hover);
+        document.documentElement.style.setProperty("--sidemenu-bg", configObject.sidemenuBg);
         document.documentElement.style.setProperty("--header-primary", configObject.headerPrimary);
         document.documentElement.style.setProperty("--header-secondary", configObject.headerSecondary);
         document.documentElement.style.setProperty("--header-title-color", configObject.headerTitleColor);
@@ -131,13 +108,11 @@ angular.module('hopsWorksApp')
         self.header = response.data.header;
         self.theme = response.data.bigdata;
         $scope.$applyAsync(function() {
-          initizializeHeader(self.header);
           loadThemeAndImages(self.theme);
 
         });
       }).catch(function() {
         customerConfig
-        initizializeHeader(customerConfig.header);
         loadThemeAndImages(customerConfig);
       }
       );
@@ -201,7 +176,6 @@ angular.module('hopsWorksApp')
       };
 
       self.logout = function () {
-        platformHeader.logOut()();
       };
 
       var checkDelaEnabled = function () {

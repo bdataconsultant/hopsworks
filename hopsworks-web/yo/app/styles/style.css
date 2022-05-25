@@ -44,13 +44,14 @@ html {
 }
 body {
   height: 100%;
-  font-family: "Source Sans Pro", sans-serif;
+  font-family:  "Titillium Web", HelveticaNeue-Light, "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
   font-size: 14px;
   line-height: 1.52857;
   padding: 0;
   min-width: 1280px;
   width: 100%;
   margin: 0;
+  overflow: hidden;
 }
 
 [ng\:cloak], [ng-cloak], [data-ng-cloak], [x-ng-cloak], .ng-cloak, .x-ng-cloak {

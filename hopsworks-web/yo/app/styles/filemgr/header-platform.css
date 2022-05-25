@@ -9,7 +9,7 @@
 }
 
 .navbar-fixed-top {
-    top: 40px !important;
+    top: 50px !important;
 }
 
 .widget-body {
@@ -17,11 +17,11 @@
 }
 
 .content {
-    margin-top: 120px !important;
+    margin-top: 64px !important;
 }
 
 .content-wrapper {
-    margin-top: 120px !important;
+    margin-top: 64px !important;
 }
 
 .gph__item__round-icon__content {
